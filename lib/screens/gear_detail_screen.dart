@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/gear.dart';
+import 'gear_history_screen.dart';
 import 'log_workout_screen.dart';
 
 class GearDetailScreen extends StatelessWidget {
@@ -23,21 +24,16 @@ class GearDetailScreen extends StatelessWidget {
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 24),
-
           Text('Prescription', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 10),
           Text('Work: ${gear.work}'),
           Text('Rest: ${gear.rest}'),
           Text('Intervals: ${gear.intervals}'),
-
           const SizedBox(height: 24),
-
           Text('Target Pace', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 10),
           Text('${gear.targetPaceDisplay} / mile'),
-
           const SizedBox(height: 30),
-
           ElevatedButton(
             onPressed: () {
               Navigator.push(
@@ -48,6 +44,18 @@ class GearDetailScreen extends StatelessWidget {
               );
             },
             child: const Text('Log Workout'),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => GearHistoryScreen(gear: gear),
+                ),
+              );
+            },
+            child: const Text('View Gear History'),
           ),
         ],
       ),
