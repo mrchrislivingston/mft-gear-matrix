@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'history_screen.dart';
 import 'matrix_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -16,36 +17,52 @@ class HomeScreen extends StatelessWidget {
           children: [
             const Text('Base Phase', style: TextStyle(fontSize: 18)),
             const SizedBox(height: 30),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const MatrixScreen()),
-                  );
-                },
-                child: const Text('Matrix'),
-              ),
+            _HomeButton(
+              label: 'Matrix',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MatrixScreen()),
+                );
+              },
             ),
             const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {},
-                child: const Text('Benchmarks'),
-              ),
-            ),
+            _HomeButton(label: 'Benchmarks', onTap: () {}),
             const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {},
-                child: const Text('Weightlifting'),
-              ),
+            _HomeButton(label: 'Weightlifting', onTap: () {}),
+            const SizedBox(height: 10),
+            _HomeButton(
+              label: 'History',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HistoryScreen()),
+                );
+              },
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _HomeButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _HomeButton({
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: onTap,
+        child: Text(label),
       ),
     );
   }

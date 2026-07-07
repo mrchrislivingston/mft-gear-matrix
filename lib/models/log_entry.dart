@@ -1,17 +1,29 @@
+class IntervalResult {
+  final int intervalNumber;
+  final String distance;
+  final String avgPace;
+  final String avgHr;
+  final String rpe;
+
+  const IntervalResult({
+    required this.intervalNumber,
+    required this.distance,
+    required this.avgPace,
+    required this.avgHr,
+    required this.rpe,
+  });
+}
+
 class LogEntry {
   final int gearNumber;
   final DateTime date;
-  final String actualWork;
-  final String actualRest;
   final String notes;
-  final bool success;
+  final List<IntervalResult> intervals;
 
   const LogEntry({
     required this.gearNumber,
     required this.date,
-    required this.actualWork,
-    required this.actualRest,
     required this.notes,
-    required this.success,
+    required this.intervals,
   });
 }

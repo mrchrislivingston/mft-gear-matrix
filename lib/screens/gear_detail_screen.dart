@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/gear.dart';
-import '../models/log_entry.dart';
-import '../services/app_state.dart';
+import 'log_workout_screen.dart';
 
 class GearDetailScreen extends StatelessWidget {
   final Gear gear;
@@ -16,41 +15,41 @@ class GearDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Gear ${gear.number}')),
-      body: Padding(
+      body: ListView(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Work: ${gear.work}', style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 10),
-            Text('Rest: ${gear.rest}', style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 10),
-            Text(
-              'Intervals: ${gear.intervals}',
-              style: const TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: () {
-                AppState.instance.addLog(
-                  LogEntry(
-                    gearNumber: gear.number,
-                    date: DateTime.now(),
-                    actualWork: gear.work,
-                    actualRest: gear.rest,
-                    notes: 'placeholder',
-                    success: true,
-                  ),
-                );
+        children: [
+          Text(
+            'Gear ${gear.number}',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 24),
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Logged workout')),
-                );
-              },
-              child: const Text('Log Workout'),
-            ),
-          ],
-        ),
+          Text('Prescription', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 10),
+          Text('Work: ${gear.work}'),
+          Text('Rest: ${gear.rest}'),
+          Text('Intervals: ${gear.intervals}'),
+
+          const SizedBox(height: 24),
+
+          Text('Target Pace', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 10),
+          Text('${gear.targetPaceDisplay} / mile'),
+
+          const SizedBox(height: 30),
+
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LogWorkoutScreen(gear: gear),
+                ),
+              );
+            },
+            child: const Text('Log Workout'),
+          ),
+        ],
       ),
     );
   }
