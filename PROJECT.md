@@ -287,3 +287,24 @@ Persistence is working.
 Navigation is complete.
 
 Ready to begin Living Matrix development.
+
+# Session Notes
+
+## 2026-07-08
+
+Completed:
+
+- Fixed SharedPreferences persistence.
+- Workout history now survives app restarts.
+- Added Home icon to all navigation screens.
+- Created PROJECT.md.
+- Established development workflow.
+
+Next Session:
+
+Begin designing the Living Matrix data model.
+
+Goal:
+
+Never overwrite target values.
+Every target change becomes historical data.
