@@ -10,7 +10,17 @@ class RunGridScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Run Grid')),
+      appBar: AppBar(
+  title: const Text('Run Grid'),
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.home),
+      onPressed: () {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      },
+    ),
+  ],
+),
       body: ListView.separated(
         padding: const EdgeInsets.all(20),
         itemCount: runGears.length,

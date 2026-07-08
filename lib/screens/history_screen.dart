@@ -8,7 +8,17 @@ class HistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('History')),
+      appBar: AppBar(
+  title: const Text('History'),
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.home),
+      onPressed: () {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      },
+    ),
+  ],
+),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

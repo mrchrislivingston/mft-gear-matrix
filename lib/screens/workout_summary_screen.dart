@@ -68,7 +68,17 @@ class WorkoutSummaryScreen extends StatelessWidget {
             log.intervals.length;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Workout Summary')),
+      appBar: AppBar(
+  title: const Text('Workout Summary'),
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.home),
+      onPressed: () {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      },
+    ),
+  ],
+),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

@@ -85,7 +85,17 @@ class GearHistoryScreen extends StatelessWidget {
         .toList();
 
     return Scaffold(
-      appBar: AppBar(title: Text('Gear ${gear.number} History')),
+      appBar: AppBar(
+  title: Text('Gear ${gear.number} History'),
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.home),
+      onPressed: () {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      },
+    ),
+  ],
+),
       body: logs.isEmpty
           ? const Center(child: Text('No history for this gear yet'))
           : ListView.builder(

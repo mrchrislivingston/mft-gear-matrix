@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 
 import 'screens/home_screen.dart';
+import 'services/app_state.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await AppState.instance.loadLogs();
+
   runApp(const GearMatrixApp());
 }
 

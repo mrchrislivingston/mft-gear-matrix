@@ -9,7 +9,17 @@ class HistoryRunGearsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Run History')),
+      appBar: AppBar(
+  title: const Text('Run History'),
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.home),
+      onPressed: () {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      },
+    ),
+  ],
+),
       body: ListView.separated(
         padding: const EdgeInsets.all(20),
         itemCount: runGears.length,

@@ -65,6 +65,7 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
     for (final controller in rpeControllers) {
       controller.dispose();
     }
+
     notesController.dispose();
     super.dispose();
   }
@@ -204,7 +205,7 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
       intervals: intervals,
     );
 
-    AppState.instance.addLog(log);
+    await AppState.instance.addLog(log);
 
     if (!mounted) return;
 
@@ -221,7 +222,17 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
     final gear = widget.gear;
 
     return Scaffold(
-      appBar: AppBar(title: Text('Log Gear ${gear.number}')),
+      appBar: AppBar(
+  title: Text('Log Gear ${gear.number}'),
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.home),
+      onPressed: () {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      },
+    ),
+  ],
+),
       body: Form(
         key: formKey,
         child: ListView(
@@ -235,7 +246,6 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
             const SizedBox(height: 10),
             Text('Target Pace: ${gear.targetPaceDisplay} / mile'),
             const SizedBox(height: 30),
-
             for (int index = 0; index < gear.intervals; index++) ...[
               Card(
                 child: Padding(
@@ -293,7 +303,6 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
               ),
               const SizedBox(height: 12),
             ],
-
             const SizedBox(height: 20),
             TextField(
               controller: notesController,
@@ -303,7 +312,6 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 30),
             ElevatedButton(
               onPressed: saveLog,
