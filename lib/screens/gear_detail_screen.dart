@@ -65,7 +65,7 @@ class GearDetailScreen extends StatelessWidget {
                 ),
               );
             },
-            child: const Text('View Gear History'),
+            child: const Text('View Workout History'),
           ),
         ],
       ),

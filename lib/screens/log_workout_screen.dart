@@ -127,14 +127,16 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
     return null;
   }
 
-  bool paceIsOutsideTarget(String pace) {
-    final actualSeconds = paceToSeconds(pace);
-    final lowSeconds = paceToSeconds(widget.gear.targetLowPace ?? '');
-    final highSeconds = paceToSeconds(widget.gear.targetHighPace ?? '');
+bool paceIsOutsideTarget(String pace) {
+  final actualSeconds = paceToSeconds(pace);
+  final runTarget = widget.gear.runPaceTarget?.currentTarget;
 
-    if (actualSeconds == null || lowSeconds == null || highSeconds == null) {
-      return false;
-    }
+  final lowSeconds = paceToSeconds(runTarget?.lowTarget ?? '');
+  final highSeconds = paceToSeconds(runTarget?.highTarget ?? '');
+
+  if (actualSeconds == null || lowSeconds == null || highSeconds == null) {
+    return false;
+  }
 
     return actualSeconds < lowSeconds || actualSeconds > highSeconds;
   }

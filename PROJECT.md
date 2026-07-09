@@ -112,15 +112,19 @@ Completed
 - Gear Detail
 - Workout Logging
 - Workout Summary
-- Gear History
+- Workout History
 - Workout Detail
 - History
 - Validation
-- Target pace display
+- Target display
 - Target pace warning dialog
 - Local persistence
 - SharedPreferences
 - Global Home navigation
+- GearTarget architecture
+- TargetHistory architecture
+- Modality enum
+- Metric enum
 
 ---
 
@@ -143,20 +147,29 @@ GitHub
 Current
 
 Gear
-
 - number
-- workout prescription
-- target pace
+- work
+- rest
+- intervals
+- targets
+
+GearTarget
+- modality
+- metric
+- history
+
+TargetHistory
+- lowTarget
+- highTarget
+- effectiveDate
 
 LogEntry
-
 - workout date
 - gear
 - interval data
 - notes
 
 AppState
-
 - workout history
 - persistence
 
@@ -230,15 +243,28 @@ Sprint 5
 
 Living Matrix
 
-Goals:
+Completed
 
-Design a data model that preserves target history.
+- Designed Living Matrix architecture
+- Introduced GearTarget model
+- Introduced TargetHistory model
+- Introduced Modality enum
+- Introduced Metric enum
+- Migrated Gear to targets architecture
+- Preserved backward compatibility
+- Renamed "View Gear History" to "View Workout History"
 
-Changing a target should never overwrite history.
+Next
 
-Every target change becomes historical data.
+Implement Target Manager.
 
-Future graphs will read from this history.
+Goal:
+
+Allow editing a target without overwriting history.
+
+Every target change creates a new TargetHistory record.
+
+Current target is always the newest history entry.
 
 ---
 
@@ -292,19 +318,28 @@ Ready to begin Living Matrix development.
 
 ## 2026-07-08
 
-Completed:
+## 2026-07-08
 
-- Fixed SharedPreferences persistence.
-- Workout history now survives app restarts.
-- Added Home icon to all navigation screens.
-- Created PROJECT.md.
-- Established development workflow.
+Completed
 
-Next Session:
+- Refactored target architecture.
+- Added GearTarget model.
+- Simplified TargetHistory model.
+- Added Modality enum.
+- Added Metric enum.
+- Migrated Gear to target-based architecture.
+- Updated workout logging to use new architecture.
+- Renamed "View Gear History" to "View Workout History".
+- Preserved application compatibility throughout the refactor.
 
-Begin designing the Living Matrix data model.
+Next Session
 
-Goal:
+Implement Target Manager.
 
-Never overwrite target values.
-Every target change becomes historical data.
+The user will be able to change a target while preserving complete target history.
+
+Future work
+
+- Target history screen
+- Multiple modality targets
+- Additional metrics per modality
