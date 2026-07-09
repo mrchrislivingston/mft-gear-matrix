@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../data/run_gears.dart';
+import '../services/app_state.dart';
 import '../widgets/gear_card.dart';
 import 'gear_detail_screen.dart';
 
@@ -9,6 +9,7 @@ class RunGridScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final gears = AppState.instance.gears;
     return Scaffold(
       appBar: AppBar(
   title: const Text('Run Grid'),
@@ -23,10 +24,10 @@ class RunGridScreen extends StatelessWidget {
 ),
       body: ListView.separated(
         padding: const EdgeInsets.all(20),
-        itemCount: runGears.length,
+        itemCount: gears.length,
         separatorBuilder: (_, __) => const SizedBox(height: 10),
         itemBuilder: (context, index) {
-          final gear = runGears[index];
+          final gear = gears[index];
 
           return GestureDetector(
             onTap: () {

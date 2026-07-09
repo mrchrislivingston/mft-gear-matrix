@@ -30,4 +30,32 @@ class GearTarget {
 
     return '${target.displayTarget} ${metric.name}';
   }
+
+  GearTarget copyWith({
+    List<TargetHistory>? history,
+  }) {
+    return GearTarget(
+      modality: modality,
+      metric: metric,
+      history: history ?? this.history,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'modality': modality.name,
+      'metric': metric.name,
+      'history': history.map((item) => item.toJson()).toList(),
+    };
+  }
+
+  factory GearTarget.fromJson(Map<String, dynamic> json) {
+    return GearTarget(
+      modality: Modality.values.byName(json['modality']),
+      metric: Metric.values.byName(json['metric']),
+      history: (json['history'] as List)
+          .map((item) => TargetHistory.fromJson(item))
+          .toList(),
+    );
+  }
 }

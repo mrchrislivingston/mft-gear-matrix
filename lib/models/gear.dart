@@ -57,4 +57,38 @@ class Gear {
 
     return target.displayTarget;
   }
+
+  Gear copyWith({
+    List<GearTarget>? targets,
+  }) {
+    return Gear(
+      number: number,
+      work: work,
+      rest: rest,
+      intervals: intervals,
+      targets: targets ?? this.targets,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'number': number,
+      'work': work,
+      'rest': rest,
+      'intervals': intervals,
+      'targets': targets.map((target) => target.toJson()).toList(),
+    };
+  }
+
+  factory Gear.fromJson(Map<String, dynamic> json) {
+    return Gear(
+      number: json['number'],
+      work: json['work'],
+      rest: json['rest'],
+      intervals: json['intervals'],
+      targets: (json['targets'] as List)
+          .map((item) => GearTarget.fromJson(item))
+          .toList(),
+    );
+  }
 }
