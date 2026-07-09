@@ -241,30 +241,21 @@ Global Home navigation
 
 Sprint 5
 
-Living Matrix
-
 Completed
 
-- Designed Living Matrix architecture
-- Introduced GearTarget model
-- Introduced TargetHistory model
-- Introduced Modality enum
-- Introduced Metric enum
-- Migrated Gear to targets architecture
-- Preserved backward compatibility
-- Renamed "View Gear History" to "View Workout History"
+- Target Manager screen
+- Editable run targets
+- Living Matrix stored in AppState
+- Gear serialization
+- GearTarget serialization
+- Matrix persistence
+- Target edits survive restart
 
 Next
 
-Implement Target Manager.
-
-Goal:
-
-Allow editing a target without overwriting history.
-
-Every target change creates a new TargetHistory record.
-
-Current target is always the newest history entry.
+- Target History screen
+- Display historical target changes
+- Remove remaining direct run_gears.dart dependencies
 
 ---
 
