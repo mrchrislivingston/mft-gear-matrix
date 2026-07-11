@@ -2,9 +2,8 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../data/run_gears.dart';
+import '../data/default_matrix.dart';
 import '../models/gear.dart';
-import '../models/gear_target.dart';
 import '../models/log_entry.dart';
 import '../models/target_history.dart';
 
@@ -17,11 +16,12 @@ class AppState {
   static const String _targetsKey = 'matrix_targets';
 
   final List<LogEntry> logs = [];
-  final List<Gear> gears = List.from(runGears);
+  final List<Gear> gears = buildDefaultMatrix();
 
   Future<void> loadLogs() async {
     final prefs = await SharedPreferences.getInstance();
     final rawLogs = prefs.getStringList(_logsKey) ?? [];
+
     print('Loaded raw logs found: ${rawLogs.length}');
 
     logs
@@ -43,7 +43,7 @@ class AppState {
     if (rawGears == null || rawGears.isEmpty) {
       gears
         ..clear()
-        ..addAll(runGears);
+        ..addAll(buildDefaultMatrix());
       return;
     }
 
@@ -117,9 +117,11 @@ class AppState {
     }).toList();
 
     print('Saving ${logs.length} logs');
+
     await prefs.setStringList(_logsKey, rawLogs);
 
     final savedLogs = prefs.getStringList(_logsKey) ?? [];
+
     print('Saved logs found: ${savedLogs.length}');
   }
 

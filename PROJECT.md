@@ -250,14 +250,28 @@ Completed
 - GearTarget serialization
 - Matrix persistence
 - Target edits survive restart
+- Target History screen
+- Improved Target History UI
+- Removed remaining run_gears.dart dependencies
+- Extracted default matrix into default_matrix.dart
 
 Next
 
-- Target History screen
-- Display historical target changes
-- Remove remaining direct run_gears.dart dependencies
+Sprint 6
+
+- Multi-modality targets (Row, Ski, BikeErg, Echo)
+- Expand Living Matrix
+- Continue removing hard-coded assumptions
 
 ---
+
+Next
+
+Sprint 6
+
+- Multi-modality targets (Row, Ski, BikeErg, Echo)
+- Expand Living Matrix
+- Continue removing hard-coded assumptions
 
 # Future Roadmap
 
@@ -299,11 +313,13 @@ Sprint 4 complete
 
 Project is stable.
 
-Persistence is working.
+Living Matrix architecture is complete.
 
-Navigation is complete.
+Workout history and target history are both persistent.
 
-Ready to begin Living Matrix development.
+AppState is now the single source of truth.
+
+Ready to expand the Living Matrix to additional modalities.
 
 # Session Notes
 
@@ -334,3 +350,24 @@ Future work
 - Target history screen
 - Multiple modality targets
 - Additional metrics per modality
+
+## 2026-07-11
+
+Completed
+
+- Removed remaining run_gears.dart dependencies.
+- Moved default matrix into default_matrix.dart.
+- Refactored AppState to use the default matrix.
+- Added Target History screen.
+- Added improved Target History UI.
+- Verified persistence after refactor.
+
+Next Session
+
+Begin Sprint 6.
+
+Expand the Living Matrix to support additional modalities:
+- Row
+- SkiErg
+- BikeErg
+- Echo Bike

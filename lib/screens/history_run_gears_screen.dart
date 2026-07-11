@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../data/run_gears.dart';
+import '../services/app_state.dart';
 import 'gear_history_screen.dart';
 
 class HistoryRunGearsScreen extends StatelessWidget {
@@ -8,24 +8,26 @@ class HistoryRunGearsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final gears = AppState.instance.gears;
+
     return Scaffold(
       appBar: AppBar(
-  title: const Text('Run History'),
-  actions: [
-    IconButton(
-      icon: const Icon(Icons.home),
-      onPressed: () {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      },
-    ),
-  ],
-),
+        title: const Text('Run History'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home),
+            onPressed: () {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+          ),
+        ],
+      ),
       body: ListView.separated(
         padding: const EdgeInsets.all(20),
-        itemCount: runGears.length,
+        itemCount: gears.length,
         separatorBuilder: (_, __) => const Divider(),
         itemBuilder: (context, index) {
-          final gear = runGears[index];
+          final gear = gears[index];
 
           return ListTile(
             title: Text('Gear ${gear.number}'),

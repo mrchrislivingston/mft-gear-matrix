@@ -4,6 +4,7 @@ import '../models/gear.dart';
 import '../services/app_state.dart';
 import 'gear_history_screen.dart';
 import 'log_workout_screen.dart';
+import 'target_history_screen.dart';
 import 'target_manager_screen.dart';
 
 class GearDetailScreen extends StatefulWidget {
@@ -58,7 +59,7 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
           const SizedBox(height: 24),
 
           Text(
-            'Target Pace',
+            'Run Target',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 10),
@@ -83,6 +84,22 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
             child: const Text('Edit Target'),
           ),
 
+          const SizedBox(height: 10),
+
+          OutlinedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => TargetHistoryScreen(
+                    gear: currentGear,
+                  ),
+                ),
+              );
+            },
+            child: const Text('View Target History'),
+          ),
+
           const SizedBox(height: 30),
 
           ElevatedButton(
@@ -90,7 +107,9 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => LogWorkoutScreen(gear: currentGear),
+                  builder: (_) => LogWorkoutScreen(
+                    gear: currentGear,
+                  ),
                 ),
               );
             },
@@ -104,7 +123,9 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => GearHistoryScreen(gear: currentGear),
+                  builder: (_) => GearHistoryScreen(
+                    gear: currentGear,
+                  ),
                 ),
               );
             },
