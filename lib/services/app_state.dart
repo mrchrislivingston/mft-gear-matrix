@@ -4,7 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/default_matrix.dart';
 import '../models/gear.dart';
+import '../models/gear_target.dart';
 import '../models/log_entry.dart';
+import '../models/modality.dart';
 import '../models/target_history.dart';
 
 class AppState {
@@ -62,51 +64,81 @@ class AppState {
     await _saveLogs();
   }
 
-  Future<void> updateRunPaceTarget({
+  Future<void> updateTarget({
     required int gearNumber,
+    required Modality modality,
     required String lowTarget,
     required String highTarget,
   }) async {
-    final gearIndex = gears.indexWhere((gear) => gear.number == gearNumber);
+    final gearIndex = gears.indexWhere(
+      (gear) => gear.number == gearNumber,
+    );
 
     if (gearIndex == -1) {
       return;
     }
 
     final gear = gears[gearIndex];
-    final target = gear.runPaceTarget;
+    final existingTarget = gear.targetForModality(modality);
 
-    if (target == null) {
-      return;
-    }
-
-    final updatedHistory = [
-      ...target.history,
-      TargetHistory(
-        lowTarget: lowTarget,
-        highTarget: highTarget,
-        effectiveDate: DateTime.now(),
-      ),
-    ];
-
-    final updatedTarget = target.copyWith(
-      history: updatedHistory,
+    final newHistoryItem = TargetHistory(
+      lowTarget: lowTarget,
+      highTarget: highTarget,
+      effectiveDate: DateTime.now(),
     );
 
-    final updatedTargets = gear.targets.map((existingTarget) {
-      if (existingTarget.modality == target.modality &&
-          existingTarget.metric == target.metric) {
-        return updatedTarget;
-      }
+    late final GearTarget updatedTarget;
+    late final List<GearTarget> updatedTargets;
 
-      return existingTarget;
-    }).toList();
+    if (existingTarget == null) {
+      updatedTarget = GearTarget(
+        modality: modality,
+        metric: modality.defaultMetric,
+        history: [
+          newHistoryItem,
+        ],
+      );
+
+      updatedTargets = [
+        ...gear.targets,
+        updatedTarget,
+      ];
+    } else {
+      updatedTarget = existingTarget.copyWith(
+        history: [
+          ...existingTarget.history,
+          newHistoryItem,
+        ],
+      );
+
+      updatedTargets = gear.targets.map((target) {
+        if (target.modality == existingTarget.modality &&
+            target.metric == existingTarget.metric) {
+          return updatedTarget;
+        }
+
+        return target;
+      }).toList();
+    }
 
     gears[gearIndex] = gear.copyWith(
       targets: updatedTargets,
     );
 
     await _saveGears();
+  }
+
+  Future<void> updateRunPaceTarget({
+    required int gearNumber,
+    required String lowTarget,
+    required String highTarget,
+  }) {
+    return updateTarget(
+      gearNumber: gearNumber,
+      modality: Modality.run,
+      lowTarget: lowTarget,
+      highTarget: highTarget,
+    );
   }
 
   Future<void> _saveLogs() async {

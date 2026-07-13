@@ -13,6 +13,8 @@ class GearTarget {
     this.history = const [],
   });
 
+  bool get hasTarget => history.isNotEmpty;
+
   TargetHistory? get currentTarget {
     if (history.isEmpty) {
       return null;
@@ -25,7 +27,7 @@ class GearTarget {
     final target = currentTarget;
 
     if (target == null) {
-      return 'No target set';
+      return 'No target';
     }
 
     return '${target.displayTarget} ${metric.name}';

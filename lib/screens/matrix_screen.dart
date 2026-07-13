@@ -1,24 +1,39 @@
 import 'package:flutter/material.dart';
 
-import 'run_grid_screen.dart';
+import '../models/modality.dart';
+import 'gear_grid_screen.dart';
 
 class MatrixScreen extends StatelessWidget {
   const MatrixScreen({super.key});
+
+  void _openModality(
+    BuildContext context,
+    Modality modality,
+  ) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => GearGridScreen(
+          modality: modality,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-  title: const Text('Matrix'),
-  actions: [
-    IconButton(
-      icon: const Icon(Icons.home),
-      onPressed: () {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      },
-    ),
-  ],
-),
+        title: const Text('Matrix'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home),
+            onPressed: () {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -34,11 +49,9 @@ class MatrixScreen extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.push(
+                  _openModality(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const RunGridScreen(),
-                    ),
+                    Modality.run,
                   );
                 },
                 child: const Text('Run'),
@@ -50,7 +63,12 @@ class MatrixScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  _openModality(
+                    context,
+                    Modality.echo,
+                  );
+                },
                 child: const Text('Echo Bike'),
               ),
             ),
@@ -60,7 +78,12 @@ class MatrixScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  _openModality(
+                    context,
+                    Modality.bikeErg,
+                  );
+                },
                 child: const Text('C2 Bike'),
               ),
             ),
@@ -70,7 +93,12 @@ class MatrixScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  _openModality(
+                    context,
+                    Modality.row,
+                  );
+                },
                 child: const Text('Row'),
               ),
             ),
@@ -80,7 +108,12 @@ class MatrixScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  _openModality(
+                    context,
+                    Modality.ski,
+                  );
+                },
                 child: const Text('Ski'),
               ),
             ),

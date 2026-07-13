@@ -1,24 +1,29 @@
 import 'package:flutter/material.dart';
 
 import '../models/gear.dart';
+import '../models/modality.dart';
 
 class TargetHistoryScreen extends StatelessWidget {
   final Gear gear;
+  final Modality modality;
 
   const TargetHistoryScreen({
     super.key,
     required this.gear,
+    required this.modality,
   });
 
   @override
   Widget build(BuildContext context) {
-    final target = gear.runPaceTarget;
+    final target = gear.targetForModality(modality);
     final history = target?.history.reversed.toList() ?? [];
 
     if (history.isEmpty) {
       return Scaffold(
         appBar: AppBar(
-          title: Text('Gear ${gear.number} Target History'),
+          title: Text(
+            '${modality.displayName} Gear ${gear.number} Target History',
+          ),
           actions: [
             IconButton(
               icon: const Icon(Icons.home),
@@ -39,7 +44,9 @@ class TargetHistoryScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Gear ${gear.number} Target History'),
+        title: Text(
+          '${modality.displayName} Gear ${gear.number} Target History',
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.home),
@@ -65,12 +72,15 @@ class TargetHistoryScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${current.lowTarget}–${current.highTarget} / mile',
+                    target?.displayTarget ?? 'No target',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Effective ${current.effectiveDate.month}/${current.effectiveDate.day}/${current.effectiveDate.year}',
+                    'Effective '
+                    '${current.effectiveDate.month}/'
+                    '${current.effectiveDate.day}/'
+                    '${current.effectiveDate.year}',
                   ),
                 ],
               ),
@@ -92,10 +102,12 @@ class TargetHistoryScreen extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   title: Text(
-                    '${entry.lowTarget}–${entry.highTarget} / mile',
+                    '${entry.displayTarget} ${target?.metric.name ?? ''}',
                   ),
                   subtitle: Text(
-                    '${entry.effectiveDate.month}/${entry.effectiveDate.day}/${entry.effectiveDate.year}',
+                    '${entry.effectiveDate.month}/'
+                    '${entry.effectiveDate.day}/'
+                    '${entry.effectiveDate.year}',
                   ),
                 ),
               ),

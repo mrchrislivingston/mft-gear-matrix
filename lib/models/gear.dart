@@ -31,6 +31,16 @@ class Gear {
     return null;
   }
 
+  GearTarget? targetForModality(Modality modality) {
+    for (final target in targets) {
+      if (target.modality == modality) {
+        return target;
+      }
+    }
+
+    return null;
+  }
+
   TargetHistory? currentTarget({
     required Modality modality,
     required Metric metric,
@@ -52,7 +62,7 @@ class Gear {
     final target = runPaceTarget;
 
     if (target == null) {
-      return 'No target set';
+      return 'No target';
     }
 
     return target.displayTarget;

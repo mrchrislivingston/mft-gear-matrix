@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../models/modality.dart';
 import '../services/app_state.dart';
 import 'gear_history_screen.dart';
 
-class HistoryRunGearsScreen extends StatelessWidget {
-  const HistoryRunGearsScreen({super.key});
+class HistoryGearsScreen extends StatelessWidget {
+  final Modality modality;
+
+  const HistoryGearsScreen({
+    super.key,
+    required this.modality,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +18,7 @@ class HistoryRunGearsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Run History'),
+        title: Text('${modality.displayName} History'),
         actions: [
           IconButton(
             icon: const Icon(Icons.home),
@@ -37,7 +43,10 @@ class HistoryRunGearsScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => GearHistoryScreen(gear: gear),
+                  builder: (_) => GearHistoryScreen(
+                    gear: gear,
+                    modality: modality,
+                  ),
                 ),
               );
             },

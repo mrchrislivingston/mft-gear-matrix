@@ -1,3 +1,5 @@
+import 'modality.dart';
+
 class IntervalResult {
   final int intervalNumber;
   final String distance;
@@ -36,12 +38,14 @@ class IntervalResult {
 
 class LogEntry {
   final int gearNumber;
+  final Modality modality;
   final DateTime date;
   final String notes;
   final List<IntervalResult> intervals;
 
   const LogEntry({
     required this.gearNumber,
+    required this.modality,
     required this.date,
     required this.notes,
     required this.intervals,
@@ -50,6 +54,7 @@ class LogEntry {
   Map<String, dynamic> toJson() {
     return {
       'gearNumber': gearNumber,
+      'modality': modality.name,
       'date': date.toIso8601String(),
       'notes': notes,
       'intervals': intervals.map((interval) => interval.toJson()).toList(),
@@ -59,10 +64,17 @@ class LogEntry {
   factory LogEntry.fromJson(Map<String, dynamic> json) {
     return LogEntry(
       gearNumber: json['gearNumber'] as int,
+      modality: json['modality'] == null
+          ? Modality.run
+          : Modality.values.byName(json['modality'] as String),
       date: DateTime.parse(json['date'] as String),
       notes: json['notes'] as String,
       intervals: (json['intervals'] as List)
-          .map((item) => IntervalResult.fromJson(item as Map<String, dynamic>))
+          .map(
+            (item) => IntervalResult.fromJson(
+              item as Map<String, dynamic>,
+            ),
+          )
           .toList(),
     );
   }
