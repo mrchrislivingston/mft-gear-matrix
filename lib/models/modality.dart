@@ -1,4 +1,5 @@
 import 'metric.dart';
+import 'workout_metric.dart';
 
 enum Modality {
   run,
@@ -34,6 +35,63 @@ enum Modality {
         return Metric.minPer1000m;
       case Modality.echo:
         return Metric.rpm;
+    }
+  }
+
+  List<WorkoutMetric> get workoutMetrics {
+    switch (this) {
+      case Modality.run:
+        return const [
+          WorkoutMetric.distance,
+          WorkoutMetric.primaryMetric,
+          WorkoutMetric.heartRate,
+          WorkoutMetric.rpe,
+        ];
+
+      case Modality.row:
+        return const [
+          WorkoutMetric.distance,
+          WorkoutMetric.primaryMetric,
+          WorkoutMetric.watts,
+          WorkoutMetric.calories,
+          WorkoutMetric.caloriesPerHour,
+          WorkoutMetric.strokeRate,
+          WorkoutMetric.heartRate,
+          WorkoutMetric.rpe,
+        ];
+
+      case Modality.ski:
+        return const [
+          WorkoutMetric.distance,
+          WorkoutMetric.primaryMetric,
+          WorkoutMetric.watts,
+          WorkoutMetric.calories,
+          WorkoutMetric.caloriesPerHour,
+          WorkoutMetric.strokeRate,
+          WorkoutMetric.heartRate,
+          WorkoutMetric.rpe,
+        ];
+
+      case Modality.bikeErg:
+        return const [
+          WorkoutMetric.distance,
+          WorkoutMetric.primaryMetric,
+          WorkoutMetric.watts,
+          WorkoutMetric.calories,
+          WorkoutMetric.caloriesPerHour,
+          WorkoutMetric.rpm,
+          WorkoutMetric.heartRate,
+          WorkoutMetric.rpe,
+        ];
+
+      case Modality.echo:
+        return const [
+          WorkoutMetric.primaryMetric,
+          WorkoutMetric.calories,
+          WorkoutMetric.watts,
+          WorkoutMetric.heartRate,
+          WorkoutMetric.rpe,
+        ];
     }
   }
 }

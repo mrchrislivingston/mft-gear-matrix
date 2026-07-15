@@ -8,21 +8,24 @@ The goal is not simply to log workouts.
 
 The goal is to preserve the evolution of an athlete over years of training.
 
-Every workout, every target pace, every improvement should become permanent history instead of being overwritten.
+Every workout, every target, every improvement, and every change should become permanent history instead of being overwritten.
+
+The application should eventually provide meaningful coaching insights that are impossible to see in a spreadsheet while remaining fast, simple, and entirely owned by the athlete.
 
 ---
 
 # Project Philosophy
 
-- Local-first
-- No accounts
-- No cloud
-- No subscriptions
-- Fast
-- Simple
-- Data belongs to the athlete
+* Local-first
+* No accounts
+* No cloud required
+* No subscriptions
+* Fast
+* Simple
+* Athlete owns their data
+* Preserve history instead of replacing it
 
-Future cloud sync may be added, but it is not part of the MVP.
+Cloud synchronization may be added in the future, but it is **not** part of the MVP.
 
 ---
 
@@ -30,166 +33,190 @@ Future cloud sync may be added, but it is not part of the MVP.
 
 ## Chris
 
-Product Owner
+**Product Owner**
 
-Responsibilities:
+Responsibilities
 
-- Defines workflow
-- Makes design decisions
-- Tests every feature
-- Determines priorities
+* Defines workflow
+* Makes product decisions
+* Determines priorities
+* Tests every feature
+* Approves architecture
 
 No Flutter knowledge is assumed.
 
-Implementation should be explained one small step at a time.
+Implementation should always be delivered in small, testable steps.
 
 ---
 
 ## ChatGPT
 
-Technical Lead
+**Technical Lead**
 
-Responsibilities:
+Responsibilities
 
-- Software architecture
-- Flutter implementation
-- Code review
-- Data model design
-- Sprint planning
-- Maintain PROJECT.md
+* Software architecture
+* Flutter implementation
+* Data model design
+* Code review
+* Sprint planning
+* Maintain PROJECT.md
 
-Never assume Chris wants to learn Flutter.
+Implementation should always be incremental.
 
-Provide small, testable changes.
-
-Wait for testing before continuing.
+Wait for testing before moving to the next step.
 
 ---
 
 # Current Architecture
 
+```
 Home
-
 ├── Matrix
-
-│ └── Gear
-
-│ ├── Log Workout
-
-│ └── Gear History
-
-│ └── Workout Detail
-
+│   └── Modality
+│       └── Gear
+│           ├── Log Workout
+│           ├── Workout Summary
+│           ├── Workout History
+│           ├── Workout Detail
+│           ├── Target Manager
+│           └── Target History
+│
 └── History
-
-└── Run
-
-└── Gear
-
-└── Workout History
+```
 
 ---
 
-## Architecture Decisions
+# Core Architecture Decisions
 
-- One Matrix, not separate matrices by modality.
-- Local-first storage.
-- SharedPreferences for MVP persistence.
-- Preserve workout history permanently.
-- Preserve target history permanently (planned).
-- Home icon on all navigation screens.
-- Small iterative development with testing after each change.
+* One Living Matrix
+* Eight Gears shared across all modalities
+* Local-first persistence
+* SharedPreferences for MVP
+* Complete workout history is permanent
+* Complete target history is permanent
+* Every modality owns its own targets
+* Navigation always includes Home shortcut
+* Small iterative development with testing after every change
+
+---
+
+# Supported Modalities
+
+* Run
+* Echo Bike
+* C2 BikeErg
+* C2 Rower
+* C2 SkiErg
 
 ---
 
 # Current Features
 
-Completed
+## Completed
 
-- Home Screen
-- Matrix navigation
-- Run Grid
-- Gear Detail
-- Workout Logging
-- Workout Summary
-- Workout History
-- Workout Detail
-- History
-- Validation
-- Target display
-- Target pace warning dialog
-- Local persistence
-- SharedPreferences
-- Global Home navigation
-- GearTarget architecture
-- TargetHistory architecture
-- Modality enum
-- Metric enum
+### Navigation
+
+* Home Screen
+* Matrix
+* Modality selection
+* Gear grid
+* Gear detail
+* History navigation
+
+### Targets
+
+* Independent target per modality
+* Target Manager
+* Target History
+* Persistent targets
+* Automatic migration of saved targets
+* Automatic initial target creation from first completed workout
+
+### Workout Logging
+
+* Dynamic workout entry
+* Modality-specific workout screens
+* Dynamic metric engine
+* Workout validation
+* Target warning dialog
+* Workout Summary
+* Workout Detail
+* Workout History
+
+### Persistence
+
+* SharedPreferences
+* JSON serialization
+* Workout persistence
+* Target persistence
+* Automatic save migration
+* AppState as single source of truth
 
 ---
 
 # Technology
 
-Flutter
-
-SharedPreferences
-
-JSON serialization
-
-Git
-
-GitHub
+* Flutter
+* SharedPreferences
+* JSON serialization
+* Git
+* GitHub
 
 ---
 
 # Data Model
 
-Current
+## Gear
 
-Gear
-- number
-- work
-- rest
-- intervals
-- targets
+* number
+* work
+* rest
+* intervals
+* targets
 
-GearTarget
-- modality
-- metric
-- history
+## GearTarget
 
-TargetHistory
-- lowTarget
-- highTarget
-- effectiveDate
+* modality
+* metric
+* history
 
-LogEntry
-- workout date
-- gear
-- interval data
-- notes
+## TargetHistory
 
-AppState
-- workout history
-- persistence
+* lowTarget
+* highTarget
+* effectiveDate
 
----
+## LogEntry
 
-# Design Decisions
+* modality
+* gear
+* workout date
+* interval results
+* notes
 
-One Matrix only.
+## IntervalResult
 
-NOT separate Run / Row / Echo / Ski matrices.
+* interval number
+* dynamic workout metric values
 
-Each Gear will eventually contain:
+## WorkoutMetric
 
-- Workout prescription
-- Coach notes
-- Run target
-- Row target
-- Ski target
-- BikeErg target
-- Echo target
+Dynamic workout metrics used by each modality.
+
+Examples include:
+
+* Distance
+* Primary Metric
+* Watts
+* Calories
+* Calories / Hour
+* RPM
+* Stroke Rate
+* Heart Rate
+* RPE
+
+Each modality defines which workout metrics are recorded.
 
 ---
 
@@ -197,177 +224,134 @@ Each Gear will eventually contain:
 
 ## Sprint 1
 
-Project setup
-
-Navigation
-
-Models
-
----
+* Project setup
+* Navigation
+* Initial models
 
 ## Sprint 2
 
-Workout logging
-
-Validation
-
-Workout summary
-
----
+* Workout logging
+* Validation
+* Workout summary
 
 ## Sprint 3
 
-Workout history
-
-Gear history
-
-Workout detail
-
----
+* Workout history
+* Gear history
+* Workout detail
 
 ## Sprint 4
 
-SharedPreferences persistence
+* SharedPreferences
+* JSON serialization
+* Persistent history
+* Global Home navigation
 
-JSON serialization
+## Sprint 5
 
-History survives restart
+* Target Manager
+* Living Matrix architecture
+* GearTarget model
+* TargetHistory model
+* Persistent targets
+* Target History screen
+* Default matrix architecture
 
-Global Home navigation
-
----
-
-# Current Sprint
-
-Sprint 5
+## Sprint 6
 
 Completed
 
-- Target Manager screen
-- Editable run targets
-- Living Matrix stored in AppState
-- Gear serialization
-- GearTarget serialization
-- Matrix persistence
-- Target edits survive restart
-- Target History screen
-- Improved Target History UI
-- Removed remaining run_gears.dart dependencies
-- Extracted default matrix into default_matrix.dart
+* Five-modality Living Matrix
+* Modality-aware targets
+* Generic Gear architecture
+* Generic History architecture
+* Generic Detail screens
+* Generic Summary screens
+* Generic Target Manager
+* Removed remaining run-specific assumptions
 
-Next
+## Sprint 7
 
-Sprint 6
+Completed
 
-- Multi-modality targets (Row, Ski, BikeErg, Echo)
-- Expand Living Matrix
-- Continue removing hard-coded assumptions
-
----
-
-Next
-
-Sprint 6
-
-- Multi-modality targets (Row, Ski, BikeErg, Echo)
-- Expand Living Matrix
-- Continue removing hard-coded assumptions
-
-# Future Roadmap
-
-Living Matrix
-
-Target history
-
-Graphs
-
-Personal records
-
-Training analytics
-
-Search
-
-Export
-
-Backup
-
-Cloud sync (optional)
-
-Coach mode
-
----
-
-# Git Checkpoints
-
-Sprint 1 complete
-
-Sprint 2 complete
-
-Sprint 3 complete
-
-Sprint 4 complete
+* Dynamic WorkoutMetric engine
+* Dynamic interval data model
+* Dynamic workout logging
+* Dynamic workout summaries
+* Dynamic workout detail
+* Dynamic workout history
+* Automatic first-workout target creation
+* Dynamic primary metric support
+* Migration-safe persistence
 
 ---
 
 # Current Status
 
-Project is stable.
+The Living Matrix architecture is now complete.
 
-Living Matrix architecture is complete.
+The application supports:
 
-Workout history and target history are both persistent.
+* Five modalities
+* Independent target histories
+* Dynamic workout logging
+* Dynamic workout metrics
+* Persistent workout history
+* Persistent target history
+* Automatic first-target creation
+* Migration-safe data model
 
-AppState is now the single source of truth.
+The application has transitioned from a run-specific logger into a modality-independent training platform.
 
-Ready to expand the Living Matrix to additional modalities.
+---
 
-# Session Notes
+# Next Priorities
 
-## 2026-07-08
+## Sprint 8
 
-## 2026-07-08
+### History Improvements
 
-Completed
+* Better workout history dashboard
+* Workout counts
+* Latest workout summary
+* Trend indicators
 
-- Refactored target architecture.
-- Added GearTarget model.
-- Simplified TargetHistory model.
-- Added Modality enum.
-- Added Metric enum.
-- Migrated Gear to target-based architecture.
-- Updated workout logging to use new architecture.
-- Renamed "View Gear History" to "View Workout History".
-- Preserved application compatibility throughout the refactor.
+### Training Analytics
 
-Next Session
+* Interval fade detection
+* Consistency analysis
+* Target recommendations
+* Historical performance trends
 
-Implement Target Manager.
+### Quality of Life
 
-The user will be able to change a target while preserving complete target history.
+* Better summary insights
+* Personal best indicators
+* Workout search
+* Filters
 
-Future work
+---
 
-- Target history screen
-- Multiple modality targets
-- Additional metrics per modality
+# Future Roadmap
 
-## 2026-07-11
+* Training analytics
+* Trend graphs
+* Performance dashboards
+* Benchmark tracking
+* Weightlifting PRs
+* Search
+* Export
+* Backup
+* Optional cloud sync
+* Coach Mode
+* AI coaching insights
 
-Completed
+---
 
-- Removed remaining run_gears.dart dependencies.
-- Moved default matrix into default_matrix.dart.
-- Refactored AppState to use the default matrix.
-- Added Target History screen.
-- Added improved Target History UI.
-- Verified persistence after refactor.
+# Development Notes
 
-Next Session
+The project intentionally remains in a **development/testing environment**.
 
-Begin Sprint 6.
+Development should continue using placeholder/test workout data until the application is considered feature complete.
 
-Expand the Living Matrix to support additional modalities:
-- Row
-- SkiErg
-- BikeErg
-- Echo Bike
+Historical spreadsheet data and historical gear progression will be imported as a dedicated migration step after MVP completion.

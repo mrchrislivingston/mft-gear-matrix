@@ -51,6 +51,22 @@ class Gear {
     )?.currentTarget;
   }
 
+  /// Generic helper for Sprint 6+
+  String targetDisplayForModality(Modality modality) {
+    final target = targetForModality(modality);
+
+    if (target == null) {
+      return 'No target';
+    }
+
+    return target.displayTarget;
+  }
+
+  //
+  // Legacy Run helpers
+  // (kept temporarily so existing screens continue to compile)
+  //
+
   GearTarget? get runPaceTarget {
     return findTarget(
       modality: Modality.run,
@@ -59,13 +75,7 @@ class Gear {
   }
 
   String get targetPaceDisplay {
-    final target = runPaceTarget;
-
-    if (target == null) {
-      return 'No target';
-    }
-
-    return target.displayTarget;
+    return targetDisplayForModality(Modality.run);
   }
 
   Gear copyWith({

@@ -42,21 +42,62 @@ class AppState {
     final prefs = await SharedPreferences.getInstance();
     final rawGears = prefs.getStringList(_targetsKey);
 
+    final defaultGears = buildDefaultMatrix();
+
     if (rawGears == null || rawGears.isEmpty) {
       gears
         ..clear()
-        ..addAll(buildDefaultMatrix());
+        ..addAll(defaultGears);
+
       return;
     }
 
+    final savedGears = rawGears.map((rawGear) {
+      final json = jsonDecode(rawGear) as Map<String, dynamic>;
+      return Gear.fromJson(json);
+    }).toList();
+
+    final mergedGears = defaultGears.map((defaultGear) {
+      final savedGear = savedGears.cast<Gear?>().firstWhere(
+            (gear) => gear?.number == defaultGear.number,
+            orElse: () => null,
+          );
+
+      if (savedGear == null) {
+        return defaultGear;
+      }
+
+      final mergedTargets = defaultGear.targets.map((defaultTarget) {
+        final savedTarget = savedGear.targets.cast<GearTarget?>().firstWhere(
+              (target) =>
+                  target?.modality == defaultTarget.modality &&
+                  target?.metric == defaultTarget.metric,
+              orElse: () => null,
+            );
+
+        return savedTarget ?? defaultTarget;
+      }).toList();
+
+      for (final savedTarget in savedGear.targets) {
+        final alreadyIncluded = mergedTargets.any(
+          (target) =>
+              target.modality == savedTarget.modality &&
+              target.metric == savedTarget.metric,
+        );
+
+        if (!alreadyIncluded) {
+          mergedTargets.add(savedTarget);
+        }
+      }
+
+      return defaultGear.copyWith(
+        targets: mergedTargets,
+      );
+    }).toList();
+
     gears
       ..clear()
-      ..addAll(
-        rawGears.map((rawGear) {
-          final json = jsonDecode(rawGear) as Map<String, dynamic>;
-          return Gear.fromJson(json);
-        }),
-      );
+      ..addAll(mergedGears);
   }
 
   Future<void> addLog(LogEntry log) async {

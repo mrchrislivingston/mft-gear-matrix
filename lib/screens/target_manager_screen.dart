@@ -45,10 +45,52 @@ class _TargetManagerScreenState extends State<TargetManagerScreen> {
     super.dispose();
   }
 
+  int? _timeToSeconds(String value) {
+    final parts = value.trim().split(':');
+
+    if (parts.length != 2) return null;
+
+    final minutes = int.tryParse(parts[0]);
+    final seconds = int.tryParse(parts[1]);
+
+    if (minutes == null || seconds == null) return null;
+    if (seconds < 0 || seconds > 59) return null;
+
+    return (minutes * 60) + seconds;
+  }
+
+  String? _validateTargetValue(
+    String value,
+    bool usesTimeFormat,
+  ) {
+    if (value.isEmpty) {
+      return 'Enter both a low target and a high target.';
+    }
+
+    if (usesTimeFormat) {
+      final regex = RegExp(r'^\d{1,2}:\d{2}$');
+
+      if (!regex.hasMatch(value) || _timeToSeconds(value) == null) {
+        return 'Use a pace format such as 2:05.';
+      }
+
+      return null;
+    }
+
+    final number = double.tryParse(value);
+
+    if (number == null || number <= 0) {
+      return 'Enter a valid number greater than zero.';
+    }
+
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final target = widget.gear.targetForModality(widget.modality);
     final currentTarget = target?.currentTarget;
+    final metric = target?.metric;
 
     return Scaffold(
       appBar: AppBar(
@@ -71,42 +113,71 @@ class _TargetManagerScreenState extends State<TargetManagerScreen> {
           Text(
             currentTarget == null
                 ? 'No target currently set'
-                : 'Current target: ${currentTarget.displayTarget}',
+                : 'Current target: ${currentTarget.displayTarget} '
+                    '${metric?.unitLabel ?? ''}',
           ),
-
+          const SizedBox(height: 12),
+          Text(
+            metric == null
+                ? 'Primary metric'
+                : '${metric.displayName} (${metric.unitLabel})',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 24),
-
           TextField(
             controller: lowTargetController,
-            decoration: const InputDecoration(
+            keyboardType: metric?.usesTimeFormat == true
+                ? TextInputType.text
+                : const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+            decoration: InputDecoration(
               labelText: 'Low Target',
-              border: OutlineInputBorder(),
+              helperText: metric?.usesTimeFormat == true
+                  ? 'Example: 2:05'
+                  : metric?.unitLabel,
+              border: const OutlineInputBorder(),
             ),
           ),
-
           const SizedBox(height: 16),
-
           TextField(
             controller: highTargetController,
-            decoration: const InputDecoration(
+            keyboardType: metric?.usesTimeFormat == true
+                ? TextInputType.text
+                : const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+            decoration: InputDecoration(
               labelText: 'High Target',
-              border: OutlineInputBorder(),
+              helperText: metric?.usesTimeFormat == true
+                  ? 'Example: 2:10'
+                  : metric?.unitLabel,
+              border: const OutlineInputBorder(),
             ),
           ),
-
           const SizedBox(height: 24),
-
           ElevatedButton(
             onPressed: () async {
               final lowTarget = lowTargetController.text.trim();
               final highTarget = highTargetController.text.trim();
+              final usesTimeFormat = metric?.usesTimeFormat == true;
 
-              if (lowTarget.isEmpty || highTarget.isEmpty) {
+              final lowError = _validateTargetValue(
+                lowTarget,
+                usesTimeFormat,
+              );
+
+              final highError = _validateTargetValue(
+                highTarget,
+                usesTimeFormat,
+              );
+
+              final errorMessage = lowError ?? highError;
+
+              if (errorMessage != null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Enter both a low target and a high target.',
-                    ),
+                  SnackBar(
+                    content: Text(errorMessage),
                   ),
                 );
                 return;

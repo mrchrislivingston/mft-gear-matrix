@@ -53,7 +53,6 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 24),
-
           Text(
             'Prescription',
             style: Theme.of(context).textTheme.titleLarge,
@@ -62,19 +61,18 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
           Text('Work: ${currentGear.work}'),
           Text('Rest: ${currentGear.rest}'),
           Text('Intervals: ${currentGear.intervals}'),
-
           const SizedBox(height: 24),
-
           Text(
             '${widget.modality.displayName} Target',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 10),
-
           Text(target?.displayTarget ?? 'No target'),
-
+          if (target != null) ...[
+            const SizedBox(height: 4),
+            Text(target.metric.unitLabel),
+          ],
           const SizedBox(height: 16),
-
           ElevatedButton(
             onPressed: () async {
               await Navigator.push(
@@ -95,9 +93,7 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
               target?.hasTarget == true ? 'Edit Target' : 'Create Target',
             ),
           ),
-
           const SizedBox(height: 10),
-
           OutlinedButton(
             onPressed: () {
               Navigator.push(
@@ -112,40 +108,34 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
             },
             child: const Text('View Target History'),
           ),
-
           const SizedBox(height: 30),
-
           ElevatedButton(
-            onPressed: widget.modality == Modality.run
-                ? () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => LogWorkoutScreen(
-                          gear: currentGear,
-                        ),
-                      ),
-                    );
-                  }
-                : null,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LogWorkoutScreen(
+                    gear: currentGear,
+                    modality: widget.modality,
+                  ),
+                ),
+              );
+            },
             child: const Text('Log Workout'),
           ),
-
           const SizedBox(height: 10),
-
           OutlinedButton(
-            onPressed: widget.modality == Modality.run
-                ? () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => GearHistoryScreen(
-                          gear: currentGear,
-                        ),
-                      ),
-                    );
-                  }
-                : null,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => GearHistoryScreen(
+                    gear: currentGear,
+                    modality: widget.modality,
+                  ),
+                ),
+              );
+            },
             child: const Text('View Workout History'),
           ),
         ],

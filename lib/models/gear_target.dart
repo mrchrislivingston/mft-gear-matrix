@@ -30,7 +30,17 @@ class GearTarget {
       return 'No target';
     }
 
-    return '${target.displayTarget} ${metric.name}';
+    return target.displayTarget;
+  }
+
+  String get displayTargetWithUnit {
+    final target = currentTarget;
+
+    if (target == null) {
+      return 'No target';
+    }
+
+    return '${target.displayTarget} ${metric.unitLabel}';
   }
 
   GearTarget copyWith({

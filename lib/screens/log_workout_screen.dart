@@ -2,15 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../models/gear.dart';
 import '../models/log_entry.dart';
+import '../models/modality.dart';
+import '../models/workout_metric.dart';
 import '../services/app_state.dart';
 import 'workout_summary_screen.dart';
 
 class LogWorkoutScreen extends StatefulWidget {
   final Gear gear;
+  final Modality modality;
 
   const LogWorkoutScreen({
     super.key,
     required this.gear,
+    required this.modality,
   });
 
   @override
@@ -20,158 +24,414 @@ class LogWorkoutScreen extends StatefulWidget {
 class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
   final formKey = GlobalKey<FormState>();
 
-  late final List<TextEditingController> distanceControllers;
-  late final List<TextEditingController> paceControllers;
-  late final List<TextEditingController> hrControllers;
-  late final List<TextEditingController> rpeControllers;
+  late final List<Map<WorkoutMetric, TextEditingController>>
+      intervalControllers;
+
   final notesController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
 
-    distanceControllers = List.generate(
+    intervalControllers = List.generate(
       widget.gear.intervals,
-      (_) => TextEditingController(),
-    );
-
-    paceControllers = List.generate(
-      widget.gear.intervals,
-      (_) => TextEditingController(),
-    );
-
-    hrControllers = List.generate(
-      widget.gear.intervals,
-      (_) => TextEditingController(),
-    );
-
-    rpeControllers = List.generate(
-      widget.gear.intervals,
-      (_) => TextEditingController(),
+      (_) {
+        return {
+          for (final metric in widget.modality.workoutMetrics)
+            metric: TextEditingController(),
+        };
+      },
     );
   }
 
   @override
   void dispose() {
-    for (final controller in distanceControllers) {
-      controller.dispose();
-    }
-    for (final controller in paceControllers) {
-      controller.dispose();
-    }
-    for (final controller in hrControllers) {
-      controller.dispose();
-    }
-    for (final controller in rpeControllers) {
-      controller.dispose();
+    for (final controllers in intervalControllers) {
+      for (final controller in controllers.values) {
+        controller.dispose();
+      }
     }
 
     notesController.dispose();
     super.dispose();
   }
 
-  String? validateDistance(String? value) {
-    final text = value?.trim() ?? '';
-    final number = double.tryParse(text);
-
-    if (text.isEmpty) return 'Distance required';
-    if (number == null) return 'Enter a number';
-    if (number <= 0 || number > 5) return 'Check distance';
-
-    return null;
-  }
-
-  int? paceToSeconds(String value) {
+  int? _paceToSeconds(String value) {
     final parts = value.trim().split(':');
+
     if (parts.length != 2) return null;
 
     final minutes = int.tryParse(parts[0]);
     final seconds = int.tryParse(parts[1]);
 
     if (minutes == null || seconds == null) return null;
-    if (seconds < 0 || seconds > 59) return null;
+    if (minutes < 0 || seconds < 0 || seconds > 59) return null;
 
     return (minutes * 60) + seconds;
   }
 
-  String? validatePace(String? value) {
-    final text = value?.trim() ?? '';
-    final regex = RegExp(r'^\d{1,2}:\d{2}$');
+  String _secondsToPace(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
 
-    if (text.isEmpty) return 'Pace required';
-    if (!regex.hasMatch(text)) return 'Use m:ss or mm:ss';
-    if (paceToSeconds(text) == null) return 'Invalid pace';
-
-    return null;
+    return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
-  String? validateHr(String? value) {
-    final text = value?.trim() ?? '';
-    final number = int.tryParse(text);
+  String _labelForMetric(WorkoutMetric workoutMetric) {
+    final target = widget.gear.targetForModality(widget.modality);
 
-    if (text.isEmpty) return 'HR required';
-    if (number == null) return 'Enter a number';
-    if (number < 30 || number > 240) return 'Check HR';
+    switch (workoutMetric) {
+      case WorkoutMetric.distance:
+        switch (widget.modality) {
+          case Modality.run:
+            return 'Distance (miles)';
+          case Modality.row:
+          case Modality.ski:
+          case Modality.bikeErg:
+            return 'Distance (meters)';
+          case Modality.echo:
+            return 'Distance';
+        }
 
-    return null;
+      case WorkoutMetric.primaryMetric:
+        final metric = target?.metric;
+
+        if (metric == null) {
+          return 'Primary Metric';
+        }
+
+        return '${metric.displayName} (${metric.unitLabel})';
+
+      case WorkoutMetric.watts:
+        return 'Watts';
+
+      case WorkoutMetric.calories:
+        return 'Calories';
+
+      case WorkoutMetric.caloriesPerHour:
+        return 'Calories Per Hour';
+
+      case WorkoutMetric.rpm:
+        return 'RPM';
+
+      case WorkoutMetric.strokeRate:
+        return 'Stroke Rate';
+
+      case WorkoutMetric.heartRate:
+        return 'Avg HR';
+
+      case WorkoutMetric.rpe:
+        return 'RPE';
+    }
   }
 
-  String? validateRpe(String? value) {
-    final text = value?.trim() ?? '';
-    final number = double.tryParse(text);
+  String? _helperTextForMetric(WorkoutMetric workoutMetric) {
+    switch (workoutMetric) {
+      case WorkoutMetric.primaryMetric:
+        return 'Target: '
+            '${widget.gear.targetDisplayForModality(widget.modality)}';
 
-    if (text.isEmpty) return 'RPE required';
-    if (number == null) return 'Enter a number';
-    if (number < 1 || number > 10) return 'RPE must be 1-10';
+      case WorkoutMetric.strokeRate:
+        return 'Strokes per minute';
 
-    return null;
+      case WorkoutMetric.caloriesPerHour:
+        return 'cal/hr';
+
+      case WorkoutMetric.distance:
+      case WorkoutMetric.watts:
+      case WorkoutMetric.calories:
+      case WorkoutMetric.rpm:
+      case WorkoutMetric.heartRate:
+      case WorkoutMetric.rpe:
+        return null;
+    }
   }
 
-bool paceIsOutsideTarget(String pace) {
-  final actualSeconds = paceToSeconds(pace);
-  final runTarget = widget.gear.runPaceTarget?.currentTarget;
+  TextInputType _keyboardTypeForMetric(
+    WorkoutMetric workoutMetric,
+  ) {
+    final target = widget.gear.targetForModality(widget.modality);
 
-  final lowSeconds = paceToSeconds(runTarget?.lowTarget ?? '');
-  final highSeconds = paceToSeconds(runTarget?.highTarget ?? '');
-
-  if (actualSeconds == null || lowSeconds == null || highSeconds == null) {
-    return false;
-  }
-
-    return actualSeconds < lowSeconds || actualSeconds > highSeconds;
-  }
-
-  Future<bool> confirmOutsideTarget() async {
-    final outsidePaces = <String>[];
-
-    for (int index = 0; index < paceControllers.length; index++) {
-      final pace = paceControllers[index].text.trim();
-
-      if (paceIsOutsideTarget(pace)) {
-        outsidePaces.add('Interval ${index + 1}: $pace');
-      }
+    if (workoutMetric == WorkoutMetric.primaryMetric &&
+        target?.metric.usesTimeFormat == true) {
+      return TextInputType.text;
     }
 
-    if (outsidePaces.isEmpty) return true;
+    return const TextInputType.numberWithOptions(
+      decimal: true,
+    );
+  }
+
+  String? _validateMetric(
+    WorkoutMetric workoutMetric,
+    String? value,
+  ) {
+    final text = value?.trim() ?? '';
+    final target = widget.gear.targetForModality(widget.modality);
+
+    if (workoutMetric == WorkoutMetric.primaryMetric) {
+      if (text.isEmpty) {
+        return '${target?.metric.displayName ?? 'Primary metric'} required';
+      }
+
+      if (target?.metric.usesTimeFormat == true) {
+        final regex = RegExp(r'^\d{1,2}:\d{2}$');
+
+        if (!regex.hasMatch(text)) {
+          return 'Use m:ss or mm:ss';
+        }
+
+        if (_paceToSeconds(text) == null) {
+          return 'Invalid pace';
+        }
+
+        return null;
+      }
+
+      final number = double.tryParse(text);
+
+      if (number == null) {
+        return 'Enter a number';
+      }
+
+      if (number <= 0) {
+        return 'Check value';
+      }
+
+      return null;
+    }
+
+    // Secondary metrics are optional.
+    if (text.isEmpty) {
+      return null;
+    }
+
+    final number = double.tryParse(text);
+
+    if (number == null) {
+      return 'Enter a number';
+    }
+
+    if (number < 0) {
+      return 'Check value';
+    }
+
+    switch (workoutMetric) {
+      case WorkoutMetric.heartRate:
+        if (number < 30 || number > 240) {
+          return 'Check HR';
+        }
+
+      case WorkoutMetric.rpe:
+        if (number < 1 || number > 10) {
+          return 'RPE must be 1-10';
+        }
+
+      case WorkoutMetric.rpm:
+      case WorkoutMetric.watts:
+      case WorkoutMetric.calories:
+      case WorkoutMetric.caloriesPerHour:
+      case WorkoutMetric.strokeRate:
+      case WorkoutMetric.distance:
+      case WorkoutMetric.primaryMetric:
+        break;
+    }
+
+    return null;
+  }
+
+  List<String> _primaryMetricValues() {
+    return intervalControllers
+        .map(
+          (controllers) =>
+              controllers[WorkoutMetric.primaryMetric]
+                  ?.text
+                  .trim() ??
+              '',
+        )
+        .where((value) => value.isNotEmpty)
+        .toList();
+  }
+
+  ({String lowTarget, String highTarget})?
+      _calculateInitialTarget() {
+    final target = widget.gear.targetForModality(widget.modality);
+    final values = _primaryMetricValues();
+
+    if (target == null || values.isEmpty) {
+      return null;
+    }
+
+    if (target.metric.usesTimeFormat) {
+      final valuesInSeconds = values
+          .map(_paceToSeconds)
+          .whereType<int>()
+          .toList();
+
+      if (valuesInSeconds.isEmpty) {
+        return null;
+      }
+
+      valuesInSeconds.sort();
+
+      return (
+        lowTarget: _secondsToPace(valuesInSeconds.first),
+        highTarget: _secondsToPace(valuesInSeconds.last),
+      );
+    }
+
+    final numericValues = values
+        .map(double.tryParse)
+        .whereType<double>()
+        .toList();
+
+    if (numericValues.isEmpty) {
+      return null;
+    }
+
+    numericValues.sort();
+
+    String formatNumber(double value) {
+      if (value == value.roundToDouble()) {
+        return value.toInt().toString();
+      }
+
+      return value.toString();
+    }
+
+    return (
+      lowTarget: formatNumber(numericValues.first),
+      highTarget: formatNumber(numericValues.last),
+    );
+  }
+
+  bool _primaryMetricIsOutsideTarget(String value) {
+    final target = widget.gear.targetForModality(widget.modality);
+    final currentTarget = target?.currentTarget;
+
+    if (target == null || currentTarget == null) {
+      return false;
+    }
+
+    if (target.metric.usesTimeFormat) {
+      final actualSeconds = _paceToSeconds(value);
+      final lowSeconds = _paceToSeconds(currentTarget.lowTarget);
+      final highSeconds = _paceToSeconds(currentTarget.highTarget);
+
+      if (actualSeconds == null ||
+          lowSeconds == null ||
+          highSeconds == null) {
+        return false;
+      }
+
+      return actualSeconds < lowSeconds ||
+          actualSeconds > highSeconds;
+    }
+
+    final actualValue = double.tryParse(value);
+    final lowValue = double.tryParse(currentTarget.lowTarget);
+    final highValue = double.tryParse(currentTarget.highTarget);
+
+    if (actualValue == null ||
+        lowValue == null ||
+        highValue == null) {
+      return false;
+    }
+
+    return actualValue < lowValue || actualValue > highValue;
+  }
+
+  Future<bool> _confirmInitialTarget({
+    required String lowTarget,
+    required String highTarget,
+  }) async {
+    final target = widget.gear.targetForModality(widget.modality);
+    final unit = target?.metric.unitLabel ?? '';
 
     final result = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Pace outside target'),
+          title: const Text('Create initial target?'),
           content: Text(
-            'Target pace: ${widget.gear.targetPaceDisplay} / mile\n\n'
+            'No target exists for '
+            '${widget.modality.displayName} '
+            'Gear ${widget.gear.number}.\n\n'
+            'This workout will become your initial target.\n\n'
+            'Target:\n'
+            '$lowTarget–$highTarget'
+            '${unit.isEmpty ? '' : ' $unit'}\n\n'
+            'You can edit this target later.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              child: const Text('Review'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              child: const Text('Save Workout'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result ?? false;
+  }
+
+  Future<bool> _confirmOutsideTarget() async {
+    final outsideValues = <String>[];
+    final target = widget.gear.targetForModality(widget.modality);
+
+    for (int index = 0;
+        index < intervalControllers.length;
+        index++) {
+      final controller = intervalControllers[index]
+          [WorkoutMetric.primaryMetric];
+
+      final value = controller?.text.trim() ?? '';
+
+      if (_primaryMetricIsOutsideTarget(value)) {
+        outsideValues.add(
+          'Interval ${index + 1}: $value',
+        );
+      }
+    }
+
+    if (outsideValues.isEmpty) {
+      return true;
+    }
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            '${target?.metric.displayName ?? 'Value'} outside target',
+          ),
+          content: Text(
+            'Target: ${target?.displayTarget ?? 'No target'} '
+            '${target?.metric.unitLabel ?? ''}\n\n'
             'The following intervals are outside target:\n\n'
-            '${outsidePaces.join('\n')}\n\n'
+            '${outsideValues.join('\n')}\n\n'
             'Save anyway?',
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
               child: const Text('Review'),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
               child: const Text('Save Anyway'),
             ),
           ],
@@ -182,39 +442,98 @@ bool paceIsOutsideTarget(String pace) {
     return result ?? false;
   }
 
-  Future<void> saveLog() async {
+  List<IntervalResult> _buildIntervals() {
+    return List.generate(
+      widget.gear.intervals,
+      (index) {
+        final controllers = intervalControllers[index];
+        final values = <WorkoutMetric, String>{};
+
+        for (final entry in controllers.entries) {
+          final value = entry.value.text.trim();
+
+          if (value.isNotEmpty) {
+            values[entry.key] = value;
+          }
+        }
+
+        return IntervalResult(
+          intervalNumber: index + 1,
+          values: values,
+        );
+      },
+    );
+  }
+
+  Future<void> _saveLog() async {
     if (!formKey.currentState!.validate()) {
       return;
     }
 
-    final confirmed = await confirmOutsideTarget();
-    if (!confirmed) return;
+    final target = widget.gear.targetForModality(widget.modality);
+    final hasCurrentTarget = target?.currentTarget != null;
 
-    final intervals = List.generate(widget.gear.intervals, (index) {
-      return IntervalResult(
-        intervalNumber: index + 1,
-        distance: distanceControllers[index].text.trim(),
-        avgPace: paceControllers[index].text.trim(),
-        avgHr: hrControllers[index].text.trim(),
-        rpe: rpeControllers[index].text.trim(),
+    String? initialLowTarget;
+    String? initialHighTarget;
+
+    if (!hasCurrentTarget) {
+      final suggestedTarget = _calculateInitialTarget();
+
+      if (suggestedTarget == null) {
+        return;
+      }
+
+      final confirmed = await _confirmInitialTarget(
+        lowTarget: suggestedTarget.lowTarget,
+        highTarget: suggestedTarget.highTarget,
       );
-    });
+
+      if (!confirmed) {
+        return;
+      }
+
+      initialLowTarget = suggestedTarget.lowTarget;
+      initialHighTarget = suggestedTarget.highTarget;
+    } else {
+      final confirmed = await _confirmOutsideTarget();
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    final intervals = _buildIntervals();
 
     final log = LogEntry(
       gearNumber: widget.gear.number,
+      modality: widget.modality,
       date: DateTime.now(),
       notes: notesController.text.trim(),
       intervals: intervals,
     );
 
+    if (initialLowTarget != null &&
+        initialHighTarget != null) {
+      await AppState.instance.updateTarget(
+        gearNumber: widget.gear.number,
+        modality: widget.modality,
+        lowTarget: initialLowTarget,
+        highTarget: initialHighTarget,
+      );
+    }
+
     await AppState.instance.addLog(log);
 
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => WorkoutSummaryScreen(log: log),
+        builder: (_) => WorkoutSummaryScreen(
+          log: log,
+        ),
       ),
     );
   }
@@ -222,83 +541,107 @@ bool paceIsOutsideTarget(String pace) {
   @override
   Widget build(BuildContext context) {
     final gear = widget.gear;
+    final target = gear.targetForModality(widget.modality);
+    final metric = target?.metric;
 
     return Scaffold(
       appBar: AppBar(
-  title: Text('Log Gear ${gear.number}'),
-  actions: [
-    IconButton(
-      icon: const Icon(Icons.home),
-      onPressed: () {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      },
-    ),
-  ],
-),
+        title: Text(
+          'Log ${widget.modality.displayName} Gear ${gear.number}',
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home),
+            onPressed: () {
+              Navigator.of(context).popUntil(
+                (route) => route.isFirst,
+              );
+            },
+          ),
+        ],
+      ),
       body: Form(
         key: formKey,
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            Text('Prescription', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Prescription',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 10),
             Text('Work: ${gear.work}'),
             Text('Rest: ${gear.rest}'),
             Text('Intervals: ${gear.intervals}'),
             const SizedBox(height: 10),
-            Text('Target Pace: ${gear.targetPaceDisplay} / mile'),
+            Text(
+              'Target: '
+              '${gear.targetDisplayForModality(widget.modality)}'
+              '${metric == null ? '' : ' ${metric.unitLabel}'}',
+            ),
             const SizedBox(height: 30),
-            for (int index = 0; index < gear.intervals; index++) ...[
+            for (int intervalIndex = 0;
+                intervalIndex < gear.intervals;
+                intervalIndex++) ...[
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Interval ${index + 1}',
-                        style: Theme.of(context).textTheme.titleMedium,
+                        'Interval ${intervalIndex + 1}',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium,
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
-                        controller: distanceControllers[index],
-                        validator: validateDistance,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Distance (miles)',
-                          border: OutlineInputBorder(),
+                      for (int metricIndex = 0;
+                          metricIndex <
+                              widget.modality.workoutMetrics.length;
+                          metricIndex++) ...[
+                        Builder(
+                          builder: (context) {
+                            final workoutMetric = widget
+                                .modality
+                                .workoutMetrics[metricIndex];
+
+                            final controller =
+                                intervalControllers[intervalIndex]
+                                    [workoutMetric]!;
+
+                            return TextFormField(
+                              controller: controller,
+                              validator: (value) {
+                                return _validateMetric(
+                                  workoutMetric,
+                                  value,
+                                );
+                              },
+                              keyboardType:
+                                  _keyboardTypeForMetric(
+                                workoutMetric,
+                              ),
+                              decoration: InputDecoration(
+                                labelText: _labelForMetric(
+                                  workoutMetric,
+                                ),
+                                helperText:
+                                    _helperTextForMetric(
+                                  workoutMetric,
+                                ),
+                                border:
+                                    const OutlineInputBorder(),
+                              ),
+                            );
+                          },
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        controller: paceControllers[index],
-                        validator: validatePace,
-                        decoration: InputDecoration(
-                          labelText: 'Avg Pace (min/mile)',
-                          helperText: 'Target: ${gear.targetPaceDisplay}',
-                          border: const OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        controller: hrControllers[index],
-                        validator: validateHr,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Avg HR',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        controller: rpeControllers[index],
-                        validator: validateRpe,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'RPE',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
+                        if (metricIndex <
+                            widget.modality.workoutMetrics.length -
+                                1)
+                          const SizedBox(height: 10),
+                      ],
                     ],
                   ),
                 ),
@@ -316,7 +659,7 @@ bool paceIsOutsideTarget(String pace) {
             ),
             const SizedBox(height: 30),
             ElevatedButton(
-              onPressed: saveLog,
+              onPressed: _saveLog,
               child: const Text('Save Workout'),
             ),
           ],
