@@ -309,26 +309,45 @@ The application has transitioned from a run-specific logger into a modality-inde
 
 ## Sprint 8
 
+### Expand the Living Matrix
+
+Highest Priority
+
+- Add Power prescriptions
+  - P1
+  - P2
+  - P3
+
+- Add Aerobic prescriptions
+  - Z1
+  - Z2
+
+- Update navigation to support all prescription types.
+
+- Remove remaining assumptions that every workout is Gear 1–8.
+
+- Preserve compatibility with future Misfit programming changes.
+
 ### History Improvements
 
-* Better workout history dashboard
-* Workout counts
-* Latest workout summary
-* Trend indicators
+- Better workout history dashboard
+- Workout counts
+- Latest workout summary
+- Trend indicators
 
 ### Training Analytics
 
-* Interval fade detection
-* Consistency analysis
-* Target recommendations
-* Historical performance trends
+- Interval fade detection
+- Consistency analysis
+- Target recommendations
+- Historical performance trends
 
 ### Quality of Life
 
-* Better summary insights
-* Personal best indicators
-* Workout search
-* Filters
+- Better summary insights
+- Personal best indicators
+- Workout search
+- Filters
 
 ---
 
