@@ -8,14 +8,15 @@ import '../services/app_state.dart';
 import 'workout_summary_screen.dart';
 
 class LogWorkoutScreen extends StatefulWidget {
-  final Gear gear;
+  final Prescription prescription;
   final Modality modality;
 
   const LogWorkoutScreen({
     super.key,
-    required this.gear,
+    required this.prescription,
     required this.modality,
   });
+
 
   @override
   State<LogWorkoutScreen> createState() => _LogWorkoutScreenState();
@@ -34,7 +35,7 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
     super.initState();
 
     intervalControllers = List.generate(
-      widget.gear.intervals,
+      widget.prescription.intervals,
       (_) {
         return {
           for (final metric in widget.modality.workoutMetrics)
@@ -77,8 +78,28 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
     return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
+  Gear? get _gear {
+    final prescription = widget.prescription;
+
+    if (prescription is Gear) {
+      return prescription;
+    }
+
+    return null;
+  }
+
+  String get _prescriptionLabel {
+    final gear = _gear;
+
+    if (gear != null) {
+      return 'Gear ${gear.number}';
+    }
+
+    return widget.prescription.id;
+  }
+
   String _labelForMetric(WorkoutMetric workoutMetric) {
-    final target = widget.gear.targetForModality(widget.modality);
+    final target = widget.prescription.targetForModality(widget.modality);
 
     switch (workoutMetric) {
       case WorkoutMetric.distance:
@@ -129,7 +150,7 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
     switch (workoutMetric) {
       case WorkoutMetric.primaryMetric:
         return 'Target: '
-            '${widget.gear.targetDisplayForModality(widget.modality)}';
+            '${widget.prescription.targetDisplayForModality(widget.modality)}';
 
       case WorkoutMetric.strokeRate:
         return 'Strokes per minute';
@@ -150,7 +171,7 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
   TextInputType _keyboardTypeForMetric(
     WorkoutMetric workoutMetric,
   ) {
-    final target = widget.gear.targetForModality(widget.modality);
+    final target = widget.prescription.targetForModality(widget.modality);
 
     if (workoutMetric == WorkoutMetric.primaryMetric &&
         target?.metric.usesTimeFormat == true) {
@@ -167,7 +188,7 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
     String? value,
   ) {
     final text = value?.trim() ?? '';
-    final target = widget.gear.targetForModality(widget.modality);
+    final target = widget.prescription.targetForModality(widget.modality);
 
     if (workoutMetric == WorkoutMetric.primaryMetric) {
       if (text.isEmpty) {
@@ -255,7 +276,7 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
 
   ({String lowTarget, String highTarget})?
       _calculateInitialTarget() {
-    final target = widget.gear.targetForModality(widget.modality);
+    final target = widget.prescription.targetForModality(widget.modality);
     final values = _primaryMetricValues();
 
     if (target == null || values.isEmpty) {
@@ -306,7 +327,7 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
   }
 
   bool _primaryMetricIsOutsideTarget(String value) {
-    final target = widget.gear.targetForModality(widget.modality);
+    final target = widget.prescription.targetForModality(widget.modality);
     final currentTarget = target?.currentTarget;
 
     if (target == null || currentTarget == null) {
@@ -345,7 +366,7 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
     required String lowTarget,
     required String highTarget,
   }) async {
-    final target = widget.gear.targetForModality(widget.modality);
+    final target = widget.prescription.targetForModality(widget.modality);
     final unit = target?.metric.unitLabel ?? '';
 
     final result = await showDialog<bool>(
@@ -356,7 +377,7 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
           content: Text(
             'No target exists for '
             '${widget.modality.displayName} '
-            'Gear ${widget.gear.number}.\n\n'
+            '$_prescriptionLabel.\n\n'
             'This workout will become your initial target.\n\n'
             'Target:\n'
             '$lowTarget–$highTarget'
@@ -386,7 +407,7 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
 
   Future<bool> _confirmOutsideTarget() async {
     final outsideValues = <String>[];
-    final target = widget.gear.targetForModality(widget.modality);
+    final target = widget.prescription.targetForModality(widget.modality);
 
     for (int index = 0;
         index < intervalControllers.length;
@@ -444,7 +465,7 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
 
   List<IntervalResult> _buildIntervals() {
     return List.generate(
-      widget.gear.intervals,
+      widget.prescription.intervals,
       (index) {
         final controllers = intervalControllers[index];
         final values = <WorkoutMetric, String>{};
@@ -470,7 +491,7 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
       return;
     }
 
-    final target = widget.gear.targetForModality(widget.modality);
+    final target = widget.prescription.targetForModality(widget.modality);
     final hasCurrentTarget = target?.currentTarget != null;
 
     String? initialLowTarget;
@@ -504,18 +525,21 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
 
     final intervals = _buildIntervals();
 
-    final log = LogEntry(
-      gearNumber: widget.gear.number,
-      modality: widget.modality,
-      date: DateTime.now(),
-      notes: notesController.text.trim(),
-      intervals: intervals,
-    );
+  final log = LogEntry.forPrescription(
+  prescriptionId: widget.prescription.id,
+  modality: widget.modality,
+  date: DateTime.now(),
+  notes: notesController.text.trim(),
+  intervals: intervals,
+);
+
+    final gear = _gear;
 
     if (initialLowTarget != null &&
-        initialHighTarget != null) {
+        initialHighTarget != null &&
+        gear != null) {
       await AppState.instance.updateTarget(
-        gearNumber: widget.gear.number,
+        gearNumber: gear.number,
         modality: widget.modality,
         lowTarget: initialLowTarget,
         highTarget: initialHighTarget,
@@ -540,14 +564,14 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final gear = widget.gear;
-    final target = gear.targetForModality(widget.modality);
+    final prescription = widget.prescription;
+    final target = prescription.targetForModality(widget.modality);
     final metric = target?.metric;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Log ${widget.modality.displayName} Gear ${gear.number}',
+          'Log ${widget.modality.displayName} $_prescriptionLabel',
         ),
         actions: [
           IconButton(
@@ -570,18 +594,18 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 10),
-            Text('Work: ${gear.work}'),
-            Text('Rest: ${gear.rest}'),
-            Text('Intervals: ${gear.intervals}'),
+            Text('Work: ${prescription.work}'),
+            Text('Rest: ${prescription.rest}'),
+            Text('Intervals: ${prescription.intervals}'),
             const SizedBox(height: 10),
             Text(
               'Target: '
-              '${gear.targetDisplayForModality(widget.modality)}'
+              '${prescription.targetDisplayForModality(widget.modality)}'
               '${metric == null ? '' : ' ${metric.unitLabel}'}',
             ),
             const SizedBox(height: 30),
             for (int intervalIndex = 0;
-                intervalIndex < gear.intervals;
+                intervalIndex < prescription.intervals;
                 intervalIndex++) ...[
               Card(
                 child: Padding(

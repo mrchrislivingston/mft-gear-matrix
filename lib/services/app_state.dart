@@ -17,25 +17,50 @@ class AppState {
   static const String _logsKey = 'workout_logs';
   static const String _targetsKey = 'matrix_targets';
 
+  /// Separate storage for non-Gear prescription targets.
+  ///
+  /// Keeping this separate preserves compatibility with existing Gear saves.
+  static const String _prescriptionTargetsKey =
+      'prescription_targets';
+
   final List<LogEntry> logs = [];
   final List<Gear> gears = buildDefaultMatrix();
 
-  /// Returns the complete matrix while preserving any saved Gear targets.
+  final List<Prescription> nonGearPrescriptions =
+      buildDefaultPrescriptions()
+          .where((prescription) => prescription is! Gear)
+          .toList();
+
+  /// Returns the complete matrix in its defined default order.
   ///
-  /// Z1, Z2, and P1–P3 come from the default prescription list.
-  /// G1–G8 come from the current persisted Gear list.
+  /// G1–G8 come from the persisted Gear list.
+  /// P1–P3 and Z1–Z2 come from the persisted non-Gear list.
   List<Prescription> get prescriptions {
     final defaults = buildDefaultPrescriptions();
 
-    return defaults.map((prescription) {
-      if (prescription is! Gear) {
-        return prescription;
+    return defaults.map((defaultPrescription) {
+      if (defaultPrescription is Gear) {
+        final index = gears.indexWhere(
+          (gear) => gear.number == defaultPrescription.number,
+        );
+
+        if (index == -1) {
+          return defaultPrescription;
+        }
+
+        return gears[index];
       }
 
-      return gears.firstWhere(
-        (gear) => gear.number == prescription.number,
-        orElse: () => prescription,
+      final index = nonGearPrescriptions.indexWhere(
+        (prescription) =>
+            prescription.id == defaultPrescription.id,
       );
+
+      if (index == -1) {
+        return defaultPrescription;
+      }
+
+      return nonGearPrescriptions[index];
     }).toList();
   }
 
@@ -49,12 +74,15 @@ class AppState {
       ..clear()
       ..addAll(
         rawLogs.map((rawLog) {
-          final json = jsonDecode(rawLog) as Map<String, dynamic>;
+          final json =
+              jsonDecode(rawLog) as Map<String, dynamic>;
+
           return LogEntry.fromJson(json);
         }),
       );
 
     await loadGears();
+    await loadNonGearPrescriptions();
   }
 
   Future<void> loadGears() async {
@@ -72,42 +100,27 @@ class AppState {
     }
 
     final savedGears = rawGears.map((rawGear) {
-      final json = jsonDecode(rawGear) as Map<String, dynamic>;
+      final json =
+          jsonDecode(rawGear) as Map<String, dynamic>;
+
       return Gear.fromJson(json);
     }).toList();
 
     final mergedGears = defaultGears.map((defaultGear) {
-      final savedGear = savedGears.cast<Gear?>().firstWhere(
-            (gear) => gear?.number == defaultGear.number,
-            orElse: () => null,
-          );
+      final savedIndex = savedGears.indexWhere(
+        (gear) => gear.number == defaultGear.number,
+      );
 
-      if (savedGear == null) {
+      if (savedIndex == -1) {
         return defaultGear;
       }
 
-      final mergedTargets = defaultGear.targets.map((defaultTarget) {
-        final savedTarget = savedGear.targets.cast<GearTarget?>().firstWhere(
-              (target) =>
-                  target?.modality == defaultTarget.modality &&
-                  target?.metric == defaultTarget.metric,
-              orElse: () => null,
-            );
+      final savedGear = savedGears[savedIndex];
 
-        return savedTarget ?? defaultTarget;
-      }).toList();
-
-      for (final savedTarget in savedGear.targets) {
-        final alreadyIncluded = mergedTargets.any(
-          (target) =>
-              target.modality == savedTarget.modality &&
-              target.metric == savedTarget.metric,
-        );
-
-        if (!alreadyIncluded) {
-          mergedTargets.add(savedTarget);
-        }
-      }
+      final mergedTargets = _mergeTargets(
+        defaultTargets: defaultGear.targets,
+        savedTargets: savedGear.targets,
+      );
 
       return defaultGear.copyWith(
         targets: mergedTargets,
@@ -119,27 +132,167 @@ class AppState {
       ..addAll(mergedGears);
   }
 
+  Future<void> loadNonGearPrescriptions() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final rawPrescriptions =
+        prefs.getStringList(_prescriptionTargetsKey);
+
+    final defaults = buildDefaultPrescriptions()
+        .where((prescription) => prescription is! Gear)
+        .toList();
+
+    if (rawPrescriptions == null ||
+        rawPrescriptions.isEmpty) {
+      nonGearPrescriptions
+        ..clear()
+        ..addAll(defaults);
+
+      return;
+    }
+
+    final savedPrescriptions =
+        rawPrescriptions.map((rawPrescription) {
+      final json =
+          jsonDecode(rawPrescription) as Map<String, dynamic>;
+
+      return Prescription.fromJson(json);
+    }).toList();
+
+    final mergedPrescriptions =
+        defaults.map((defaultPrescription) {
+      final savedIndex = savedPrescriptions.indexWhere(
+        (prescription) =>
+            prescription.id == defaultPrescription.id,
+      );
+
+      if (savedIndex == -1) {
+        return defaultPrescription;
+      }
+
+      final savedPrescription =
+          savedPrescriptions[savedIndex];
+
+      final mergedTargets = _mergeTargets(
+        defaultTargets: defaultPrescription.targets,
+        savedTargets: savedPrescription.targets,
+      );
+
+      return defaultPrescription.copyWith(
+        targets: mergedTargets,
+      );
+    }).toList();
+
+    nonGearPrescriptions
+      ..clear()
+      ..addAll(mergedPrescriptions);
+  }
+
+  List<GearTarget> _mergeTargets({
+    required List<GearTarget> defaultTargets,
+    required List<GearTarget> savedTargets,
+  }) {
+    final mergedTargets =
+        defaultTargets.map((defaultTarget) {
+      final savedIndex = savedTargets.indexWhere(
+        (savedTarget) =>
+            savedTarget.modality ==
+                defaultTarget.modality &&
+            savedTarget.metric == defaultTarget.metric,
+      );
+
+      if (savedIndex == -1) {
+        return defaultTarget;
+      }
+
+      return savedTargets[savedIndex];
+    }).toList();
+
+    for (final savedTarget in savedTargets) {
+      final alreadyIncluded = mergedTargets.any(
+        (target) =>
+            target.modality == savedTarget.modality &&
+            target.metric == savedTarget.metric,
+      );
+
+      if (!alreadyIncluded) {
+        mergedTargets.add(savedTarget);
+      }
+    }
+
+    return mergedTargets;
+  }
+
   Future<void> addLog(LogEntry log) async {
     logs.add(log);
     await _saveLogs();
   }
 
-  Future<void> updateTarget({
-    required int gearNumber,
+  /// Generic target update used by every prescription type.
+  Future<void> updatePrescriptionTarget({
+    required String prescriptionId,
     required Modality modality,
     required String lowTarget,
     required String highTarget,
   }) async {
     final gearIndex = gears.indexWhere(
-      (gear) => gear.number == gearNumber,
+      (gear) => gear.id == prescriptionId,
     );
 
-    if (gearIndex == -1) {
+    if (gearIndex != -1) {
+      final gear = gears[gearIndex];
+
+      final updatedTargets = _buildUpdatedTargets(
+        prescription: gear,
+        modality: modality,
+        lowTarget: lowTarget,
+        highTarget: highTarget,
+      );
+
+      gears[gearIndex] = gear.copyWith(
+        targets: updatedTargets,
+      );
+
+      await _saveGears();
       return;
     }
 
-    final gear = gears[gearIndex];
-    final existingTarget = gear.targetForModality(modality);
+    final prescriptionIndex =
+        nonGearPrescriptions.indexWhere(
+      (prescription) =>
+          prescription.id == prescriptionId,
+    );
+
+    if (prescriptionIndex == -1) {
+      return;
+    }
+
+    final prescription =
+        nonGearPrescriptions[prescriptionIndex];
+
+    final updatedTargets = _buildUpdatedTargets(
+      prescription: prescription,
+      modality: modality,
+      lowTarget: lowTarget,
+      highTarget: highTarget,
+    );
+
+    nonGearPrescriptions[prescriptionIndex] =
+        prescription.copyWith(
+      targets: updatedTargets,
+    );
+
+    await _saveNonGearPrescriptions();
+  }
+
+  List<GearTarget> _buildUpdatedTargets({
+    required Prescription prescription,
+    required Modality modality,
+    required String lowTarget,
+    required String highTarget,
+  }) {
+    final existingTarget =
+        prescription.targetForModality(modality);
 
     final newHistoryItem = TargetHistory(
       lowTarget: lowTarget,
@@ -147,11 +300,8 @@ class AppState {
       effectiveDate: DateTime.now(),
     );
 
-    late final GearTarget updatedTarget;
-    late final List<GearTarget> updatedTargets;
-
     if (existingTarget == null) {
-      updatedTarget = GearTarget(
+      final newTarget = GearTarget(
         modality: modality,
         metric: modality.defaultMetric,
         history: [
@@ -159,33 +309,45 @@ class AppState {
         ],
       );
 
-      updatedTargets = [
-        ...gear.targets,
-        updatedTarget,
+      return [
+        ...prescription.targets,
+        newTarget,
       ];
-    } else {
-      updatedTarget = existingTarget.copyWith(
-        history: [
-          ...existingTarget.history,
-          newHistoryItem,
-        ],
-      );
-
-      updatedTargets = gear.targets.map((target) {
-        if (target.modality == existingTarget.modality &&
-            target.metric == existingTarget.metric) {
-          return updatedTarget;
-        }
-
-        return target;
-      }).toList();
     }
 
-    gears[gearIndex] = gear.copyWith(
-      targets: updatedTargets,
+    final updatedTarget = existingTarget.copyWith(
+      history: [
+        ...existingTarget.history,
+        newHistoryItem,
+      ],
     );
 
-    await _saveGears();
+    return prescription.targets.map((target) {
+      if (target.modality ==
+              existingTarget.modality &&
+          target.metric == existingTarget.metric) {
+        return updatedTarget;
+      }
+
+      return target;
+    }).toList();
+  }
+
+  /// Compatibility method used by the existing Gear screens.
+  ///
+  /// This can be removed after all screens use prescription IDs.
+  Future<void> updateTarget({
+    required int gearNumber,
+    required Modality modality,
+    required String lowTarget,
+    required String highTarget,
+  }) {
+    return updatePrescriptionTarget(
+      prescriptionId: 'G$gearNumber',
+      modality: modality,
+      lowTarget: lowTarget,
+      highTarget: highTarget,
+    );
   }
 
   Future<void> updateRunPaceTarget({
@@ -193,8 +355,8 @@ class AppState {
     required String lowTarget,
     required String highTarget,
   }) {
-    return updateTarget(
-      gearNumber: gearNumber,
+    return updatePrescriptionTarget(
+      prescriptionId: 'G$gearNumber',
       modality: Modality.run,
       lowTarget: lowTarget,
       highTarget: highTarget,
@@ -212,7 +374,8 @@ class AppState {
 
     await prefs.setStringList(_logsKey, rawLogs);
 
-    final savedLogs = prefs.getStringList(_logsKey) ?? [];
+    final savedLogs =
+        prefs.getStringList(_logsKey) ?? [];
 
     print('Saved logs found: ${savedLogs.length}');
   }
@@ -224,6 +387,23 @@ class AppState {
       return jsonEncode(gear.toJson());
     }).toList();
 
-    await prefs.setStringList(_targetsKey, rawGears);
+    await prefs.setStringList(
+      _targetsKey,
+      rawGears,
+    );
+  }
+
+  Future<void> _saveNonGearPrescriptions() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final rawPrescriptions =
+        nonGearPrescriptions.map((prescription) {
+      return jsonEncode(prescription.toJson());
+    }).toList();
+
+    await prefs.setStringList(
+      _prescriptionTargetsKey,
+      rawPrescriptions,
+    );
   }
 }

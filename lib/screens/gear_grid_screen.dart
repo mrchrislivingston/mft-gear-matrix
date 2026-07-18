@@ -33,16 +33,11 @@ class GearGridScreen extends StatelessWidget {
     BuildContext context,
     Prescription prescription,
   ) {
-    // Existing detail and logging screens still require a Gear.
-    if (prescription is! Gear) {
-      return;
-    }
-
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => GearDetailScreen(
-          gear: prescription,
+          prescription: prescription,
           modality: modality,
         ),
       ),
@@ -68,10 +63,18 @@ class GearGridScreen extends StatelessWidget {
     }
 
     final description =
-        prescription.prescriptionDisplayForModality(modality);
+        prescription.prescriptionDisplayForModality(
+      modality,
+    );
 
     return Card(
       child: ListTile(
+        onTap: () {
+          _openPrescription(
+            context,
+            prescription,
+          );
+        },
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 6,
@@ -91,9 +94,59 @@ class GearGridScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildSection(
+    BuildContext context, {
+    required String title,
+    required List<Prescription> prescriptions,
+  }) {
+    if (prescriptions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 10),
+        ...prescriptions.map(
+          (prescription) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _buildPrescriptionCard(
+              context,
+              prescription,
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final prescriptions = AppState.instance.prescriptions;
+
+    final gears = prescriptions
+        .whereType<Gear>()
+        .cast<Prescription>()
+        .toList();
+
+    final powerPrescriptions = prescriptions
+        .where(
+          (prescription) =>
+              prescription.id.startsWith('P'),
+        )
+        .toList();
+
+    final aerobicPrescriptions = prescriptions
+        .where(
+          (prescription) =>
+              prescription.id.startsWith('Z'),
+        )
+        .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -102,23 +155,32 @@ class GearGridScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.home),
             onPressed: () {
-              Navigator.of(context).popUntil((route) => route.isFirst);
+              Navigator.of(context).popUntil(
+                (route) => route.isFirst,
+              );
             },
           ),
         ],
       ),
-      body: ListView.separated(
+      body: ListView(
         padding: const EdgeInsets.all(20),
-        itemCount: prescriptions.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (context, index) {
-          final prescription = prescriptions[index];
-
-          return _buildPrescriptionCard(
+        children: [
+          _buildSection(
             context,
-            prescription,
-          );
-        },
+            title: 'Gears',
+            prescriptions: gears,
+          ),
+          _buildSection(
+            context,
+            title: 'Power',
+            prescriptions: powerPrescriptions,
+          ),
+          _buildSection(
+            context,
+            title: 'Aerobic',
+            prescriptions: aerobicPrescriptions,
+          ),
+        ],
       ),
     );
   }

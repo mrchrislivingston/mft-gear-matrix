@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../models/modality.dart';
+import '../models/training_stimulus.dart';
 import '../services/app_state.dart';
 import '../widgets/gear_card.dart';
 import 'gear_history_screen.dart';
+import 'history_screen.dart';
 
 class HistoryGearGridScreen extends StatelessWidget {
   final Modality modality;
@@ -16,6 +18,22 @@ class HistoryGearGridScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final gears = AppState.instance.gears;
+
+    final powerPrescriptions = AppState.instance.prescriptions
+        .where(
+          (prescription) =>
+              prescription.stimulus ==
+              TrainingStimulus.power,
+        )
+        .toList();
+
+    final aerobicPrescriptions = AppState.instance.prescriptions
+        .where(
+          (prescription) =>
+              prescription.stimulus ==
+              TrainingStimulus.aerobic,
+        )
+        .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -31,28 +49,123 @@ class HistoryGearGridScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView.separated(
+      body: ListView(
         padding: const EdgeInsets.all(20),
-        itemCount: gears.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (context, index) {
-          final gear = gears[index];
+        children: [
+          Text(
+            'Gears',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 12),
 
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => GearHistoryScreen(
-                    gear: gear,
-                    modality: modality,
+          for (int index = 0;
+              index < gears.length;
+              index++) ...[
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => GearHistoryScreen(
+                      gear: gears[index],
+                      modality: modality,
+                    ),
+                  ),
+                );
+              },
+              child: GearCard(
+                gear: gears[index],
+              ),
+            ),
+            if (index < gears.length - 1)
+              const SizedBox(height: 10),
+          ],
+
+          const SizedBox(height: 30),
+
+          Text(
+            'Power',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 12),
+
+          for (int index = 0;
+              index < powerPrescriptions.length;
+              index++) ...[
+            Card(
+              child: ListTile(
+                title: Text(
+                  powerPrescriptions[index].name,
+                ),
+                subtitle: Text(
+                  powerPrescriptions[index]
+                      .prescriptionDisplayForModality(
+                    modality,
                   ),
                 ),
-              );
-            },
-            child: GearCard(gear: gear),
-          );
-        },
+                trailing:
+                    const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => HistoryScreen(
+                        prescription:
+                            powerPrescriptions[index],
+                        modality: modality,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            if (index < powerPrescriptions.length - 1)
+              const SizedBox(height: 10),
+          ],
+
+          const SizedBox(height: 30),
+
+          Text(
+            'Aerobic',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 12),
+
+          for (int index = 0;
+              index < aerobicPrescriptions.length;
+              index++) ...[
+            Card(
+              child: ListTile(
+                title: Text(
+                  aerobicPrescriptions[index].name,
+                ),
+                subtitle: Text(
+                  aerobicPrescriptions[index]
+                      .prescriptionDisplayForModality(
+                    modality,
+                  ),
+                ),
+                trailing:
+                    const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => HistoryScreen(
+                        prescription:
+                            aerobicPrescriptions[index],
+                        modality: modality,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            if (index <
+                aerobicPrescriptions.length - 1)
+              const SizedBox(height: 10),
+          ],
+        ],
       ),
     );
   }

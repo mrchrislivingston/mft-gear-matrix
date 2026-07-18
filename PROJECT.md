@@ -120,8 +120,8 @@ Home
 * Home Screen
 * Matrix
 * Modality selection
-* Gear grid
-* Gear detail
+* Prescription groups (Gear / Power / Aerobic)
+* Unified prescription detail screen
 * History navigation
 
 ### Targets
@@ -302,89 +302,97 @@ Completed
 
 ## Sprint 8
 
-Completed (Architecture)
+Completed
+
+### Architecture
 
 * Introduced generic Prescription model
 * Added TrainingStimulus architecture
 * Added PrescriptionProtocol model
 * Added Zone prescriptions (Z1–Z2)
 * Added Power prescriptions (P1–P3)
-* Migrated Matrix to Prescription architecture
+* Unified AppState around Prescription architecture
 * Preserved backward compatibility with existing Gear workflow
+
+### UI
+
+* Matrix now groups prescriptions into:
+  * Gears
+  * Power
+  * Aerobic
+* Unified prescription detail screen
+* Unified target management
+* Unified target history
+* Unified workout entry navigation
+* Unified workout history navigation
+
+### Power Prescriptions
+
+* Display Continuous Machines protocol
+* Display Ski / Row protocol
+* Improved prescription formatting
+* Recovery wording updated to:
+  * "Recover in remaining time"
 
 ---
 
 # Current Status
 
-The application has transitioned from a Gear-only matrix into a generalized Prescription platform. Gears, Zones, and Power prescriptions now share a common architecture while maintaining backward compatibility with the existing workout logging and history features.
+The application now supports three prescription families through a common architecture:
 
-The application supports:
+* Gear (G1–G8)
+* Power (P1–P3)
+* Aerobic (Z1–Z2)
+
+Current capabilities include:
 
 * Five modalities
+* Unified prescription engine
 * Independent target histories
-* Dynamic workout logging
-* Dynamic workout metrics
+* Dynamic workout logging (Gear)
 * Persistent workout history
 * Persistent target history
-* Automatic first-target creation
-* Migration-safe data model
-
-The application has transitioned from a run-specific logger into a modality-independent training platform.
+* Migration-safe persistence
 
 ---
 
 # Next Priorities
 
-Add Power prescriptions
-Add Aerobic prescriptions
+## Sprint 9
 
-## Sprint 8A
-
-* Group Matrix by Training Stimulus
-* Make Zone prescriptions interactive
-* Make Power prescriptions interactive
-* Extend workout logging beyond Gear workflows
-* Remove remaining Gear-specific assumptions
-
-### Expand the Living Matrix
+### Dynamic Workout Logging
 
 Highest Priority
 
-- Add Power prescriptions
-  - P1
-  - P2
-  - P3
+* Zone workout logger
+* Power workout logger
+* Dynamic logging by prescription type
 
-- Add Aerobic prescriptions
-  - Z1
-  - Z2
+### Code Cleanup
 
-- Update navigation to support all prescription types.
-
-- Remove remaining assumptions that every workout is Gear 1–8.
-
-- Preserve compatibility with future Misfit programming changes.
+* Rename GearDetailScreen → PrescriptionDetailScreen
+* Continue removing remaining Gear-specific assumptions
 
 ### History Improvements
 
-- Better workout history dashboard
-- Workout counts
-- Latest workout summary
-- Trend indicators
+* Better workout history dashboard
+* Workout counts
+* Latest workout summary
+* Trend indicators
 
 ### Training Analytics
 
-- Interval fade detection
-- Consistency analysis
-- Target recommendations
-- Historical performance trends
+* Interval fade detection
+* Consistency analysis
+* Target recommendations
+* Historical performance trends
 
 ### Quality of Life
 
-- Better summary insights
-- Personal best indicators
-- Workout search
-- Filters
+* Better summary insights
+* Personal best indicators
+* Workout search
+* Filters
 
 ---
 

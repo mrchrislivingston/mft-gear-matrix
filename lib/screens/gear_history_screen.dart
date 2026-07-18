@@ -175,11 +175,11 @@ class GearHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final logs = AppState.instance.logs
-        .where(
-          (log) =>
-              log.gearNumber == gear.number &&
-              log.modality == modality,
-        )
+    .where(
+      (log) =>
+          log.prescriptionId == gear.id &&
+          log.modality == modality,
+    )
         .toList()
         .reversed
         .toList();

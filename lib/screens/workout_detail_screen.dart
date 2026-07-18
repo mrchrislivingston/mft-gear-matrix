@@ -17,10 +17,12 @@ class WorkoutDetailScreen extends StatelessWidget {
     switch (log.modality) {
       case Modality.run:
         return 'mi';
+
       case Modality.row:
       case Modality.ski:
       case Modality.bikeErg:
         return 'm';
+
       case Modality.echo:
         return '';
     }
@@ -33,8 +35,10 @@ class WorkoutDetailScreen extends StatelessWidget {
     switch (workoutMetric) {
       case WorkoutMetric.primaryMetric:
         return primaryMetricName;
+
       case WorkoutMetric.heartRate:
         return 'HR';
+
       default:
         return workoutMetric.displayName;
     }
@@ -47,20 +51,28 @@ class WorkoutDetailScreen extends StatelessWidget {
     switch (workoutMetric) {
       case WorkoutMetric.distance:
         return distanceUnit;
+
       case WorkoutMetric.primaryMetric:
         return primaryMetricUnit;
+
       case WorkoutMetric.watts:
         return 'W';
+
       case WorkoutMetric.calories:
         return 'cal';
+
       case WorkoutMetric.caloriesPerHour:
         return 'cal/hr';
+
       case WorkoutMetric.rpm:
         return 'RPM';
+
       case WorkoutMetric.strokeRate:
         return 'spm';
+
       case WorkoutMetric.heartRate:
         return 'bpm';
+
       case WorkoutMetric.rpe:
         return '';
     }
@@ -73,8 +85,10 @@ class WorkoutDetailScreen extends StatelessWidget {
   ) {
     final lines = <String>[];
 
-    for (final workoutMetric in log.modality.workoutMetrics) {
-      final value = interval.valueFor(workoutMetric).trim();
+    for (final workoutMetric
+        in log.modality.workoutMetrics) {
+      final value =
+          interval.valueFor(workoutMetric).trim();
 
       if (value.isEmpty) {
         continue;
@@ -100,19 +114,34 @@ class WorkoutDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final gear = AppState.instance.gears.firstWhere(
-      (item) => item.number == log.gearNumber,
+    final prescriptionIndex =
+        AppState.instance.prescriptions.indexWhere(
+      (item) => item.id == log.prescriptionId,
     );
 
-    final target = gear.targetForModality(log.modality);
+    final prescription = prescriptionIndex == -1
+        ? null
+        : AppState.instance.prescriptions[
+            prescriptionIndex
+          ];
+
+    final target =
+        prescription?.targetForModality(log.modality);
+
     final primaryMetricName =
         target?.metric.displayName ?? 'Primary Metric';
-    final primaryMetricUnit = target?.metric.unitLabel ?? '';
+
+    final primaryMetricUnit =
+        target?.metric.unitLabel ?? '';
+
+    final prescriptionName =
+        prescription?.name ?? log.prescriptionId;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          '${log.modality.displayName} Gear ${log.gearNumber} Details',
+          '${log.modality.displayName} '
+          '$prescriptionName Details',
         ),
         actions: [
           IconButton(
@@ -129,7 +158,10 @@ class WorkoutDetailScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         children: [
           Text(
-            'Date: ${log.date.month}/${log.date.day}/${log.date.year}',
+            'Date: '
+            '${log.date.month}/'
+            '${log.date.day}/'
+            '${log.date.year}',
           ),
           const SizedBox(height: 20),
           for (final interval in log.intervals) ...[
@@ -153,7 +185,8 @@ class WorkoutDetailScreen extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               'Notes',
-              style: Theme.of(context).textTheme.titleLarge,
+              style:
+                  Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
             Text(log.notes),

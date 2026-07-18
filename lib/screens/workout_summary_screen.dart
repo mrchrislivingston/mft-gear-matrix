@@ -47,10 +47,12 @@ class WorkoutSummaryScreen extends StatelessWidget {
     switch (log.modality) {
       case Modality.run:
         return 'mi';
+
       case Modality.row:
       case Modality.ski:
       case Modality.bikeErg:
         return 'm';
+
       case Modality.echo:
         return '';
     }
@@ -63,20 +65,28 @@ class WorkoutSummaryScreen extends StatelessWidget {
     switch (workoutMetric) {
       case WorkoutMetric.distance:
         return distanceUnit;
+
       case WorkoutMetric.primaryMetric:
         return primaryMetricUnit;
+
       case WorkoutMetric.watts:
         return 'W';
+
       case WorkoutMetric.calories:
         return 'cal';
+
       case WorkoutMetric.caloriesPerHour:
         return 'cal/hr';
+
       case WorkoutMetric.rpm:
         return 'RPM';
+
       case WorkoutMetric.strokeRate:
         return 'spm';
+
       case WorkoutMetric.heartRate:
         return 'bpm';
+
       case WorkoutMetric.rpe:
         return '';
     }
@@ -89,12 +99,16 @@ class WorkoutSummaryScreen extends StatelessWidget {
     switch (workoutMetric) {
       case WorkoutMetric.distance:
         return 'Total Distance';
+
       case WorkoutMetric.primaryMetric:
         return 'Average $primaryMetricName';
+
       case WorkoutMetric.heartRate:
         return 'Average HR';
+
       case WorkoutMetric.rpe:
         return 'Average RPE';
+
       default:
         return 'Average ${workoutMetric.displayName}';
     }
@@ -158,16 +172,31 @@ class WorkoutSummaryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final gear = AppState.instance.gears.firstWhere(
-      (item) => item.number == log.gearNumber,
+    final prescriptionIndex =
+        AppState.instance.prescriptions.indexWhere(
+      (item) => item.id == log.prescriptionId,
     );
 
-    final target = gear.targetForModality(log.modality);
+    final prescription = prescriptionIndex == -1
+        ? null
+        : AppState.instance.prescriptions[
+            prescriptionIndex
+          ];
+
+    final target =
+        prescription?.targetForModality(log.modality);
+
     final primaryMetricName =
         target?.metric.displayName ?? 'Primary Metric';
-    final primaryMetricUnit = target?.metric.unitLabel ?? '';
+
+    final primaryMetricUnit =
+        target?.metric.unitLabel ?? '';
+
     final primaryMetricUsesTimeFormat =
         target?.metric.usesTimeFormat == true;
+
+    final prescriptionName =
+        prescription?.name ?? log.prescriptionId;
 
     final totalDistance = log.intervals.fold<double>(
       0,
@@ -208,12 +237,15 @@ class WorkoutSummaryScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         children: [
           Text(
-            '${log.modality.displayName} Gear ${log.gearNumber}',
+            '${log.modality.displayName} $prescriptionName',
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 10),
           Text(
-            'Date: ${log.date.month}/${log.date.day}/${log.date.year}',
+            'Date: '
+            '${log.date.month}/'
+            '${log.date.day}/'
+            '${log.date.year}',
           ),
           const SizedBox(height: 30),
           Card(
@@ -224,12 +256,14 @@ class WorkoutSummaryScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Workout Totals',
-                    style: Theme.of(context).textTheme.titleLarge,
+                    style:
+                        Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 16),
                   if (totalDistance > 0) ...[
                     Text(
-                      'Total Distance: ${totalDistance.toStringAsFixed(2)}'
+                      'Total Distance: '
+                      '${totalDistance.toStringAsFixed(2)}'
                       '${distanceUnit.isEmpty ? '' : ' $distanceUnit'}',
                     ),
                     if (summaryMetrics.isNotEmpty)
@@ -264,7 +298,8 @@ class WorkoutSummaryScreen extends StatelessWidget {
                         );
                       },
                     ),
-                    if (index < summaryMetrics.length - 1)
+                    if (index <
+                        summaryMetrics.length - 1)
                       const SizedBox(height: 8),
                   ],
                 ],
@@ -275,13 +310,13 @@ class WorkoutSummaryScreen extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               'Notes',
-              style: Theme.of(context).textTheme.titleLarge,
+              style:
+                  Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
             Text(log.notes),
           ],
           const SizedBox(height: 30),
-
           ElevatedButton(
             onPressed: () {
               Navigator.push(
@@ -295,9 +330,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
             },
             child: const Text('View Workout Details'),
           ),
-
           const SizedBox(height: 10),
-
           OutlinedButton(
             onPressed: () {
               Navigator.pushReplacement(
@@ -309,9 +342,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
             },
             child: const Text('View History'),
           ),
-
           const SizedBox(height: 10),
-
           OutlinedButton(
             onPressed: () {
               Navigator.pushAndRemoveUntil(

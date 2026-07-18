@@ -5,20 +5,22 @@ import '../models/modality.dart';
 import '../services/app_state.dart';
 
 class TargetManagerScreen extends StatefulWidget {
-  final Gear gear;
+  final Prescription prescription;
   final Modality modality;
 
   const TargetManagerScreen({
     super.key,
-    required this.gear,
+    required this.prescription,
     required this.modality,
   });
 
   @override
-  State<TargetManagerScreen> createState() => _TargetManagerScreenState();
+  State<TargetManagerScreen> createState() =>
+      _TargetManagerScreenState();
 }
 
-class _TargetManagerScreenState extends State<TargetManagerScreen> {
+class _TargetManagerScreenState
+    extends State<TargetManagerScreen> {
   late final TextEditingController lowTargetController;
   late final TextEditingController highTargetController;
 
@@ -26,7 +28,10 @@ class _TargetManagerScreenState extends State<TargetManagerScreen> {
   void initState() {
     super.initState();
 
-    final target = widget.gear.targetForModality(widget.modality);
+    final target = widget.prescription.targetForModality(
+      widget.modality,
+    );
+
     final currentTarget = target?.currentTarget;
 
     lowTargetController = TextEditingController(
@@ -53,8 +58,13 @@ class _TargetManagerScreenState extends State<TargetManagerScreen> {
     final minutes = int.tryParse(parts[0]);
     final seconds = int.tryParse(parts[1]);
 
-    if (minutes == null || seconds == null) return null;
-    if (seconds < 0 || seconds > 59) return null;
+    if (minutes == null || seconds == null) {
+      return null;
+    }
+
+    if (seconds < 0 || seconds > 59) {
+      return null;
+    }
 
     return (minutes * 60) + seconds;
   }
@@ -70,7 +80,8 @@ class _TargetManagerScreenState extends State<TargetManagerScreen> {
     if (usesTimeFormat) {
       final regex = RegExp(r'^\d{1,2}:\d{2}$');
 
-      if (!regex.hasMatch(value) || _timeToSeconds(value) == null) {
+      if (!regex.hasMatch(value) ||
+          _timeToSeconds(value) == null) {
         return 'Use a pace format such as 2:05.';
       }
 
@@ -88,21 +99,26 @@ class _TargetManagerScreenState extends State<TargetManagerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final target = widget.gear.targetForModality(widget.modality);
+    final target = widget.prescription.targetForModality(
+      widget.modality,
+    );
+
     final currentTarget = target?.currentTarget;
     final metric = target?.metric;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Edit ${widget.modality.displayName} Gear '
-          '${widget.gear.number} Target',
+          'Edit ${widget.modality.displayName} '
+          '${widget.prescription.name} Target',
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.home),
             onPressed: () {
-              Navigator.of(context).popUntil((route) => route.isFirst);
+              Navigator.of(context).popUntil(
+                (route) => route.isFirst,
+              );
             },
           ),
         ],
@@ -113,14 +129,16 @@ class _TargetManagerScreenState extends State<TargetManagerScreen> {
           Text(
             currentTarget == null
                 ? 'No target currently set'
-                : 'Current target: ${currentTarget.displayTarget} '
+                : 'Current target: '
+                    '${currentTarget.displayTarget} '
                     '${metric?.unitLabel ?? ''}',
           ),
           const SizedBox(height: 12),
           Text(
             metric == null
                 ? 'Primary metric'
-                : '${metric.displayName} (${metric.unitLabel})',
+                : '${metric.displayName} '
+                    '(${metric.unitLabel})',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 24),
@@ -158,9 +176,14 @@ class _TargetManagerScreenState extends State<TargetManagerScreen> {
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: () async {
-              final lowTarget = lowTargetController.text.trim();
-              final highTarget = highTargetController.text.trim();
-              final usesTimeFormat = metric?.usesTimeFormat == true;
+              final lowTarget =
+                  lowTargetController.text.trim();
+
+              final highTarget =
+                  highTargetController.text.trim();
+
+              final usesTimeFormat =
+                  metric?.usesTimeFormat == true;
 
               final lowError = _validateTargetValue(
                 lowTarget,
@@ -180,11 +203,13 @@ class _TargetManagerScreenState extends State<TargetManagerScreen> {
                     content: Text(errorMessage),
                   ),
                 );
+
                 return;
               }
 
-              await AppState.instance.updateTarget(
-                gearNumber: widget.gear.number,
+              await AppState.instance
+                  .updatePrescriptionTarget(
+                prescriptionId: widget.prescription.id,
                 modality: widget.modality,
                 lowTarget: lowTarget,
                 highTarget: highTarget,
@@ -195,7 +220,9 @@ class _TargetManagerScreenState extends State<TargetManagerScreen> {
               }
             },
             child: Text(
-              currentTarget == null ? 'Create Target' : 'Save Target',
+              currentTarget == null
+                  ? 'Create Target'
+                  : 'Save Target',
             ),
           ),
         ],

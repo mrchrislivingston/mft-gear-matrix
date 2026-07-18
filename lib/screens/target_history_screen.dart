@@ -4,31 +4,38 @@ import '../models/gear.dart';
 import '../models/modality.dart';
 
 class TargetHistoryScreen extends StatelessWidget {
-  final Gear gear;
+  final Prescription prescription;
   final Modality modality;
 
   const TargetHistoryScreen({
     super.key,
-    required this.gear,
+    required this.prescription,
     required this.modality,
   });
 
   @override
   Widget build(BuildContext context) {
-    final target = gear.targetForModality(modality);
-    final history = target?.history.reversed.toList() ?? [];
+    final target =
+        prescription.targetForModality(modality);
+
+    final history =
+        target?.history.reversed.toList() ?? [];
+
+    final screenTitle =
+        '${modality.displayName} '
+        '${prescription.name} Target History';
 
     if (history.isEmpty) {
       return Scaffold(
         appBar: AppBar(
-          title: Text(
-            '${modality.displayName} Gear ${gear.number} Target History',
-          ),
+          title: Text(screenTitle),
           actions: [
             IconButton(
               icon: const Icon(Icons.home),
               onPressed: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
+                Navigator.of(context).popUntil(
+                  (route) => route.isFirst,
+                );
               },
             ),
           ],
@@ -44,14 +51,14 @@ class TargetHistoryScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          '${modality.displayName} Gear ${gear.number} Target History',
-        ),
+        title: Text(screenTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.home),
             onPressed: () {
-              Navigator.of(context).popUntil((route) => route.isFirst);
+              Navigator.of(context).popUntil(
+                (route) => route.isFirst,
+              );
             },
           ),
         ],
@@ -69,11 +76,14 @@ class TargetHistoryScreen extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
                 children: [
                   Text(
                     target?.displayTarget ?? 'No target',
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium,
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -92,17 +102,21 @@ class TargetHistoryScreen extends StatelessWidget {
 
             Text(
               'Previous Targets',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge,
             ),
 
             const SizedBox(height: 12),
 
             ...previous.map(
               (entry) => Card(
-                margin: const EdgeInsets.only(bottom: 12),
+                margin:
+                    const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   title: Text(
-                    '${entry.displayTarget} ${target?.metric.name ?? ''}',
+                    '${entry.displayTarget} '
+                    '${target?.metric.unitLabel ?? ''}',
                   ),
                   subtitle: Text(
                     '${entry.effectiveDate.month}/'
