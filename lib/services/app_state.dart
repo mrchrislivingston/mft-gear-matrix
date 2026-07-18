@@ -20,6 +20,25 @@ class AppState {
   final List<LogEntry> logs = [];
   final List<Gear> gears = buildDefaultMatrix();
 
+  /// Returns the complete matrix while preserving any saved Gear targets.
+  ///
+  /// Z1, Z2, and P1–P3 come from the default prescription list.
+  /// G1–G8 come from the current persisted Gear list.
+  List<Prescription> get prescriptions {
+    final defaults = buildDefaultPrescriptions();
+
+    return defaults.map((prescription) {
+      if (prescription is! Gear) {
+        return prescription;
+      }
+
+      return gears.firstWhere(
+        (gear) => gear.number == prescription.number,
+        orElse: () => prescription,
+      );
+    }).toList();
+  }
+
   Future<void> loadLogs() async {
     final prefs = await SharedPreferences.getInstance();
     final rawLogs = prefs.getStringList(_logsKey) ?? [];
