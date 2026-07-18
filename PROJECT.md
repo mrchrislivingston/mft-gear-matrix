@@ -74,7 +74,11 @@ Wait for testing before moving to the next step.
 Home
 ├── Matrix
 │   └── Modality
-│       └── Gear
+│       └── Prescription
+│           ├── Zone
+│           ├── Gear
+│           └── Power
+│
 │           ├── Log Workout
 │           ├── Workout Summary
 │           ├── Workout History
@@ -90,14 +94,10 @@ Home
 # Core Architecture Decisions
 
 * One Living Matrix
-* Eight Gears shared across all modalities
-* Local-first persistence
-* SharedPreferences for MVP
-* Complete workout history is permanent
-* Complete target history is permanent
-* Every modality owns its own targets
-* Navigation always includes Home shortcut
-* Small iterative development with testing after every change
+* One Prescription engine
+* Gears are one prescription type
+* Zones are continuous-duration prescriptions
+* Power prescriptions support modality-specific protocols
 
 ---
 
@@ -166,6 +166,22 @@ Home
 ---
 
 # Data Model
+
+## Prescription
+
+* id
+* name
+* TrainingStimulus
+* work/rest/intervals (Gear)
+* durationRange (Zone)
+* modality protocols (Power)
+* targets
+
+## PrescriptionProtocol
+
+* every
+* rounds
+* AMRAP
 
 ## Gear
 
@@ -284,11 +300,23 @@ Completed
 * Dynamic primary metric support
 * Migration-safe persistence
 
+## Sprint 8
+
+Completed (Architecture)
+
+* Introduced generic Prescription model
+* Added TrainingStimulus architecture
+* Added PrescriptionProtocol model
+* Added Zone prescriptions (Z1–Z2)
+* Added Power prescriptions (P1–P3)
+* Migrated Matrix to Prescription architecture
+* Preserved backward compatibility with existing Gear workflow
+
 ---
 
 # Current Status
 
-The Living Matrix architecture is now complete.
+The application has transitioned from a Gear-only matrix into a generalized Prescription platform. Gears, Zones, and Power prescriptions now share a common architecture while maintaining backward compatibility with the existing workout logging and history features.
 
 The application supports:
 
@@ -307,7 +335,16 @@ The application has transitioned from a run-specific logger into a modality-inde
 
 # Next Priorities
 
-## Sprint 8
+Add Power prescriptions
+Add Aerobic prescriptions
+
+## Sprint 8A
+
+* Group Matrix by Training Stimulus
+* Make Zone prescriptions interactive
+* Make Power prescriptions interactive
+* Extend workout logging beyond Gear workflows
+* Remove remaining Gear-specific assumptions
 
 ### Expand the Living Matrix
 
