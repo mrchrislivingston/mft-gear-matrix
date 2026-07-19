@@ -219,6 +219,12 @@ class WorkoutSummaryScreen extends StatelessWidget {
         )
         .toList();
 
+    final hasDuration = log.duration.trim().isNotEmpty;
+    final hasWorkoutTotals =
+        hasDuration ||
+        totalDistance > 0 ||
+        summaryMetrics.isNotEmpty;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Workout Summary'),
@@ -260,6 +266,14 @@ class WorkoutSummaryScreen extends StatelessWidget {
                         Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 16),
+                  if (hasDuration) ...[
+                    Text(
+                      'Duration: ${log.duration}',
+                    ),
+                    if (totalDistance > 0 ||
+                        summaryMetrics.isNotEmpty)
+                      const SizedBox(height: 8),
+                  ],
                   if (totalDistance > 0) ...[
                     Text(
                       'Total Distance: '
@@ -302,6 +316,10 @@ class WorkoutSummaryScreen extends StatelessWidget {
                         summaryMetrics.length - 1)
                       const SizedBox(height: 8),
                   ],
+                  if (!hasWorkoutTotals)
+                    const Text(
+                      'No workout totals recorded.',
+                    ),
                 ],
               ),
             ),

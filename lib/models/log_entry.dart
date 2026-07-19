@@ -73,35 +73,33 @@ class LogEntry {
   final String prescriptionId;
   final Modality modality;
   final DateTime date;
+
+  /// Only used for continuous (Z1/Z2) workouts.
+  final String duration;
+
   final String notes;
   final List<IntervalResult> intervals;
 
   /// Compatibility constructor for the existing Gear logger.
-  ///
-  /// Existing calls using gearNumber continue to work while the
-  /// remaining screens are migrated to prescriptionId.
   LogEntry({
     required int gearNumber,
     required this.modality,
     required this.date,
+    this.duration = '',
     required this.notes,
     required this.intervals,
   }) : prescriptionId = 'G$gearNumber';
 
-  /// Generic constructor for any prescription:
-  /// G1–G8, P1–P3, or Z1–Z2.
+  /// Generic constructor for any prescription.
   const LogEntry.forPrescription({
     required this.prescriptionId,
     required this.modality,
     required this.date,
+    this.duration = '',
     required this.notes,
     required this.intervals,
   });
 
-  /// Temporary compatibility getter for screens that still expect
-  /// a Gear number.
-  ///
-  /// Returns null for non-Gear prescriptions such as P1 or Z2.
   int? get gearNumber {
     if (!prescriptionId.startsWith('G')) {
       return null;
@@ -117,6 +115,7 @@ class LogEntry {
       'prescriptionId': prescriptionId,
       'modality': modality.name,
       'date': date.toIso8601String(),
+      'duration': duration,
       'notes': notes,
       'intervals': intervals
           .map((interval) => interval.toJson())
@@ -143,6 +142,7 @@ class LogEntry {
               json['modality'] as String,
             ),
       date: DateTime.parse(json['date'] as String),
+      duration: (json['duration'] as String?) ?? '',
       notes: (json['notes'] as String?) ?? '',
       intervals: (json['intervals'] as List)
           .map(

@@ -6,6 +6,14 @@ import '../models/modality.dart';
 import '../models/workout_metric.dart';
 import '../services/app_state.dart';
 import 'workout_summary_screen.dart';
+import '../widgets/workout_interval_card.dart';
+import '../models/training_stimulus.dart';
+import '../widgets/continuous_workout_card.dart';
+import '../widgets/prescription_header.dart';
+import '../widgets/workout_notes.dart';
+import '../widgets/log_workout_button.dart';
+import '../widgets/save_workout_button.dart';
+import '../widgets/workout_entry_section.dart';
 
 class LogWorkoutScreen extends StatefulWidget {
   final Prescription prescription;
@@ -23,12 +31,14 @@ class LogWorkoutScreen extends StatefulWidget {
 }
 
 class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
-  final formKey = GlobalKey<FormState>();
+final formKey = GlobalKey<FormState>();
 
-  late final List<Map<WorkoutMetric, TextEditingController>>
-      intervalControllers;
+late final List<Map<WorkoutMetric, TextEditingController>>
+    intervalControllers;
 
-  final notesController = TextEditingController();
+final durationController = TextEditingController();
+
+final notesController = TextEditingController();
 
   @override
   void initState() {
@@ -53,7 +63,9 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
       }
     }
 
+    durationController.dispose();
     notesController.dispose();
+
     super.dispose();
   }
 
@@ -492,36 +504,41 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
     }
 
     final target = widget.prescription.targetForModality(widget.modality);
-    final hasCurrentTarget = target?.currentTarget != null;
+final hasCurrentTarget = target?.currentTarget != null;
 
-    String? initialLowTarget;
-    String? initialHighTarget;
+final usesTargetWorkflow =
+    widget.prescription.stimulus != TrainingStimulus.belowThreshold;
 
-    if (!hasCurrentTarget) {
-      final suggestedTarget = _calculateInitialTarget();
+String? initialLowTarget;
+String? initialHighTarget;
 
-      if (suggestedTarget == null) {
-        return;
-      }
+if (usesTargetWorkflow) {
+  if (!hasCurrentTarget) {
+    final suggestedTarget = _calculateInitialTarget();
 
-      final confirmed = await _confirmInitialTarget(
-        lowTarget: suggestedTarget.lowTarget,
-        highTarget: suggestedTarget.highTarget,
-      );
-
-      if (!confirmed) {
-        return;
-      }
-
-      initialLowTarget = suggestedTarget.lowTarget;
-      initialHighTarget = suggestedTarget.highTarget;
-    } else {
-      final confirmed = await _confirmOutsideTarget();
-
-      if (!confirmed) {
-        return;
-      }
+    if (suggestedTarget == null) {
+      return;
     }
+
+    final confirmed = await _confirmInitialTarget(
+      lowTarget: suggestedTarget.lowTarget,
+      highTarget: suggestedTarget.highTarget,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    initialLowTarget = suggestedTarget.lowTarget;
+    initialHighTarget = suggestedTarget.highTarget;
+  } else {
+    final confirmed = await _confirmOutsideTarget();
+
+    if (!confirmed) {
+      return;
+    }
+  }
+}
 
     final intervals = _buildIntervals();
 
@@ -529,6 +546,7 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
   prescriptionId: widget.prescription.id,
   modality: widget.modality,
   date: DateTime.now(),
+  duration: durationController.text.trim(),
   notes: notesController.text.trim(),
   intervals: intervals,
 );
@@ -563,132 +581,61 @@ class _LogWorkoutScreenState extends State<LogWorkoutScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final prescription = widget.prescription;
-    final target = prescription.targetForModality(widget.modality);
-    final metric = target?.metric;
+Widget build(BuildContext context) {
+  final prescription = widget.prescription;
+  final target = prescription.targetForModality(widget.modality);
+  final metric = target?.metric;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Log ${widget.modality.displayName} $_prescriptionLabel',
+  return Scaffold(
+    appBar: AppBar(
+      title: Text(
+        'Log ${widget.modality.displayName} $_prescriptionLabel',
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.home),
+          onPressed: () {
+            Navigator.of(context).popUntil(
+              (route) => route.isFirst,
+            );
+          },
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.home),
-            onPressed: () {
-              Navigator.of(context).popUntil(
-                (route) => route.isFirst,
-              );
-            },
-          ),
+      ],
+    ),
+    body: Form(
+      key: formKey,
+      child: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+WorkoutEntrySection(
+  stimulus: prescription.stimulus,
+  intervals: prescription.intervals,
+  durationRange: prescription.durationRange,
+  prescriptionDetails: prescription.prescriptionDisplayForModality(
+    widget.modality,
+  ),
+  targetText:
+      'Target: '
+      '${prescription.targetDisplayForModality(widget.modality)}'
+      '${metric == null ? '' : ' ${metric.unitLabel}'}',
+  workoutMetrics: widget.modality.workoutMetrics,
+  intervalControllers: intervalControllers,
+  durationController: durationController,
+  labelForMetric: _labelForMetric,
+  helperTextForMetric: _helperTextForMetric,
+  keyboardTypeForMetric: _keyboardTypeForMetric,
+  validateMetric: _validateMetric,
+),
+          const SizedBox(height: 20),
+WorkoutNotes(
+  controller: notesController,
+),
+          SaveWorkoutButton(
+  onPressed: _saveLog,
+),
         ],
       ),
-      body: Form(
-        key: formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            Text(
-              'Prescription',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 10),
-            Text('Work: ${prescription.work}'),
-            Text('Rest: ${prescription.rest}'),
-            Text('Intervals: ${prescription.intervals}'),
-            const SizedBox(height: 10),
-            Text(
-              'Target: '
-              '${prescription.targetDisplayForModality(widget.modality)}'
-              '${metric == null ? '' : ' ${metric.unitLabel}'}',
-            ),
-            const SizedBox(height: 30),
-            for (int intervalIndex = 0;
-                intervalIndex < prescription.intervals;
-                intervalIndex++) ...[
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Interval ${intervalIndex + 1}',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium,
-                      ),
-                      const SizedBox(height: 12),
-                      for (int metricIndex = 0;
-                          metricIndex <
-                              widget.modality.workoutMetrics.length;
-                          metricIndex++) ...[
-                        Builder(
-                          builder: (context) {
-                            final workoutMetric = widget
-                                .modality
-                                .workoutMetrics[metricIndex];
-
-                            final controller =
-                                intervalControllers[intervalIndex]
-                                    [workoutMetric]!;
-
-                            return TextFormField(
-                              controller: controller,
-                              validator: (value) {
-                                return _validateMetric(
-                                  workoutMetric,
-                                  value,
-                                );
-                              },
-                              keyboardType:
-                                  _keyboardTypeForMetric(
-                                workoutMetric,
-                              ),
-                              decoration: InputDecoration(
-                                labelText: _labelForMetric(
-                                  workoutMetric,
-                                ),
-                                helperText:
-                                    _helperTextForMetric(
-                                  workoutMetric,
-                                ),
-                                border:
-                                    const OutlineInputBorder(),
-                              ),
-                            );
-                          },
-                        ),
-                        if (metricIndex <
-                            widget.modality.workoutMetrics.length -
-                                1)
-                          const SizedBox(height: 10),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-            const SizedBox(height: 20),
-            TextField(
-              controller: notesController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'Notes',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: _saveLog,
-              child: const Text('Save Workout'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+    ),
+  );
+}
 }

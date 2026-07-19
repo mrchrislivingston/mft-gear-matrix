@@ -206,8 +206,9 @@ Home
 ## LogEntry
 
 * modality
-* gear
+* prescription
 * workout date
+* duration (continuous workouts)
 * interval results
 * notes
 
@@ -334,6 +335,15 @@ Completed
 * Recovery wording updated to:
   * "Recover in remaining time"
 
+### Continuous Workouts
+
+* Added duration support for continuous (Z1–Z2) workouts
+* Duration stored in LogEntry
+* Duration displayed on Workout Summary
+* Duration displayed on Workout Detail
+* Continuous workouts display "Workout" instead of "Interval 1"
+
+
 ---
 
 # Current Status
@@ -349,7 +359,7 @@ Current capabilities include:
 * Five modalities
 * Unified prescription engine
 * Independent target histories
-* Dynamic workout logging (Gear)
+* Dynamic workout logging (Gear + Aerobic)
 * Persistent workout history
 * Persistent target history
 * Migration-safe persistence

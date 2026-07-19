@@ -137,6 +137,9 @@ class WorkoutDetailScreen extends StatelessWidget {
     final prescriptionName =
         prescription?.name ?? log.prescriptionId;
 
+    final hasDuration = log.duration.trim().isNotEmpty;
+    final isContinuousWorkout = hasDuration;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -163,12 +166,20 @@ class WorkoutDetailScreen extends StatelessWidget {
             '${log.date.day}/'
             '${log.date.year}',
           ),
+          if (hasDuration) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Duration: ${log.duration}',
+            ),
+          ],
           const SizedBox(height: 20),
           for (final interval in log.intervals) ...[
             Card(
               child: ListTile(
                 title: Text(
-                  'Interval ${interval.intervalNumber}',
+                  isContinuousWorkout
+                      ? 'Workout'
+                      : 'Interval ${interval.intervalNumber}',
                 ),
                 subtitle: Text(
                   buildIntervalDetails(
