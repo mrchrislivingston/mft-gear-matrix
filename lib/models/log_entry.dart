@@ -74,8 +74,14 @@ class LogEntry {
   final Modality modality;
   final DateTime date;
 
-  /// Only used for continuous (Z1/Z2) workouts.
+  /// Only used for continuous Z1/Z2 workouts.
   final String duration;
+
+  /// Identifies the prescribed scoring metric for workouts
+  /// that may be scored using either distance or calories.
+  ///
+  /// This is currently intended for Power workouts.
+  final WorkoutMetric? scoringMetric;
 
   final String notes;
   final List<IntervalResult> intervals;
@@ -86,6 +92,7 @@ class LogEntry {
     required this.modality,
     required this.date,
     this.duration = '',
+    this.scoringMetric,
     required this.notes,
     required this.intervals,
   }) : prescriptionId = 'G$gearNumber';
@@ -96,6 +103,7 @@ class LogEntry {
     required this.modality,
     required this.date,
     this.duration = '',
+    this.scoringMetric,
     required this.notes,
     required this.intervals,
   });
@@ -116,6 +124,7 @@ class LogEntry {
       'modality': modality.name,
       'date': date.toIso8601String(),
       'duration': duration,
+      'scoringMetric': scoringMetric?.storageKey,
       'notes': notes,
       'intervals': intervals
           .map((interval) => interval.toJson())
@@ -134,6 +143,20 @@ class LogEntry {
             ? 'G1'
             : 'G$legacyGearNumber');
 
+    final savedScoringMetric =
+        json['scoringMetric'] as String?;
+
+    WorkoutMetric? scoringMetric;
+
+    if (savedScoringMetric != null) {
+      for (final metric in WorkoutMetric.values) {
+        if (metric.storageKey == savedScoringMetric) {
+          scoringMetric = metric;
+          break;
+        }
+      }
+    }
+
     return LogEntry.forPrescription(
       prescriptionId: prescriptionId,
       modality: json['modality'] == null
@@ -143,6 +166,7 @@ class LogEntry {
             ),
       date: DateTime.parse(json['date'] as String),
       duration: (json['duration'] as String?) ?? '',
+      scoringMetric: scoringMetric,
       notes: (json['notes'] as String?) ?? '',
       intervals: (json['intervals'] as List)
           .map(

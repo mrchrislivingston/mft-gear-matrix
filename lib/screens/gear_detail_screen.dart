@@ -44,6 +44,19 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
     }
   }
 
+  String _powerProtocolTitle(Modality modality) {
+    switch (modality) {
+      case Modality.run:
+      case Modality.echo:
+      case Modality.bikeErg:
+        return 'Continuous Machine';
+
+      case Modality.row:
+      case Modality.ski:
+        return 'Ski / Row';
+    }
+  }
+
   Widget _buildDetailLine(
     BuildContext context, {
     required String label,
@@ -142,14 +155,8 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
     }
 
     if (prescription.stimulus == TrainingStimulus.power) {
-      final continuousProtocol =
-          prescription.protocolForModality(
-        Modality.bikeErg,
-      );
-
-      final skiRowProtocol =
-          prescription.protocolForModality(
-        Modality.row,
+      final protocol = prescription.protocolForModality(
+        widget.modality,
       );
 
       return Column(
@@ -160,17 +167,15 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 16),
-          if (continuousProtocol != null)
+          if (protocol != null)
             _buildPowerProtocol(
               context,
-              title: 'Continuous Machines',
-              protocol: continuousProtocol,
-            ),
-          if (skiRowProtocol != null)
-            _buildPowerProtocol(
-              context,
-              title: 'Ski / Row',
-              protocol: skiRowProtocol,
+              title: _powerProtocolTitle(widget.modality),
+              protocol: protocol,
+            )
+          else
+            const Text(
+              'No Power protocol is available for this modality.',
             ),
         ],
       );

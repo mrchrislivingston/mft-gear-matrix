@@ -143,6 +143,11 @@ Home
 * Workout Summary
 * Workout Detail
 * Workout History
+* Power workout logging
+* Modality-specific Power protocols
+* Dynamic Power interval counts
+* Power scoring metric selection (Calories / Distance for Row, Ski, BikeErg)
+* Fixed Power scoring for Run (Distance) and Echo (Calories)
 
 ### Persistence
 
@@ -359,7 +364,8 @@ Current capabilities include:
 * Five modalities
 * Unified prescription engine
 * Independent target histories
-* Dynamic workout logging (Gear + Aerobic)
+* Dynamic workout logging (Gear + Aerobic + Power)
+* Power protocol support with modality-specific interval counts
 * Persistent workout history
 * Persistent target history
 * Migration-safe persistence
@@ -370,13 +376,23 @@ Current capabilities include:
 
 ## Sprint 9
 
+Completed
+
 ### Dynamic Workout Logging
+
+* Completed Zone workout logger
+* Completed Power workout logger
+* Dynamic logging by prescription type
+* Modality-specific Power protocols
+* Dynamic interval counts from PrescriptionProtocol.rounds
+* Power scoring metric selection
+* Power history and summaries
+
+### Sprint 10 Preview
 
 Highest Priority
 
-* Zone workout logger
-* Power workout logger
-* Dynamic logging by prescription type
+* Power target management
 
 ### Code Cleanup
 

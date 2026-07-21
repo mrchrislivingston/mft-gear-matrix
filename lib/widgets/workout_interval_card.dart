@@ -33,6 +33,35 @@ class WorkoutIntervalCard extends StatelessWidget {
     required this.validateMetric,
   });
 
+  String? _validateDuration(String? value) {
+    final text = value?.trim() ?? '';
+
+    if (text.isEmpty) {
+      return 'Duration required';
+    }
+
+    final match = RegExp(
+      r'^(\d+):([0-5]\d)$',
+    ).firstMatch(text);
+
+    if (match == null) {
+      return 'Use minutes:seconds, for example 47:32';
+    }
+
+    final minutes = int.tryParse(match.group(1) ?? '');
+    final seconds = int.tryParse(match.group(2) ?? '');
+
+    if (minutes == null || seconds == null) {
+      return 'Invalid duration';
+    }
+
+    if (minutes == 0 && seconds == 0) {
+      return 'Duration must be greater than zero';
+    }
+
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -48,19 +77,20 @@ class WorkoutIntervalCard extends StatelessWidget {
               ),
               const SizedBox(height: 12),
             ],
-
             if (durationController != null) ...[
               TextFormField(
                 controller: durationController,
+                validator: _validateDuration,
+                keyboardType: TextInputType.datetime,
                 decoration: const InputDecoration(
                   labelText: 'Duration',
                   hintText: 'e.g. 47:32',
+                  helperText: 'Minutes:seconds',
                   border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 10),
             ],
-
             for (int metricIndex = 0;
                 metricIndex < workoutMetrics.length;
                 metricIndex++) ...[

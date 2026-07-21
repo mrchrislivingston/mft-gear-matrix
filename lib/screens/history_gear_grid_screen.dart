@@ -31,7 +31,7 @@ class HistoryGearGridScreen extends StatelessWidget {
         .where(
           (prescription) =>
               prescription.stimulus ==
-              TrainingStimulus.aerobic,
+              TrainingStimulus.belowThreshold,
         )
         .toList();
 

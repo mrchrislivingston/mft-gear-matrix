@@ -40,15 +40,81 @@ final durationController = TextEditingController();
 
 final notesController = TextEditingController();
 
+WorkoutMetric _powerScoringMetric = WorkoutMetric.calories;
+
+  bool get _showsPowerScoringSelector {
+    if (widget.prescription.stimulus != TrainingStimulus.power) {
+      return false;
+    }
+
+    switch (widget.modality) {
+      case Modality.row:
+      case Modality.ski:
+      case Modality.bikeErg:
+        return true;
+
+      case Modality.run:
+      case Modality.echo:
+        return false;
+    }
+  }
+
+  WorkoutMetric? get _powerWorkoutScoringMetric {
+    if (widget.prescription.stimulus != TrainingStimulus.power) {
+      return null;
+    }
+
+    switch (widget.modality) {
+      case Modality.run:
+        return WorkoutMetric.distance;
+
+      case Modality.echo:
+        return WorkoutMetric.calories;
+
+      case Modality.row:
+      case Modality.ski:
+      case Modality.bikeErg:
+        return _powerScoringMetric;
+    }
+  }
+
+  List<WorkoutMetric> get _controllerMetrics {
+    if (widget.prescription.stimulus != TrainingStimulus.power) {
+      return widget.modality.workoutMetrics;
+    }
+
+    switch (widget.modality) {
+      case Modality.run:
+        return [
+          WorkoutMetric.distance,
+        ];
+
+      case Modality.echo:
+        return [
+          WorkoutMetric.calories,
+          WorkoutMetric.watts,
+        ];
+
+      case Modality.row:
+      case Modality.ski:
+      case Modality.bikeErg:
+        return [
+          WorkoutMetric.calories,
+          WorkoutMetric.distance,
+          WorkoutMetric.watts,
+        ];
+    }
+  }
+
   @override
   void initState() {
     super.initState();
 
     intervalControllers = List.generate(
-      widget.prescription.intervals,
+      _intervalCount,
       (_) {
         return {
-          for (final metric in widget.modality.workoutMetrics)
+          for (final metric in _controllerMetrics)
             metric: TextEditingController(),
         };
       },
@@ -109,7 +175,40 @@ final notesController = TextEditingController();
 
     return widget.prescription.id;
   }
+List<WorkoutMetric> get _workoutMetrics {
+  if (widget.prescription.stimulus != TrainingStimulus.power) {
+    return widget.modality.workoutMetrics;
+  }
 
+  switch (widget.modality) {
+    case Modality.run:
+      return [
+        WorkoutMetric.distance,
+      ];
+
+    case Modality.echo:
+      return [
+        WorkoutMetric.calories,
+        WorkoutMetric.watts,
+      ];
+
+    case Modality.row:
+    case Modality.ski:
+    case Modality.bikeErg:
+      return [
+        _powerScoringMetric,
+        WorkoutMetric.watts,
+      ];
+  }
+}
+
+int get _intervalCount {
+  final protocol = widget.prescription.protocolForModality(
+    widget.modality,
+  );
+
+  return protocol?.rounds ?? widget.prescription.intervals;
+}
   String _labelForMetric(WorkoutMetric workoutMetric) {
     final target = widget.prescription.targetForModality(widget.modality);
 
@@ -201,6 +300,28 @@ final notesController = TextEditingController();
   ) {
     final text = value?.trim() ?? '';
     final target = widget.prescription.targetForModality(widget.modality);
+
+    final isRequiredPowerScoringMetric =
+        widget.prescription.stimulus == TrainingStimulus.power &&
+            workoutMetric == _powerWorkoutScoringMetric;
+
+    if (isRequiredPowerScoringMetric) {
+      if (text.isEmpty) {
+        return '${_labelForMetric(workoutMetric)} required';
+      }
+
+      final number = double.tryParse(text);
+
+      if (number == null) {
+        return 'Enter a number';
+      }
+
+      if (number <= 0) {
+        return 'Check value';
+      }
+
+      return null;
+    }
 
     if (workoutMetric == WorkoutMetric.primaryMetric) {
       if (text.isEmpty) {
@@ -477,16 +598,16 @@ final notesController = TextEditingController();
 
   List<IntervalResult> _buildIntervals() {
     return List.generate(
-      widget.prescription.intervals,
+      _intervalCount,
       (index) {
         final controllers = intervalControllers[index];
         final values = <WorkoutMetric, String>{};
 
-        for (final entry in controllers.entries) {
-          final value = entry.value.text.trim();
+        for (final metric in _workoutMetrics) {
+          final value = controllers[metric]?.text.trim() ?? '';
 
           if (value.isNotEmpty) {
-            values[entry.key] = value;
+            values[metric] = value;
           }
         }
 
@@ -507,7 +628,8 @@ final notesController = TextEditingController();
 final hasCurrentTarget = target?.currentTarget != null;
 
 final usesTargetWorkflow =
-    widget.prescription.stimulus != TrainingStimulus.belowThreshold;
+    widget.prescription.stimulus != TrainingStimulus.belowThreshold &&
+        widget.prescription.stimulus != TrainingStimulus.power;
 
 String? initialLowTarget;
 String? initialHighTarget;
@@ -547,6 +669,7 @@ if (usesTargetWorkflow) {
   modality: widget.modality,
   date: DateTime.now(),
   duration: durationController.text.trim(),
+  scoringMetric: _powerWorkoutScoringMetric,
   notes: notesController.text.trim(),
   intervals: intervals,
 );
@@ -607,9 +730,47 @@ Widget build(BuildContext context) {
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          if (_showsPowerScoringSelector) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Scoring Metric',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    SegmentedButton<WorkoutMetric>(
+                      segments: const [
+                        ButtonSegment<WorkoutMetric>(
+                          value: WorkoutMetric.calories,
+                          label: Text('Calories'),
+                        ),
+                        ButtonSegment<WorkoutMetric>(
+                          value: WorkoutMetric.distance,
+                          label: Text('Distance'),
+                        ),
+                      ],
+                      selected: {
+                        _powerScoringMetric,
+                      },
+                      onSelectionChanged: (selection) {
+                        setState(() {
+                          _powerScoringMetric = selection.first;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
 WorkoutEntrySection(
   stimulus: prescription.stimulus,
-  intervals: prescription.intervals,
+  intervals: _intervalCount,
   durationRange: prescription.durationRange,
   prescriptionDetails: prescription.prescriptionDisplayForModality(
     widget.modality,
@@ -618,7 +779,7 @@ WorkoutEntrySection(
       'Target: '
       '${prescription.targetDisplayForModality(widget.modality)}'
       '${metric == null ? '' : ' ${metric.unitLabel}'}',
-  workoutMetrics: widget.modality.workoutMetrics,
+  workoutMetrics: _workoutMetrics,
   intervalControllers: intervalControllers,
   durationController: durationController,
   labelForMetric: _labelForMetric,

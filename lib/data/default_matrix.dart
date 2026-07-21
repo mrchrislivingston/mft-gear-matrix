@@ -100,6 +100,11 @@ Prescription _buildPowerPrescription({
     name: name,
     stimulus: TrainingStimulus.power,
     protocols: {
+      Modality.run: PrescriptionProtocol(
+        every: continuousEvery,
+        rounds: continuousRounds,
+        amrap: continuousAmrap,
+      ),
       Modality.bikeErg: PrescriptionProtocol(
         every: continuousEvery,
         rounds: continuousRounds,
