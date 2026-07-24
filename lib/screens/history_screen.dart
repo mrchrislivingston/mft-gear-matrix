@@ -4,7 +4,7 @@ import '../models/gear.dart';
 import '../models/modality.dart';
 import '../services/app_state.dart';
 import 'history_gear_grid_screen.dart';
-import 'workout_detail_screen.dart';
+import 'workout_summary_screen.dart';
 
 class HistoryScreen extends StatelessWidget {
   final Prescription? prescription;
@@ -99,7 +99,7 @@ class HistoryScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (_) =>
-                                WorkoutDetailScreen(
+                                WorkoutSummaryScreen(
                               log: log,
                             ),
                           ),

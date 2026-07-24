@@ -10,22 +10,23 @@ import 'log_workout_screen.dart';
 import 'target_history_screen.dart';
 import 'target_manager_screen.dart';
 
-class GearDetailScreen extends StatefulWidget {
+class PrescriptionDetailScreen extends StatefulWidget {
   final Prescription prescription;
   final Modality modality;
 
-  const GearDetailScreen({
+  const PrescriptionDetailScreen({
     super.key,
     required this.prescription,
     required this.modality,
   });
 
   @override
-  State<GearDetailScreen> createState() =>
-      _GearDetailScreenState();
+  State<PrescriptionDetailScreen> createState() =>
+      _PrescriptionDetailScreenState();
 }
 
-class _GearDetailScreenState extends State<GearDetailScreen> {
+class _PrescriptionDetailScreenState
+    extends State<PrescriptionDetailScreen> {
   String _prescriptionTypeLabel(
     Prescription prescription,
   ) {
@@ -262,58 +263,60 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
             context,
             currentPrescription,
           ),
-          const SizedBox(height: 30),
-          Text(
-            '${widget.modality.displayName} Target',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            target?.displayTarget ?? 'No target',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          if (target != null) ...[
-            const SizedBox(height: 4),
-            Text(target.metric.unitLabel),
-          ],
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TargetManagerScreen(
-                    prescription: currentPrescription,
-                    modality: widget.modality,
-                  ),
-                ),
-              );
-
-              if (mounted) {
-                setState(() {});
-              }
-            },
-            child: Text(
-              target?.hasTarget == true
-                  ? 'Edit Target'
-                  : 'Create Target',
+          if (currentPrescription.supportsTargets) ...[
+            const SizedBox(height: 30),
+            Text(
+              '${widget.modality.displayName} Target',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TargetHistoryScreen(
-                    prescription: currentPrescription,
-                    modality: widget.modality,
+            const SizedBox(height: 10),
+            Text(
+              target?.displayTarget ?? 'No target',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            if (target != null) ...[
+              const SizedBox(height: 4),
+              Text(target.metric.unitLabel),
+            ],
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TargetManagerScreen(
+                      prescription: currentPrescription,
+                      modality: widget.modality,
+                    ),
                   ),
-                ),
-              );
-            },
-            child: const Text('View Target History'),
-          ),
+                );
+
+                if (mounted) {
+                  setState(() {});
+                }
+              },
+              child: Text(
+                target?.hasTarget == true
+                    ? 'Edit Target'
+                    : 'Create Target',
+              ),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TargetHistoryScreen(
+                      prescription: currentPrescription,
+                      modality: widget.modality,
+                    ),
+                  ),
+                );
+              },
+              child: const Text('View Target History'),
+            ),
+          ],
           const SizedBox(height: 30),
           ElevatedButton(
             onPressed: () {

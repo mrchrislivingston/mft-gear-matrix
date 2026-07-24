@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 class PrescriptionHeader extends StatelessWidget {
   final String title;
   final String details;
-  final String target;
+  final String? target;
 
   const PrescriptionHeader({
     super.key,
     required this.title,
     required this.details,
-    required this.target,
+    this.target,
   });
 
   @override
@@ -23,8 +23,10 @@ class PrescriptionHeader extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(details),
-        const SizedBox(height: 10),
-        Text(target),
+        if (target != null && target!.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Text(target!),
+        ],
         const SizedBox(height: 30),
       ],
     );

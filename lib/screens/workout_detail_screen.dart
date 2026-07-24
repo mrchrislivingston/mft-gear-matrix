@@ -85,10 +85,8 @@ class WorkoutDetailScreen extends StatelessWidget {
   ) {
     final lines = <String>[];
 
-    for (final workoutMetric
-        in log.modality.workoutMetrics) {
-      final value =
-          interval.valueFor(workoutMetric).trim();
+    for (final workoutMetric in log.modality.workoutMetrics) {
+      final value = interval.valueFor(workoutMetric).trim();
 
       if (value.isEmpty) {
         continue;
@@ -121,18 +119,17 @@ class WorkoutDetailScreen extends StatelessWidget {
 
     final prescription = prescriptionIndex == -1
         ? null
-        : AppState.instance.prescriptions[
-            prescriptionIndex
-          ];
+        : AppState.instance.prescriptions[prescriptionIndex];
 
-    final target =
-        prescription?.targetForModality(log.modality);
+    final target = prescription?.targetForModality(
+      log.modality,
+    );
 
-    final primaryMetricName =
-        target?.metric.displayName ?? 'Primary Metric';
+    final primaryMetric =
+        target?.metric ?? log.modality.defaultMetric;
 
-    final primaryMetricUnit =
-        target?.metric.unitLabel ?? '';
+    final primaryMetricName = primaryMetric.displayName;
+    final primaryMetricUnit = primaryMetric.unitLabel;
 
     final prescriptionName =
         prescription?.name ?? log.prescriptionId;
@@ -196,8 +193,7 @@ class WorkoutDetailScreen extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               'Notes',
-              style:
-                  Theme.of(context).textTheme.titleLarge,
+              style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
             Text(log.notes),

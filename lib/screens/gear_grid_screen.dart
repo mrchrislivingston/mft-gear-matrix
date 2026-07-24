@@ -4,7 +4,7 @@ import '../models/gear.dart';
 import '../models/modality.dart';
 import '../services/app_state.dart';
 import '../widgets/gear_card.dart';
-import 'gear_detail_screen.dart';
+import 'prescription_detail_screen.dart';
 
 class GearGridScreen extends StatelessWidget {
   final Modality modality;
@@ -36,7 +36,7 @@ class GearGridScreen extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => GearDetailScreen(
+        builder: (_) => PrescriptionDetailScreen(
           prescription: prescription,
           modality: modality,
         ),

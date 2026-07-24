@@ -11,7 +11,7 @@ class WorkoutEntrySection extends StatelessWidget {
   final String? durationRange;
 
   final String prescriptionDetails;
-  final String targetText;
+  final String? targetText;
 
   final TextEditingController durationController;
 
@@ -30,7 +30,7 @@ class WorkoutEntrySection extends StatelessWidget {
     required this.intervals,
     required this.durationRange,
     required this.prescriptionDetails,
-    required this.targetText,
+    this.targetText,
     required this.durationController,
     required this.workoutMetrics,
     required this.intervalControllers,
@@ -49,7 +49,6 @@ class WorkoutEntrySection extends StatelessWidget {
           details: prescriptionDetails,
           target: targetText,
         ),
-
         if (stimulus == TrainingStimulus.belowThreshold &&
             durationRange != null)
           WorkoutIntervalCard(

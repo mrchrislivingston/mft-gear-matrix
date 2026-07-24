@@ -70,7 +70,7 @@ Wait for testing before moving to the next step.
 
 # Current Architecture
 
-```
+```text
 Home
 ├── Matrix
 │   └── Modality
@@ -83,8 +83,8 @@ Home
 │           ├── Workout Summary
 │           ├── Workout History
 │           ├── Workout Detail
-│           ├── Target Manager
-│           └── Target History
+│           ├── Target Manager (Gear only)
+│           └── Target History (Gear only)
 │
 └── History
 ```
@@ -98,6 +98,8 @@ Home
 * Gears are one prescription type
 * Zones are continuous-duration prescriptions
 * Power prescriptions support modality-specific protocols
+* Only Gear prescriptions support targets
+* Zone and Power prescriptions retain workout history and future analytics without targets
 
 ---
 
@@ -126,12 +128,14 @@ Home
 
 ### Targets
 
-* Independent target per modality
+* Gear-only target architecture
+* Independent Gear target per modality
 * Target Manager
 * Target History
 * Persistent targets
 * Automatic migration of saved targets
-* Automatic initial target creation from first completed workout
+* Automatic initial target creation from first completed Gear workout
+* Target controls hidden for Zone and Power prescriptions
 
 ### Workout Logging
 
@@ -139,15 +143,17 @@ Home
 * Modality-specific workout screens
 * Dynamic metric engine
 * Workout validation
-* Target warning dialog
+* Target warning dialog for Gear workouts
 * Workout Summary
 * Workout Detail
 * Workout History
+* Zone workout logging
 * Power workout logging
 * Modality-specific Power protocols
 * Dynamic Power interval counts
 * Power scoring metric selection (Calories / Distance for Row, Ski, BikeErg)
 * Fixed Power scoring for Run (Distance) and Echo (Calories)
+* Workout Detail uses the modality default metric when no Gear target exists
 
 ### Persistence
 
@@ -180,7 +186,8 @@ Home
 * work/rest/intervals (Gear)
 * durationRange (Zone)
 * modality protocols (Power)
-* targets
+* targets (Gear only)
+* supportsTargets capability
 
 ## PrescriptionProtocol
 
@@ -348,6 +355,48 @@ Completed
 * Duration displayed on Workout Detail
 * Continuous workouts display "Workout" instead of "Interval 1"
 
+## Sprint 9
+
+Completed
+
+### Dynamic Workout Logging
+
+* Completed Zone workout logger
+* Completed Power workout logger
+* Dynamic logging by prescription type
+* Modality-specific Power protocols
+* Dynamic interval counts from PrescriptionProtocol.rounds
+* Power scoring metric selection
+* Power history and summaries
+
+## Sprint 10
+
+Completed
+
+### Prescription Architecture
+
+* Added prescription-level target eligibility through `supportsTargets`
+* Restricted target management to Gear prescriptions
+* Removed target display and target controls from Zone and Power prescriptions
+* Renamed `GearDetailScreen` to `PrescriptionDetailScreen`
+* Updated workout entry to support prescriptions without targets
+* Verified target warnings and initial-target creation run only for Gear prescriptions
+
+### History and Summary
+
+* Unified Gear, Zone, and Power workout-history behavior
+* Changed workout history to open Workout Summary before Workout Detail
+* Retained interval-by-interval Workout Detail access from Workout Summary
+* Split Workout Summary into Workout Totals and Interval Averages
+* Added derived total duration, distance, and calories
+* Added derived interval averages for recorded metrics, including calories and watts
+* Retained workout notes and navigation to History and Home
+
+### Validation and Regression
+
+* Fixed duration entry for continuous workouts longer than 99:59
+* Completed navigation, logging, summary, detail, history, target, and persistence regression testing
+* Verified Gear, Zone, and Power prescription workflows
 
 ---
 
@@ -363,57 +412,56 @@ Current capabilities include:
 
 * Five modalities
 * Unified prescription engine
-* Independent target histories
-* Dynamic workout logging (Gear + Aerobic + Power)
-* Power protocol support with modality-specific interval counts
+* Gear-only target management
+* Independent Gear target histories by modality
+* Dynamic workout logging for Gear, Aerobic, and Power
+* Power protocol support with modality-specific interval counts and scoring
 * Persistent workout history
-* Persistent target history
+* Persistent Gear target history
 * Migration-safe persistence
+* Workout History → Workout Summary → Workout Detail navigation
+* Derived workout totals and interval averages
+* Continuous-workout durations longer than 99:59
+
+---
+
+# Current Sprint
+
+## Sprint 11
+
+Planning
+
+### Primary Objective
+
+Improve workout history so previous workouts are faster to scan and compare without adding extra workout-entry requirements.
+
+### Initial Candidates
+
+* Add useful workout information to history list entries
+* Show duration or scoring result where applicable
+* Preserve direct access to Workout Summary
+* Keep all displayed statistics derived from already-recorded workout data
+* Avoid adding required logging fields solely for presentation
 
 ---
 
 # Next Priorities
 
-## Sprint 9
-
-Completed
-
-### Dynamic Workout Logging
-
-* Completed Zone workout logger
-* Completed Power workout logger
-* Dynamic logging by prescription type
-* Modality-specific Power protocols
-* Dynamic interval counts from PrescriptionProtocol.rounds
-* Power scoring metric selection
-* Power history and summaries
-
-### Sprint 10 Preview
-
-Highest Priority
-
-* Power target management
-
-### Code Cleanup
-
-* Rename GearDetailScreen → PrescriptionDetailScreen
-* Continue removing remaining Gear-specific assumptions
-
-### History Improvements
+## History Improvements
 
 * Better workout history dashboard
 * Workout counts
 * Latest workout summary
 * Trend indicators
 
-### Training Analytics
+## Training Analytics
 
 * Interval fade detection
 * Consistency analysis
-* Target recommendations
+* Target recommendations for Gear prescriptions
 * Historical performance trends
 
-### Quality of Life
+## Quality of Life
 
 * Better summary insights
 * Personal best indicators

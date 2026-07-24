@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/workout_metric.dart';
 
@@ -45,7 +46,7 @@ class WorkoutIntervalCard extends StatelessWidget {
     ).firstMatch(text);
 
     if (match == null) {
-      return 'Use minutes:seconds, for example 47:32';
+      return 'Use minutes:seconds, for example 120:00';
     }
 
     final minutes = int.tryParse(match.group(1) ?? '');
@@ -81,10 +82,15 @@ class WorkoutIntervalCard extends StatelessWidget {
               TextFormField(
                 controller: durationController,
                 validator: _validateDuration,
-                keyboardType: TextInputType.datetime,
+                keyboardType: TextInputType.text,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(
+                    RegExp(r'[0-9:]'),
+                  ),
+                ],
                 decoration: const InputDecoration(
                   labelText: 'Duration',
-                  hintText: 'e.g. 47:32',
+                  hintText: 'e.g. 120:00',
                   helperText: 'Minutes:seconds',
                   border: OutlineInputBorder(),
                 ),

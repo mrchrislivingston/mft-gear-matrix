@@ -627,9 +627,7 @@ int get _intervalCount {
     final target = widget.prescription.targetForModality(widget.modality);
 final hasCurrentTarget = target?.currentTarget != null;
 
-final usesTargetWorkflow =
-    widget.prescription.stimulus != TrainingStimulus.belowThreshold &&
-        widget.prescription.stimulus != TrainingStimulus.power;
+final usesTargetWorkflow = widget.prescription.supportsTargets;
 
 String? initialLowTarget;
 String? initialHighTarget;
@@ -775,10 +773,11 @@ WorkoutEntrySection(
   prescriptionDetails: prescription.prescriptionDisplayForModality(
     widget.modality,
   ),
-  targetText:
-      'Target: '
-      '${prescription.targetDisplayForModality(widget.modality)}'
-      '${metric == null ? '' : ' ${metric.unitLabel}'}',
+  targetText: prescription.supportsTargets
+    ? 'Target: '
+        '${prescription.targetDisplayForModality(widget.modality)}'
+        '${metric == null ? '' : ' ${metric.unitLabel}'}'
+    : null,
   workoutMetrics: _workoutMetrics,
   intervalControllers: intervalControllers,
   durationController: durationController,

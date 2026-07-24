@@ -92,14 +92,11 @@ class WorkoutSummaryScreen extends StatelessWidget {
     }
   }
 
-  String labelForMetric(
+  String averageLabelForMetric(
     WorkoutMetric workoutMetric,
     String primaryMetricName,
   ) {
     switch (workoutMetric) {
-      case WorkoutMetric.distance:
-        return 'Total Distance';
-
       case WorkoutMetric.primaryMetric:
         return 'Average $primaryMetricName';
 
@@ -111,6 +108,19 @@ class WorkoutSummaryScreen extends StatelessWidget {
 
       default:
         return 'Average ${workoutMetric.displayName}';
+    }
+  }
+
+  String totalLabelForMetric(WorkoutMetric workoutMetric) {
+    switch (workoutMetric) {
+      case WorkoutMetric.distance:
+        return 'Total Distance';
+
+      case WorkoutMetric.calories:
+        return 'Total Calories';
+
+      default:
+        return 'Total ${workoutMetric.displayName}';
     }
   }
 
@@ -157,7 +167,6 @@ class WorkoutSummaryScreen extends StatelessWidget {
     switch (workoutMetric) {
       case WorkoutMetric.heartRate:
       case WorkoutMetric.watts:
-      case WorkoutMetric.calories:
       case WorkoutMetric.caloriesPerHour:
       case WorkoutMetric.rpm:
       case WorkoutMetric.strokeRate:
@@ -166,8 +175,41 @@ class WorkoutSummaryScreen extends StatelessWidget {
       case WorkoutMetric.rpe:
       case WorkoutMetric.primaryMetric:
       case WorkoutMetric.distance:
+      case WorkoutMetric.calories:
         return average.toStringAsFixed(1);
     }
+  }
+
+  String totalForMetric(WorkoutMetric workoutMetric) {
+    final total = log.intervals.fold<double>(
+      0,
+      (sum, interval) {
+        return sum +
+            _toDouble(
+              interval.valueFor(workoutMetric),
+            );
+      },
+    );
+
+    if (total <= 0) return '-';
+
+    switch (workoutMetric) {
+      case WorkoutMetric.calories:
+        return total.toStringAsFixed(0);
+
+      case WorkoutMetric.distance:
+        return total.toStringAsFixed(2);
+
+      default:
+        return total.toStringAsFixed(1);
+    }
+  }
+
+  bool hasRecordedValue(WorkoutMetric workoutMetric) {
+    return log.intervals.any(
+      (interval) =>
+          interval.valueFor(workoutMetric).trim().isNotEmpty,
+    );
   }
 
   @override
@@ -208,22 +250,28 @@ class WorkoutSummaryScreen extends StatelessWidget {
       },
     );
 
-    final summaryMetrics = log.modality.workoutMetrics
+    final totalMetrics = log.modality.workoutMetrics
         .where(
           (metric) =>
-              metric != WorkoutMetric.distance &&
-              log.intervals.any(
-                (interval) =>
-                    interval.valueFor(metric).trim().isNotEmpty,
-              ),
+              metric == WorkoutMetric.calories &&
+              hasRecordedValue(metric),
         )
         .toList();
 
+    final averageMetrics = log.modality.workoutMetrics
+    .where(
+      (metric) =>
+          metric != WorkoutMetric.distance &&
+          hasRecordedValue(metric),
+    )
+    .toList();
+
     final hasDuration = log.duration.trim().isNotEmpty;
+
     final hasWorkoutTotals =
         hasDuration ||
         totalDistance > 0 ||
-        summaryMetrics.isNotEmpty;
+        totalMetrics.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -271,7 +319,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
                       'Duration: ${log.duration}',
                     ),
                     if (totalDistance > 0 ||
-                        summaryMetrics.isNotEmpty)
+                        totalMetrics.isNotEmpty)
                       const SizedBox(height: 8),
                   ],
                   if (totalDistance > 0) ...[
@@ -280,26 +328,22 @@ class WorkoutSummaryScreen extends StatelessWidget {
                       '${totalDistance.toStringAsFixed(2)}'
                       '${distanceUnit.isEmpty ? '' : ' $distanceUnit'}',
                     ),
-                    if (summaryMetrics.isNotEmpty)
+                    if (totalMetrics.isNotEmpty)
                       const SizedBox(height: 8),
                   ],
                   for (int index = 0;
-                      index < summaryMetrics.length;
+                      index < totalMetrics.length;
                       index++) ...[
                     Builder(
                       builder: (context) {
                         final workoutMetric =
-                            summaryMetrics[index];
+                            totalMetrics[index];
 
-                        final average = averageForMetric(
-                          workoutMetric,
-                          primaryMetricUsesTimeFormat,
-                        );
+                        final total =
+                            totalForMetric(workoutMetric);
 
-                        final label = labelForMetric(
-                          workoutMetric,
-                          primaryMetricName,
-                        );
+                        final label =
+                            totalLabelForMetric(workoutMetric);
 
                         final unit = unitForMetric(
                           workoutMetric,
@@ -307,13 +351,12 @@ class WorkoutSummaryScreen extends StatelessWidget {
                         );
 
                         return Text(
-                          '$label: $average'
-                          '${average == '-' || unit.isEmpty ? '' : ' $unit'}',
+                          '$label: $total'
+                          '${total == '-' || unit.isEmpty ? '' : ' $unit'}',
                         );
                       },
                     ),
-                    if (index <
-                        summaryMetrics.length - 1)
+                    if (index < totalMetrics.length - 1)
                       const SizedBox(height: 8),
                   ],
                   if (!hasWorkoutTotals)
@@ -324,6 +367,59 @@ class WorkoutSummaryScreen extends StatelessWidget {
               ),
             ),
           ),
+          if (averageMetrics.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Interval Averages',
+                      style:
+                          Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    for (int index = 0;
+                        index < averageMetrics.length;
+                        index++) ...[
+                      Builder(
+                        builder: (context) {
+                          final workoutMetric =
+                              averageMetrics[index];
+
+                          final average = averageForMetric(
+                            workoutMetric,
+                            primaryMetricUsesTimeFormat,
+                          );
+
+                          final label = averageLabelForMetric(
+                            workoutMetric,
+                            primaryMetricName,
+                          );
+
+                          final unit = unitForMetric(
+                            workoutMetric,
+                            primaryMetricUnit,
+                          );
+
+                          return Text(
+                            '$label: $average'
+                            '${average == '-' || unit.isEmpty ? '' : ' $unit'}',
+                          );
+                        },
+                      ),
+                      if (index <
+                          averageMetrics.length - 1)
+                        const SizedBox(height: 8),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
           if (log.notes.isNotEmpty) ...[
             const SizedBox(height: 20),
             Text(

@@ -89,6 +89,13 @@ class Prescription {
     return protocols.isNotEmpty;
   }
 
+  /// Only Gear prescriptions use manually managed targets.
+  ///
+  /// Zone and Power prescriptions are tracking and analytics only.
+  bool get supportsTargets {
+    return this is Gear;
+  }
+
   PrescriptionProtocol? protocolForModality(Modality modality) {
     return protocols[modality];
   }
