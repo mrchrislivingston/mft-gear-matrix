@@ -1,6 +1,10 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../models/log_entry.dart';
+import '../models/modality.dart';
+import '../models/workout_metric.dart';
+
 class DatabaseService {
   DatabaseService._();
 
@@ -26,6 +30,7 @@ class DatabaseService {
 
   Future<Database> _openDatabase() async {
     final databaseDirectory = await getDatabasesPath();
+
     final databasePath = join(
       databaseDirectory,
       _databaseName,
@@ -122,6 +127,159 @@ class DatabaseService {
         effective_date
       )
     ''');
+  }
+
+  Future<int> insertWorkout(LogEntry workout) async {
+    final db = await database;
+
+    return db.transaction((transaction) async {
+      final workoutId = await transaction.insert(
+        'workouts',
+        {
+          'prescription_id': workout.prescriptionId,
+          'modality': workout.modality.name,
+          'workout_date': workout.date.toIso8601String(),
+          'duration': workout.duration,
+          'scoring_metric': workout.scoringMetric?.storageKey,
+          'notes': workout.notes,
+        },
+      );
+
+      for (final interval in workout.intervals) {
+        final intervalId = await transaction.insert(
+          'workout_intervals',
+          {
+            'workout_id': workoutId,
+            'interval_number': interval.intervalNumber,
+          },
+        );
+
+        for (final metricEntry in interval.values.entries) {
+          await transaction.insert(
+            'interval_metrics',
+            {
+              'interval_id': intervalId,
+              'metric': metricEntry.key.storageKey,
+              'value': metricEntry.value,
+            },
+          );
+        }
+      }
+
+      return workoutId;
+    });
+  }
+
+  Future<void> deleteWorkout(int workoutId) async {
+    final db = await database;
+
+    await db.delete(
+      'workouts',
+      where: 'id = ?',
+      whereArgs: [workoutId],
+    );
+  }
+
+  Future<List<LogEntry>> getWorkouts() async {
+    final db = await database;
+
+    final workoutRows = await db.query(
+      'workouts',
+      orderBy: 'workout_date DESC, id DESC',
+    );
+
+    final workouts = <LogEntry>[];
+
+    for (final workoutRow in workoutRows) {
+      final workoutId = workoutRow['id'] as int;
+
+      final intervalRows = await db.query(
+        'workout_intervals',
+        where: 'workout_id = ?',
+        whereArgs: [workoutId],
+        orderBy: 'interval_number ASC, id ASC',
+      );
+
+      final intervals = <IntervalResult>[];
+
+      for (final intervalRow in intervalRows) {
+        final intervalId = intervalRow['id'] as int;
+
+        final metricRows = await db.query(
+          'interval_metrics',
+          where: 'interval_id = ?',
+          whereArgs: [intervalId],
+          orderBy: 'id ASC',
+        );
+
+        final values = <WorkoutMetric, String>{};
+
+        for (final metricRow in metricRows) {
+          final savedMetric = metricRow['metric'] as String;
+
+          final metric = WorkoutMetric.values.firstWhere(
+            (item) => item.storageKey == savedMetric,
+          );
+
+          values[metric] = metricRow['value'] as String;
+        }
+
+        intervals.add(
+          IntervalResult(
+            intervalNumber:
+                intervalRow['interval_number'] as int,
+            values: values,
+          ),
+        );
+      }
+
+      final savedScoringMetric =
+          workoutRow['scoring_metric'] as String?;
+
+      WorkoutMetric? scoringMetric;
+
+      if (savedScoringMetric != null) {
+        scoringMetric = WorkoutMetric.values.firstWhere(
+          (item) => item.storageKey == savedScoringMetric,
+        );
+      }
+
+      workouts.add(
+        LogEntry.forPrescription(
+          prescriptionId:
+              workoutRow['prescription_id'] as String,
+          modality: Modality.values.byName(
+            workoutRow['modality'] as String,
+          ),
+          date: DateTime.parse(
+            workoutRow['workout_date'] as String,
+          ),
+          duration:
+              (workoutRow['duration'] as String?) ?? '',
+          scoringMetric: scoringMetric,
+          notes: (workoutRow['notes'] as String?) ?? '',
+          intervals: intervals,
+        ),
+      );
+    }
+
+    return workouts;
+  }
+
+  Future<List<String>> getTableNames() async {
+    final db = await database;
+
+    final results = await db.rawQuery('''
+      SELECT name
+      FROM sqlite_master
+      WHERE type = 'table'
+        AND name NOT LIKE 'sqlite_%'
+      ORDER BY name
+    ''');
+
+    return results
+        .map((row) => row['name'] as String)
+        .toList();
   }
 
   Future<void> close() async {

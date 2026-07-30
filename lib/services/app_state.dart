@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/default_matrix.dart';
@@ -8,6 +9,7 @@ import '../models/gear_target.dart';
 import '../models/log_entry.dart';
 import '../models/modality.dart';
 import '../models/target_history.dart';
+import 'database_service.dart';
 
 class AppState {
   AppState._();
@@ -225,7 +227,18 @@ class AppState {
 
   Future<void> addLog(LogEntry log) async {
     logs.add(log);
-    await _saveLogs();
+
+    try {
+      await _saveLogs();
+
+      if (!kIsWeb) {
+        await DatabaseService.instance.insertWorkout(log);
+      }
+    } catch (_) {
+      logs.remove(log);
+      await _saveLogs();
+      rethrow;
+    }
   }
 
   /// Generic target update used by every prescription type.
