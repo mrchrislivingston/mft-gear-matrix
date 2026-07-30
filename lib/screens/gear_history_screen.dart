@@ -5,6 +5,8 @@ import '../models/log_entry.dart';
 import '../models/modality.dart';
 import '../models/workout_metric.dart';
 import '../services/app_state.dart';
+import '../services/personal_record_service.dart';
+import '../services/workout_analytics.dart';
 import 'workout_detail_screen.dart';
 
 class GearHistoryScreen extends StatelessWidget {
@@ -24,13 +26,20 @@ class GearHistoryScreen extends StatelessWidget {
   int _paceToSeconds(String pace) {
     final parts = pace.trim().split(':');
 
-    if (parts.length != 2) return 0;
+    if (parts.length != 2) {
+      return 0;
+    }
 
     final minutes = int.tryParse(parts[0]);
     final seconds = int.tryParse(parts[1]);
 
-    if (minutes == null || seconds == null) return 0;
-    if (seconds < 0 || seconds > 59) return 0;
+    if (minutes == null || seconds == null) {
+      return 0;
+    }
+
+    if (seconds < 0 || seconds > 59) {
+      return 0;
+    }
 
     return (minutes * 60) + seconds;
   }
@@ -39,35 +48,32 @@ class GearHistoryScreen extends StatelessWidget {
     final minutes = seconds ~/ 60;
     final remainingSeconds = seconds % 60;
 
-    return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
+    return '$minutes:'
+        '${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
   String get distanceUnit {
     switch (modality) {
       case Modality.run:
         return 'mi';
+
       case Modality.row:
       case Modality.ski:
       case Modality.bikeErg:
         return 'm';
+
       case Modality.echo:
         return '';
     }
   }
 
-  Widget buildSummary(LogEntry log) {
+  String _formattedDate(DateTime date) {
+    return '${date.month}/${date.day}/${date.year}';
+  }
+
+  String _averagePrimaryMetric(LogEntry log) {
     final target = gear.targetForModality(modality);
     final metric = target?.metric;
-
-    final totalDistance = log.intervals.fold<double>(
-      0,
-      (sum, interval) {
-        return sum +
-            _toDouble(
-              interval.valueFor(WorkoutMetric.distance),
-            );
-      },
-    );
 
     final metricValues = log.intervals
         .map(
@@ -77,7 +83,9 @@ class GearHistoryScreen extends StatelessWidget {
         .where((value) => value.trim().isNotEmpty)
         .toList();
 
-    String averageMetric = '-';
+    if (metricValues.isEmpty) {
+      return '-';
+    }
 
     if (metric?.usesTimeFormat == true) {
       final valuesInSeconds = metricValues
@@ -85,101 +93,231 @@ class GearHistoryScreen extends StatelessWidget {
           .where((value) => value > 0)
           .toList();
 
-      if (valuesInSeconds.isNotEmpty) {
-        final averageSeconds =
-            valuesInSeconds.reduce((a, b) => a + b) /
-                valuesInSeconds.length;
-
-        averageMetric = _secondsToPace(
-          averageSeconds.round(),
-        );
+      if (valuesInSeconds.isEmpty) {
+        return '-';
       }
-    } else {
-      final numericValues = metricValues
-          .map(_toDouble)
-          .where((value) => value > 0)
-          .toList();
 
-      if (numericValues.isNotEmpty) {
-        final average =
-            numericValues.reduce((a, b) => a + b) /
-                numericValues.length;
+      final averageSeconds =
+          valuesInSeconds.reduce((a, b) => a + b) /
+              valuesInSeconds.length;
 
-        averageMetric = average.toStringAsFixed(1);
-      }
+      return _secondsToPace(
+        averageSeconds.round(),
+      );
     }
 
-    final hrValues = log.intervals
+    final numericValues = metricValues
+        .map(_toDouble)
+        .where((value) => value > 0)
+        .toList();
+
+    if (numericValues.isEmpty) {
+      return '-';
+    }
+
+    final average =
+        numericValues.reduce((a, b) => a + b) /
+            numericValues.length;
+
+    return average.toStringAsFixed(1);
+  }
+
+  double _totalDistance(LogEntry log) {
+    return log.intervals.fold<double>(
+      0,
+      (sum, interval) {
+        return sum +
+            _toDouble(
+              interval.valueFor(WorkoutMetric.distance),
+            );
+      },
+    );
+  }
+
+  double? _averageMetric(
+    LogEntry log,
+    WorkoutMetric workoutMetric,
+  ) {
+    final values = log.intervals
         .map(
           (interval) => _toDouble(
-            interval.valueFor(WorkoutMetric.heartRate),
+            interval.valueFor(workoutMetric),
           ),
         )
         .where((value) => value > 0)
         .toList();
 
-    final rpeValues = log.intervals
-        .map(
-          (interval) => _toDouble(
-            interval.valueFor(WorkoutMetric.rpe),
-          ),
-        )
-        .where((value) => value > 0)
-        .toList();
+    if (values.isEmpty) {
+      return null;
+    }
 
-    final averageHr = hrValues.isEmpty
-        ? null
-        : hrValues.reduce((a, b) => a + b) /
-            hrValues.length;
+    return values.reduce((a, b) => a + b) / values.length;
+  }
 
-    final averageRpe = rpeValues.isEmpty
-        ? null
-        : rpeValues.reduce((a, b) => a + b) /
-            rpeValues.length;
+  Widget _summaryRow({
+    required String label,
+    required String value,
+    bool emphasize = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 105,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.grey,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontWeight: emphasize
+                    ? FontWeight.bold
+                    : FontWeight.normal,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '${log.date.month}/${log.date.day}/${log.date.year}',
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
+  Widget buildSummary(
+    BuildContext context,
+    LogEntry log,
+    List<LogEntry> allLogs,
+  ) {
+    final target = gear.targetForModality(modality);
+    final metric = target?.metric;
+
+    final averagePrimaryMetric =
+        _averagePrimaryMetric(log);
+
+    final totalDistance = _totalDistance(log);
+
+    final averageHr = _averageMetric(
+      log,
+      WorkoutMetric.heartRate,
+    );
+
+    final averageRpe = _averageMetric(
+      log,
+      WorkoutMetric.rpe,
+    );
+
+    final primaryMetricUsesTimeFormat =
+        metric?.usesTimeFormat == true;
+
+    final executionScore =
+        WorkoutAnalytics.executionScore(
+      log: log,
+      primaryMetricUsesTimeFormat:
+          primaryMetricUsesTimeFormat,
+    );
+
+    final isPersonalRecord =
+        PersonalRecordService.isPersonalRecord(
+      log: log,
+      allLogs: allLogs,
+      primaryMetricUsesTimeFormat:
+          primaryMetricUsesTimeFormat,
+    );
+
+    final performanceValue =
+        metric == null || averagePrimaryMetric == '-'
+            ? averagePrimaryMetric
+            : '$averagePrimaryMetric ${metric.unitLabel}';
+
+    final distanceValue = totalDistance <= 0
+        ? '-'
+        : distanceUnit.isEmpty
+            ? totalDistance.toStringAsFixed(2)
+            : '${totalDistance.toStringAsFixed(2)} '
+                '$distanceUnit';
+
+    final heartRateValue = averageHr == null
+        ? '-'
+        : '${averageHr.toStringAsFixed(0)} bpm';
+
+    final rpeValue = averageRpe == null
+        ? '-'
+        : averageRpe.toStringAsFixed(1);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 4,
+        vertical: 8,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _formattedDate(log.date),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+              ),
+              if (isPersonalRecord)
+                const Tooltip(
+                  message: 'Personal Record',
+                  child: Icon(
+                    Icons.emoji_events,
+                    size: 22,
+                  ),
+                ),
+            ],
           ),
-        ),
-        const SizedBox(height: 8),
-        if (totalDistance > 0)
-          Text(
-            distanceUnit.isEmpty
-                ? totalDistance.toStringAsFixed(2)
-                : '${totalDistance.toStringAsFixed(2)} $distanceUnit',
+          const SizedBox(height: 16),
+          _summaryRow(
+            label: 'Performance',
+            value: performanceValue,
+            emphasize: true,
           ),
-        Text(
-          metric == null
-              ? averageMetric
-              : '$averageMetric ${metric.unitLabel}',
-        ),
-        Text(
-          averageHr == null
-              ? 'HR -'
-              : '${averageHr.toStringAsFixed(0)} bpm',
-        ),
-        Text(
-          averageRpe == null
-              ? 'RPE -'
-              : 'RPE ${averageRpe.toStringAsFixed(1)}',
-        ),
-      ],
+          _summaryRow(
+            label: 'Execution',
+            value: executionScore,
+          ),
+          if (totalDistance > 0)
+            _summaryRow(
+              label: 'Distance',
+              value: distanceValue,
+            ),
+          _summaryRow(
+            label: 'Average HR',
+            value: heartRateValue,
+          ),
+          _summaryRow(
+            label: 'Average RPE',
+            value: rpeValue,
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final logs = AppState.instance.logs
-    .where(
-      (log) =>
-          log.prescriptionId == gear.id &&
-          log.modality == modality,
-    )
+    final allLogs = AppState.instance.logs;
+
+    final logs = allLogs
+        .where(
+          (log) =>
+              log.prescriptionId == gear.id &&
+              log.modality == modality,
+        )
         .toList()
         .reversed
         .toList();
@@ -187,7 +325,8 @@ class GearHistoryScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          '${modality.displayName} Gear ${gear.number} History',
+          '${modality.displayName} '
+          'Gear ${gear.number} History',
         ),
         actions: [
           IconButton(
@@ -203,7 +342,8 @@ class GearHistoryScreen extends StatelessWidget {
       body: logs.isEmpty
           ? Center(
               child: Text(
-                'No ${modality.displayName} history for this gear yet',
+                'No ${modality.displayName} '
+                'history for this gear yet',
               ),
             )
           : ListView.builder(
@@ -213,11 +353,9 @@ class GearHistoryScreen extends StatelessWidget {
                 final log = logs[index];
 
                 return Card(
-                  child: ListTile(
-                    title: buildSummary(log),
-                    trailing: const Icon(
-                      Icons.chevron_right,
-                    ),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -229,6 +367,31 @@ class GearHistoryScreen extends StatelessWidget {
                         ),
                       );
                     },
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        16,
+                        12,
+                        8,
+                        12,
+                      ),
+                      child: Row(
+                        crossAxisAlignment:
+                            CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: buildSummary(
+                              context,
+                              log,
+                              allLogs,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(
+                            Icons.chevron_right,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 );
               },
