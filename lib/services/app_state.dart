@@ -276,7 +276,7 @@ class AppState {
     if (gearIndex != -1) {
       final gear = gears[gearIndex];
 
-      final updatedTargets = _buildUpdatedTargets(
+      final updatedTargets = await _buildUpdatedTargets(
         prescription: gear,
         modality: modality,
         lowTarget: lowTarget,
@@ -304,7 +304,7 @@ class AppState {
     final prescription =
         nonGearPrescriptions[prescriptionIndex];
 
-    final updatedTargets = _buildUpdatedTargets(
+    final updatedTargets = await _buildUpdatedTargets(
       prescription: prescription,
       modality: modality,
       lowTarget: lowTarget,
@@ -319,14 +319,17 @@ class AppState {
     await _saveNonGearPrescriptions();
   }
 
-  List<GearTarget> _buildUpdatedTargets({
+  Future<List<GearTarget>> _buildUpdatedTargets({
     required Prescription prescription,
     required Modality modality,
     required String lowTarget,
     required String highTarget,
-  }) {
+  }) async {
     final existingTarget =
         prescription.targetForModality(modality);
+
+    final metric =
+        existingTarget?.metric ?? modality.defaultMetric;
 
     final newHistoryItem = TargetHistory(
       lowTarget: lowTarget,
@@ -334,10 +337,19 @@ class AppState {
       effectiveDate: DateTime.now(),
     );
 
+    if (!kIsWeb) {
+      await DatabaseService.instance.insertTargetHistory(
+        prescriptionId: prescription.id,
+        modality: modality,
+        metric: metric,
+        target: newHistoryItem,
+      );
+    }
+
     if (existingTarget == null) {
       final newTarget = GearTarget(
         modality: modality,
-        metric: modality.defaultMetric,
+        metric: metric,
         history: [
           newHistoryItem,
         ],

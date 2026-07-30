@@ -166,11 +166,13 @@ Home
 
 ### Persistence
 
--   SharedPreferences
--   JSON serialization
--   Workout persistence
--   Target persistence
--   Automatic save migration
+-   SQLite database on native platforms
+-   SharedPreferences fallback for web
+-   Native workout reads and writes use SQLite
+-   Relational workout, interval, and metric storage
+-   SQLite target-history storage
+-   Native target changes currently dual-write to SQLite and SharedPreferences
+-   JSON serialization retained for web and migration compatibility
 -   AppState as single source of truth
 
 ------------------------------------------------------------------------
@@ -178,7 +180,9 @@ Home
 # Technology
 
 -   Flutter
--   SharedPreferences
+-   SQLite
+-   sqflite
+-   SharedPreferences for web and temporary target migration
 -   JSON serialization
 -   Git
 -   GitHub
@@ -523,23 +527,44 @@ Execution is never considered a Personal Record.
 
 ## Sprint 11
 
-Planning
+In Progress
 
 ### Primary Objective
 
-Improve workout history so previous workouts are faster to scan and
-compare without adding extra workout-entry requirements.
+Replace native SharedPreferences persistence with a relational SQLite database while preserving existing workout and target history.
 
-### Initial Candidates
+### Completed
 
--   Add useful workout information to history list entries
--   Show duration or scoring result where applicable
--   Preserve direct access to Workout Summary
--   Keep all displayed statistics derived from already-recorded workout
-    data
--   Avoid adding required logging fields solely for presentation
+  * Added SQLite and sqflite
+  * Created relational database schema
+  * Added workouts table
+  * Added workout intervals table
+  * Added interval metrics table
+  * Added target history table
+  * Enabled foreign-key enforcement
+  * Added cascade deletion for workout child records
+  * Added SQLite workout insertion
+  * Added SQLite workout reconstruction and reading
+  * Added SQLite workout deletion
+  * Migrated native workout reads to SQLite
+  * Migrated native workout writes to SQLite
+  * Retained SharedPreferences workout fallback for web
+  * Verified workout logging and restart persistence
+  * Added SQLite target-history insertion
+  * Added SQLite target-history reading
+  * Dual-write new native target changes to SQLite and SharedPreferences
+  * Verified target updates and target history after restart
 
-------------------------------------------------------------------------
+### Remaining
+
+  * Migrate existing saved target histories into SQLite
+  * Build Gear target collections from SQLite records
+  * Switch native target reads to SQLite
+  * Remove native target writes from SharedPreferences
+  * Remove obsolete legacy target persistence code
+  * Complete persistence regression testing
+
+* * *
 
 # Next Priorities
 
