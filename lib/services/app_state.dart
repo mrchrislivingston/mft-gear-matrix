@@ -246,14 +246,18 @@ class AppState {
     logs.add(log);
 
     try {
-      await _saveLogs();
-
-      if (!kIsWeb) {
+      if (kIsWeb) {
+        await _saveLogs();
+      } else {
         await DatabaseService.instance.insertWorkout(log);
       }
     } catch (_) {
       logs.remove(log);
-      await _saveLogs();
+
+      if (kIsWeb) {
+        await _saveLogs();
+      }
+
       rethrow;
     }
   }
