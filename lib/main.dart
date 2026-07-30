@@ -8,16 +8,25 @@ import 'services/database_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // This still loads targets and the shared_preferences workout copy.
   await AppState.instance.loadLogs();
 
+  // On native platforms, replace the in-memory workout list with
+  // the records read from SQLite.
+  //
+  // shared_preferences remains available as a temporary backup
+  // during the migration.
   if (!kIsWeb) {
     final sqliteWorkouts =
         await DatabaseService.instance.getWorkouts();
 
+    AppState.instance.logs
+      ..clear()
+      ..addAll(sqliteWorkouts);
+
     debugPrint(
-      'Persistence comparison: '
-      'shared_preferences=${AppState.instance.logs.length}, '
-      'SQLite=${sqliteWorkouts.length}',
+      'Workout read source: SQLite '
+      '(${AppState.instance.logs.length} workouts)',
     );
   }
 
