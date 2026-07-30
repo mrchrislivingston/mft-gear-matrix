@@ -67,21 +67,38 @@ class AppState {
   }
 
   Future<void> loadLogs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final rawLogs = prefs.getStringList(_logsKey) ?? [];
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      final rawLogs = prefs.getStringList(_logsKey) ?? [];
 
-    print('Loaded raw logs found: ${rawLogs.length}');
-
-    logs
-      ..clear()
-      ..addAll(
-        rawLogs.map((rawLog) {
-          final json =
-              jsonDecode(rawLog) as Map<String, dynamic>;
-
-          return LogEntry.fromJson(json);
-        }),
+      debugPrint(
+        'Workout read source: shared_preferences '
+        '(${rawLogs.length} workouts)',
       );
+
+      logs
+        ..clear()
+        ..addAll(
+          rawLogs.map((rawLog) {
+            final json =
+                jsonDecode(rawLog) as Map<String, dynamic>;
+
+            return LogEntry.fromJson(json);
+          }),
+        );
+    } else {
+      final sqliteWorkouts =
+          await DatabaseService.instance.getWorkouts();
+
+      logs
+        ..clear()
+        ..addAll(sqliteWorkouts);
+
+      debugPrint(
+        'Workout read source: SQLite '
+        '(${logs.length} workouts)',
+      );
+    }
 
     await loadGears();
     await loadNonGearPrescriptions();
@@ -383,14 +400,14 @@ class AppState {
       return jsonEncode(log.toJson());
     }).toList();
 
-    print('Saving ${logs.length} logs');
+    debugPrint('Saving ${logs.length} logs');
 
     await prefs.setStringList(_logsKey, rawLogs);
 
     final savedLogs =
         prefs.getStringList(_logsKey) ?? [];
 
-    print('Saved logs found: ${savedLogs.length}');
+    debugPrint('Saved logs found: ${savedLogs.length}');
   }
 
   Future<void> _saveGears() async {
