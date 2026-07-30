@@ -2,7 +2,9 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../models/log_entry.dart';
+import '../models/metric.dart';
 import '../models/modality.dart';
+import '../models/target_history.dart';
 import '../models/workout_metric.dart';
 
 class DatabaseService {
@@ -264,6 +266,61 @@ class DatabaseService {
     }
 
     return workouts;
+  }
+
+  Future<int> insertTargetHistory({
+    required String prescriptionId,
+    required Modality modality,
+    required Metric metric,
+    required TargetHistory target,
+  }) async {
+    final db = await database;
+
+    return db.insert(
+      'target_history',
+      {
+        'prescription_id': prescriptionId,
+        'modality': modality.name,
+        'metric': metric.name,
+        'low_target': target.lowTarget,
+        'high_target': target.highTarget,
+        'effective_date':
+            target.effectiveDate.toIso8601String(),
+      },
+    );
+  }
+
+  Future<List<TargetHistory>> getTargetHistory({
+    required String prescriptionId,
+    required Modality modality,
+    required Metric metric,
+  }) async {
+    final db = await database;
+
+    final rows = await db.query(
+      'target_history',
+      where: '''
+        prescription_id = ?
+        AND modality = ?
+        AND metric = ?
+      ''',
+      whereArgs: [
+        prescriptionId,
+        modality.name,
+        metric.name,
+      ],
+      orderBy: 'effective_date ASC, id ASC',
+    );
+
+    return rows.map((row) {
+      return TargetHistory(
+        lowTarget: row['low_target'] as String,
+        highTarget: row['high_target'] as String,
+        effectiveDate: DateTime.parse(
+          row['effective_date'] as String,
+        ),
+      );
+    }).toList();
   }
 
   Future<List<String>> getTableNames() async {
