@@ -1,6 +1,7 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../models/gear_target.dart';
 import '../models/log_entry.dart';
 import '../models/metric.dart';
 import '../models/modality.dart';
@@ -290,6 +291,57 @@ class DatabaseService {
     );
   }
 
+  Future<bool> insertTargetHistoryIfAbsent({
+    required String prescriptionId,
+    required Modality modality,
+    required Metric metric,
+    required TargetHistory target,
+  }) async {
+    final db = await database;
+
+    final effectiveDate = target.effectiveDate.toIso8601String();
+
+    final existingRows = await db.query(
+      'target_history',
+      columns: ['id'],
+      where: '''
+        prescription_id = ?
+        AND modality = ?
+        AND metric = ?
+        AND low_target = ?
+        AND high_target = ?
+        AND effective_date = ?
+      ''',
+      whereArgs: [
+        prescriptionId,
+        modality.name,
+        metric.name,
+        target.lowTarget,
+        target.highTarget,
+        effectiveDate,
+      ],
+      limit: 1,
+    );
+
+    if (existingRows.isNotEmpty) {
+      return false;
+    }
+
+    await db.insert(
+      'target_history',
+      {
+        'prescription_id': prescriptionId,
+        'modality': modality.name,
+        'metric': metric.name,
+        'low_target': target.lowTarget,
+        'high_target': target.highTarget,
+        'effective_date': effectiveDate,
+      },
+    );
+
+    return true;
+  }
+
   Future<List<TargetHistory>> getTargetHistory({
     required String prescriptionId,
     required Modality modality,
@@ -321,6 +373,65 @@ class DatabaseService {
         ),
       );
     }).toList();
+  }
+
+  Future<List<GearTarget>> getTargetsForPrescription(
+    String prescriptionId,
+  ) async {
+    final db = await database;
+
+    final rows = await db.query(
+      'target_history',
+      where: 'prescription_id = ?',
+      whereArgs: [prescriptionId],
+      orderBy: '''
+        modality ASC,
+        metric ASC,
+        effective_date ASC,
+        id ASC
+      ''',
+    );
+
+    final targetsByKey = <String, GearTarget>{};
+
+    for (final row in rows) {
+      final modality = Modality.values.byName(
+        row['modality'] as String,
+      );
+
+      final metric = Metric.values.byName(
+        row['metric'] as String,
+      );
+
+      final key = '${modality.name}:${metric.name}';
+
+      final historyItem = TargetHistory(
+        lowTarget: row['low_target'] as String,
+        highTarget: row['high_target'] as String,
+        effectiveDate: DateTime.parse(
+          row['effective_date'] as String,
+        ),
+      );
+
+      final existingTarget = targetsByKey[key];
+
+      if (existingTarget == null) {
+        targetsByKey[key] = GearTarget(
+          modality: modality,
+          metric: metric,
+          history: [historyItem],
+        );
+      } else {
+        targetsByKey[key] = existingTarget.copyWith(
+          history: [
+            ...existingTarget.history,
+            historyItem,
+          ],
+        );
+      }
+    }
+
+    return targetsByKey.values.toList();
   }
 
   Future<List<String>> getTableNames() async {

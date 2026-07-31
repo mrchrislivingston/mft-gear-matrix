@@ -166,14 +166,14 @@ Home
 
 ### Persistence
 
--   SQLite database on native platforms
--   SharedPreferences fallback for web
--   Native workout reads and writes use SQLite
--   Relational workout, interval, and metric storage
--   SQLite target-history storage
--   Native target changes currently dual-write to SQLite and SharedPreferences
--   JSON serialization retained for web and migration compatibility
--   AppState as single source of truth
+- SQLite database on native platforms
+- SharedPreferences persistence for web
+- Native workout reads and writes use SQLite
+- Native target-history reads and writes use SQLite
+- Relational workout, interval, metric, and target-history storage
+- JSON serialization retained for web compatibility
+- Automatic target-history migration from SharedPreferences to SQLite
+- AppState as application state manager
 
 ------------------------------------------------------------------------
 
