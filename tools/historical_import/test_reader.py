@@ -1,0 +1,123 @@
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+from models import DateStatus, ImportStatus, WorkoutType
+from reader import (
+    has_supported_date_header,
+    has_week_day_header,
+    parse_date_header,
+    read_workout_candidates,
+)
+
+
+def main() -> None:
+    parsed_date, date_status = parse_date_header(
+        "Monday April 14",
+        2025,
+    )
+
+    assert parsed_date == "2025-04-14"
+    assert date_status is DateStatus.EXACT
+
+    parsed_date, date_status = parse_date_header(
+        "Mon - W1D1\n\n7/21",
+        2025,
+    )
+
+    assert parsed_date == "2025-07-21"
+    assert date_status is DateStatus.EXACT
+
+    assert has_supported_date_header(
+        "Mon - W1D1\n\n7/21",
+    )
+
+    assert has_week_day_header(
+        "Mon - W2D1",
+    )
+
+    assert not has_supported_date_header(
+        "Notes / Results",
+    )
+
+    with TemporaryDirectory() as temp_directory:
+        input_path = Path(temp_directory) / "sample.csv"
+
+        with input_path.open(
+            "w",
+            encoding="utf-8",
+            newline="",
+        ) as output_file:
+            writer = csv.writer(output_file)
+
+            writer.writerow(
+                [
+                    "Mon - W1D1\n\n7/21",
+                    "Run - 5th Gear",
+                    "Zone 2 C2 Bike",
+                ],
+            )
+
+            writer.writerow(
+                [
+                    "Notes / Results",
+                    "Average pace 7:35",
+                    "Completed 45 minutes",
+                ],
+            )
+
+            writer.writerow(
+                [
+                    "Mon - W2D1",
+                    "P2 Echo Bike",
+                    "",
+                ],
+            )
+
+            writer.writerow(
+                [
+                    "Notes / Results",
+                    "Completed",
+                    "",
+                ],
+            )
+
+        candidates = read_workout_candidates(
+            input_path=input_path,
+            year=2025,
+        )
+
+    assert len(candidates) == 3
+
+    run_candidate = candidates[0]
+
+    assert run_candidate.date == "2025-07-21"
+    assert run_candidate.date_status is DateStatus.EXACT
+    assert run_candidate.workout_type is WorkoutType.GEAR
+    assert run_candidate.gear == "G5"
+    assert run_candidate.modality == "run"
+    assert run_candidate.import_status is ImportStatus.READY
+
+    zone_candidate = candidates[1]
+
+    assert zone_candidate.workout_type is WorkoutType.ZONE
+    assert zone_candidate.prescription == "Z2"
+    assert zone_candidate.modality == "bikeErg"
+    assert zone_candidate.import_status is ImportStatus.READY
+
+    inferred_candidate = candidates[2]
+
+    assert inferred_candidate.date == "2025-07-28"
+    assert inferred_candidate.date_status is DateStatus.INFERRED
+    assert inferred_candidate.workout_type is WorkoutType.POWER
+    assert inferred_candidate.prescription == "P2"
+    assert inferred_candidate.modality == "echo"
+    assert inferred_candidate.import_status is ImportStatus.READY
+
+    print("All reader tests passed.")
+
+
+if __name__ == "__main__":
+    main()

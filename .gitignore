@@ -16,3 +16,10 @@ build/
 
 # Misc
 *.log
+
+# Historical import working data
+tools/historical_import/input/
+tools/historical_import/review/
+tools/historical_import/normalized/
+tools/historical_import/import/
+tools/historical_import/archive/

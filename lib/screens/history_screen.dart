@@ -30,6 +30,37 @@ class HistoryScreen extends StatelessWidget {
     );
   }
 
+  int _workoutCount(Modality selectedModality) {
+    return AppState.instance.logs
+        .where(
+          (log) => log.modality == selectedModality,
+        )
+        .length;
+  }
+
+  Widget _buildModalityTile(
+    BuildContext context,
+    Modality selectedModality,
+  ) {
+    final workoutCount = _workoutCount(selectedModality);
+
+    return ListTile(
+      title: Text(selectedModality.displayName),
+      subtitle: Text(
+        workoutCount == 1
+            ? '1 workout'
+            : '$workoutCount workouts',
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () {
+        _openModality(
+          context,
+          selectedModality,
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedPrescription = prescription;
@@ -73,7 +104,7 @@ class HistoryScreen extends StatelessWidget {
             : ListView.separated(
                 padding: const EdgeInsets.all(20),
                 itemCount: logs.length,
-                separatorBuilder: (_, __) =>
+                separatorBuilder: (_, _) =>
                     const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   final log = logs[index];
@@ -129,59 +160,29 @@ class HistoryScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          ListTile(
-            title: const Text('Run'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              _openModality(
-                context,
-                Modality.run,
-              );
-            },
+          _buildModalityTile(
+            context,
+            Modality.run,
           ),
           const Divider(),
-          ListTile(
-            title: const Text('Echo Bike'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              _openModality(
-                context,
-                Modality.echo,
-              );
-            },
+          _buildModalityTile(
+            context,
+            Modality.echo,
           ),
           const Divider(),
-          ListTile(
-            title: const Text('C2 Bike'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              _openModality(
-                context,
-                Modality.bikeErg,
-              );
-            },
+          _buildModalityTile(
+            context,
+            Modality.bikeErg,
           ),
           const Divider(),
-          ListTile(
-            title: const Text('Row'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              _openModality(
-                context,
-                Modality.row,
-              );
-            },
+          _buildModalityTile(
+            context,
+            Modality.row,
           ),
           const Divider(),
-          ListTile(
-            title: const Text('SkiErg'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              _openModality(
-                context,
-                Modality.ski,
-              );
-            },
+          _buildModalityTile(
+            context,
+            Modality.ski,
           ),
         ],
       ),

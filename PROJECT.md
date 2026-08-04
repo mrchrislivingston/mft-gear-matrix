@@ -555,6 +555,37 @@ Replace native SharedPreferences persistence with a relational SQLite database w
   * Dual-write new native target changes to SQLite and SharedPreferences
   * Verified target updates and target history after restart
 
+### Historical Import
+
+* Created reusable historical workout import pipeline
+* Added workbook reader supporting multiple Misfit worksheet formats
+* Added automatic workout candidate detection
+* Added explicit and inferred date extraction
+* Added parser support for:
+  * Gear workouts (G1–G8)
+  * Power workouts (P1–P3)
+  * Aerobic workouts (Z1–Z2)
+* Added modality detection for:
+  * Run
+  * Row
+  * SkiErg
+  * C2 BikeErg
+  * Echo Bike
+* Added automatic review classification:
+  * READY
+  * REVIEW
+  * SKIP
+  * TBD_LATER
+* Added review CSV generation workflow
+* Added parser regression test suite
+* Validated parser against:
+  * OffSZN 1
+  * OffSZN 2
+  * Summit Games
+  * Phase 1
+* Deferred mixed Gear, mixed Power, mixed Modality, and Benchmark import until future implementation
+
+
 ### Remaining
 
   * Migrate existing saved target histories into SQLite
@@ -567,6 +598,14 @@ Replace native SharedPreferences persistence with a relational SQLite database w
 * * *
 
 # Next Priorities
+
+## Historical Import
+
+- Build normalization pipeline
+- Convert READY review rows into application workout records
+- Import historical workouts into SQLite
+- Build reusable importer for additional athlete spreadsheets
+- Add Benchmark workout import
 
 ## History Improvements
 
@@ -604,6 +643,12 @@ Replace native SharedPreferences persistence with a relational SQLite database w
 -   Optional cloud sync
 -   Coach Mode
 -   AI coaching insights
+
+------------------------------------------------------------------------
+
+## Future Cleanup
+
+- Remove the temporary SharedPreferences → SQLite target migration after the first production release. At that point, all existing native users will have migrated and the migration code can be safely deleted, simplifying AppState.
 
 ------------------------------------------------------------------------
 
