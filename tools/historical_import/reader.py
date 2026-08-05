@@ -5,7 +5,12 @@ import re
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from models import DateStatus, WorkoutCandidate, WorkoutType
+from models import (
+    DateStatus,
+    ImportStatus,
+    WorkoutCandidate,
+    WorkoutType,
+)
 from parser import (
     classify_candidate,
     detect_candidate_modalities,
@@ -311,6 +316,13 @@ def read_workout_candidates(
                 programming_text,
                 result_text,
             )
+
+            if (
+                import_status is ImportStatus.READY
+                and date_status is DateStatus.UNRESOLVED
+            ):
+                import_status = ImportStatus.REVIEW
+                status_reason = "Workout date is unresolved"
 
             source_id = " | ".join(
                 [

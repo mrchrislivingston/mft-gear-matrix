@@ -166,14 +166,14 @@ Home
 
 ### Persistence
 
-- SQLite database on native platforms
-- SharedPreferences persistence for web
-- Native workout reads and writes use SQLite
-- Native target-history reads and writes use SQLite
-- Relational workout, interval, metric, and target-history storage
-- JSON serialization retained for web compatibility
-- Automatic target-history migration from SharedPreferences to SQLite
-- AppState as application state manager
+-   SQLite database on native platforms
+-   SharedPreferences persistence for web
+-   Native workout reads and writes use SQLite
+-   Native target-history reads and writes use SQLite
+-   Relational workout, interval, metric, and target-history storage
+-   JSON serialization retained for web compatibility
+-   Automatic target-history migration from SharedPreferences to SQLite
+-   AppState as application state manager
 
 ------------------------------------------------------------------------
 
@@ -531,81 +531,91 @@ In Progress
 
 ### Primary Objective
 
-Replace native SharedPreferences persistence with a relational SQLite database while preserving existing workout and target history.
+Replace native SharedPreferences persistence with a relational SQLite
+database while preserving existing workout and target history.
 
 ### Completed
 
-  * Added SQLite and sqflite
-  * Created relational database schema
-  * Added workouts table
-  * Added workout intervals table
-  * Added interval metrics table
-  * Added target history table
-  * Enabled foreign-key enforcement
-  * Added cascade deletion for workout child records
-  * Added SQLite workout insertion
-  * Added SQLite workout reconstruction and reading
-  * Added SQLite workout deletion
-  * Migrated native workout reads to SQLite
-  * Migrated native workout writes to SQLite
-  * Retained SharedPreferences workout fallback for web
-  * Verified workout logging and restart persistence
-  * Added SQLite target-history insertion
-  * Added SQLite target-history reading
-  * Dual-write new native target changes to SQLite and SharedPreferences
-  * Verified target updates and target history after restart
+-   Added SQLite and sqflite
+-   Created relational database schema
+-   Added workouts table
+-   Added workout intervals table
+-   Added interval metrics table
+-   Added target history table
+-   Enabled foreign-key enforcement
+-   Added cascade deletion for workout child records
+-   Added SQLite workout insertion
+-   Added SQLite workout reconstruction and reading
+-   Added SQLite workout deletion
+-   Migrated native workout reads to SQLite
+-   Migrated native workout writes to SQLite
+-   Retained SharedPreferences workout fallback for web
+-   Verified workout logging and restart persistence
+-   Added SQLite target-history insertion
+-   Added SQLite target-history reading
+-   Dual-write new native target changes to SQLite and SharedPreferences
+-   Verified target updates and target history after restart
 
 ### Historical Import
 
-* Created reusable historical workout import pipeline
-* Added workbook reader supporting multiple Misfit worksheet formats
-* Added automatic workout candidate detection
-* Added explicit and inferred date extraction
-* Added parser support for:
-  * Gear workouts (G1–G8)
-  * Power workouts (P1–P3)
-  * Aerobic workouts (Z1–Z2)
-* Added modality detection for:
-  * Run
-  * Row
-  * SkiErg
-  * C2 BikeErg
-  * Echo Bike
-* Added automatic review classification:
-  * READY
-  * REVIEW
-  * SKIP
-  * TBD_LATER
-* Added review CSV generation workflow
-* Added parser regression test suite
-* Validated parser against:
-  * OffSZN 1
-  * OffSZN 2
-  * Summit Games
-  * Phase 1
-* Deferred mixed Gear, mixed Power, mixed Modality, and Benchmark import until future implementation
-
+-   Created reusable historical workout import pipeline
+-   Added workbook reader supporting multiple Misfit worksheet formats
+-   Added automatic workout candidate detection
+-   Added explicit and inferred date extraction
+-   Added parser support for:
+    -   Gear workouts (G1--G8)
+    -   Power workouts (P1--P3)
+    -   Aerobic workouts (Z1--Z2)
+-   Added modality detection for:
+    -   Run
+    -   Row
+    -   SkiErg
+    -   C2 BikeErg
+    -   Echo Bike
+-   Added automatic review classification:
+    -   READY
+    -   REVIEW
+    -   SKIP
+    -   TBD_LATER
+-   Added review CSV generation workflow
+-   Added parser regression test suite
+-   Added unified run_all_tests.py regression runner
+-   Added normalization pipeline and normalized workout models
+-   Added review CSV reader and SQLite importer scaffold
+-   Added interval, structured interval, and metric parsers for
+    historical workout normalization
+-   Introduced Execution Plan architecture separating Prescription,
+    Execution Plan, and Execution Result
+-   Validated OffSZN 1 historical import at 17 of 18 READY workouts
+-   Validated parser against:
+    -   OffSZN 1
+    -   OffSZN 2
+    -   Summit Games
+    -   Phase 1
+-   Deferred mixed Gear, mixed Power, mixed Modality, and Benchmark
+    import until future implementation
 
 ### Remaining
 
-  * Migrate existing saved target histories into SQLite
-  * Build Gear target collections from SQLite records
-  * Switch native target reads to SQLite
-  * Remove native target writes from SharedPreferences
-  * Remove obsolete legacy target persistence code
-  * Complete persistence regression testing
+-   Migrate existing saved target histories into SQLite
+-   Build Gear target collections from SQLite records
+-   Switch native target reads to SQLite
+-   Remove native target writes from SharedPreferences
+-   Remove obsolete legacy target persistence code
+-   Complete persistence regression testing
 
-* * *
+------------------------------------------------------------------------
 
 # Next Priorities
 
 ## Historical Import
 
-- Build normalization pipeline
-- Convert READY review rows into application workout records
-- Import historical workouts into SQLite
-- Build reusable importer for additional athlete spreadsheets
-- Add Benchmark workout import
+-   Complete Execution Plan parser from programmed workout text
+-   Populate Execution Plan from programming with canonical fallback
+-   Finish remaining OffSZN 1 workout import (18/18)
+-   Import normalized workouts into SQLite
+-   Continue OffSZN 2, Summit Games, and remaining workbook imports
+-   Add Benchmark workout import
 
 ## History Improvements
 
@@ -648,7 +658,10 @@ Replace native SharedPreferences persistence with a relational SQLite database w
 
 ## Future Cleanup
 
-- Remove the temporary SharedPreferences → SQLite target migration after the first production release. At that point, all existing native users will have migrated and the migration code can be safely deleted, simplifying AppState.
+-   Remove the temporary SharedPreferences → SQLite target migration
+    after the first production release. At that point, all existing
+    native users will have migrated and the migration code can be safely
+    deleted, simplifying AppState.
 
 ------------------------------------------------------------------------
 
