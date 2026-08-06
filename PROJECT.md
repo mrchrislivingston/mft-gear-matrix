@@ -586,7 +586,11 @@ database while preserving existing workout and target history.
     historical workout normalization
 -   Introduced Execution Plan architecture separating Prescription,
     Execution Plan, and Execution Result
--   Validated OffSZN 1 historical import at 17 of 18 READY workouts
+-   Added Execution Plan parser supporting both count-first (`8×1:45`) and duration-first (`1:45 x 8`) formats
+-   Added interval distance parser for Garmin interval-distance results
+-   Execution Plan now populates from programming text with canonical Gear fallback
+-   Normalizer now supports interval paces, structured metrics, interval distances, and workout averages
+-   Validated OffSZN 1 historical import at 18 of 18 READY workouts
 -   Validated parser against:
     -   OffSZN 1
     -   OffSZN 2
@@ -610,11 +614,9 @@ database while preserving existing workout and target history.
 
 ## Historical Import
 
--   Complete Execution Plan parser from programmed workout text
--   Populate Execution Plan from programming with canonical fallback
--   Finish remaining OffSZN 1 workout import (18/18)
--   Import normalized workouts into SQLite
--   Continue OffSZN 2, Summit Games, and remaining workbook imports
+-   Extend Flutter SQLite schema with Execution Plan fields (`work_duration` and `interval_count`)
+-   Build SQLite importer to write normalized historical workouts directly into the app database
+-   Continue OffSZN 2, Summit Games, and Phase 1 workbook imports
 -   Add Benchmark workout import
 
 ## History Improvements

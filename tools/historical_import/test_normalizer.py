@@ -153,6 +153,35 @@ def test_gear_one_bike_interval_workout() -> None:
     ]
 
 
+def test_programming_execution_plan_overrides_default() -> None:
+    candidate = WorkoutCandidate(
+        source_id="offszn1-execution-plan-test",
+        source_workbook="OffSZN 1",
+        source_row=100,
+        source_column=2,
+        date="2025-05-25",
+        date_status=DateStatus.EXACT,
+        workout_type=WorkoutType.GEAR,
+        gear="G6",
+        prescription="",
+        modality="bikeErg",
+        import_status=ImportStatus.READY,
+        status_reason="Single supported workout",
+        result_detail=ResultDetail.WORKOUT_AVERAGE,
+        garmin_lookup=False,
+        programming_text=(
+            "BikeErg - 6th Gear\n"
+            "8×1:45"
+        ),
+        result_text="Average pace 1:42/km",
+    )
+
+    workout = normalize_candidate(candidate)
+
+    assert workout.execution_plan.work_duration == "1:45"
+    assert workout.execution_plan.interval_count == 8
+
+
 def test_power_echo_structured_intervals() -> None:
     candidate = WorkoutCandidate(
         source_id="offszn1-row-49",
@@ -216,6 +245,7 @@ def main() -> None:
     test_zone_two_bike_workout()
     test_gear_one_run_workout()
     test_gear_one_bike_interval_workout()
+    test_programming_execution_plan_overrides_default()
     test_power_echo_structured_intervals()
 
     print("All normalizer tests passed.")

@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from distance_interval_parser import (
+    extract_interval_distances,
+)
+from execution_plan_parser import extract_execution_plan
 from interval_parser import (
     extract_interval_paces,
 )
@@ -90,9 +94,19 @@ def normalize_candidate(
             "Unsupported workout type",
         )
 
-    execution_plan = _default_execution_plan(
-        candidate,
+    parsed_execution_plan = extract_execution_plan(
+        candidate.programming_text,
     )
+
+    if parsed_execution_plan is not None:
+        execution_plan = ExecutionPlan(
+            work_duration=parsed_execution_plan.work_duration,
+            interval_count=parsed_execution_plan.interval_count,
+        )
+    else:
+        execution_plan = _default_execution_plan(
+            candidate,
+        )
 
     interval_paces = extract_interval_paces(
         candidate.result_text,
@@ -130,21 +144,39 @@ def normalize_candidate(
             )
 
         else:
-            metric_values = extract_average_metrics(
-                candidate.result_text,
+            distance_intervals = (
+                extract_interval_distances(
+                    candidate.result_text,
+                )
             )
 
-            if not metric_values:
-                raise ValueError(
-                    "No supported workout metrics could be extracted",
+            if distance_intervals:
+                intervals = tuple(
+                    NormalizedInterval(
+                        interval_number=index + 1,
+                        values=values,
+                    )
+                    for index, values in enumerate(
+                        distance_intervals,
+                    )
                 )
 
-            intervals = (
-                NormalizedInterval(
-                    interval_number=1,
-                    values=metric_values,
-                ),
-            )
+            else:
+                metric_values = extract_average_metrics(
+                    candidate.result_text,
+                )
+
+                if not metric_values:
+                    raise ValueError(
+                        "No supported workout metrics could be extracted",
+                    )
+
+                intervals = (
+                    NormalizedInterval(
+                        interval_number=1,
+                        values=metric_values,
+                    ),
+                )
 
     return NormalizedWorkout(
         source_id=candidate.source_id,
