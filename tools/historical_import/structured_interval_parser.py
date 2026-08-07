@@ -22,6 +22,14 @@ BIKEERG_PATTERN = re.compile(
     r"(\d+)"
 )
 
+CALORIE_SEQUENCE_PATTERN = re.compile(
+    r"\b(\d+(?:\s*/\s*\d+){2,})\b",
+)
+
+CALORIES_PER_HOUR_PATTERN = re.compile(
+    r"(\d+)\s*/\s*(\d+)"
+)
+
 
 def _extract_three_metric_matches(
     pattern: re.Pattern[str],
@@ -118,6 +126,54 @@ def _extract_bikeerg_matches(
     return intervals
 
 
+def _extract_calories_per_hour(
+    result_text: str,
+) -> list[dict[str, str]]:
+    if not re.search(
+        r"cals/hr/cals",
+        result_text,
+        re.IGNORECASE,
+    ):
+        return []
+
+    values = re.findall(
+        CALORIES_PER_HOUR_PATTERN,
+        result_text,
+    )
+
+    return [
+        {
+            "caloriesPerHour": calories_per_hour,
+            "calories": calories,
+        }
+        for calories_per_hour, calories in values
+    ]
+
+
+def _extract_calorie_sequence(
+    result_text: str,
+) -> list[dict[str, str]]:
+    match = CALORIE_SEQUENCE_PATTERN.search(
+        result_text,
+    )
+
+    if match is None:
+        return []
+
+    values = [
+        value.strip()
+        for value in match.group(1).split("/")
+        if value.strip()
+    ]
+
+    return [
+        {
+            "calories": value,
+        }
+        for value in values
+    ]
+
+
 def extract_watts_rpm_calories(
     result_text: str,
 ) -> list[dict[str, str]]:
@@ -141,6 +197,20 @@ def extract_watts_rpm_calories(
     if intervals:
         return intervals
 
-    return _extract_bikeerg_matches(
+    intervals = _extract_bikeerg_matches(
+        result_text,
+    )
+
+    if intervals:
+        return intervals
+
+    intervals = _extract_calories_per_hour(
+        result_text,
+    )
+
+    if intervals:
+        return intervals
+
+    return _extract_calorie_sequence(
         result_text,
     )

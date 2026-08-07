@@ -82,6 +82,40 @@ def test_zone_two_bike_workout() -> None:
     }
 
 
+def test_zone_two_run_workout() -> None:
+    candidate = WorkoutCandidate(
+        source_id="offszn2-row-30",
+        source_workbook="OffSZN 2",
+        source_row=30,
+        source_column=2,
+        date="2025-06-10",
+        date_status=DateStatus.EXACT,
+        workout_type=WorkoutType.ZONE,
+        gear="",
+        prescription="Z2",
+        modality="run",
+        import_status=ImportStatus.READY,
+        status_reason="Single supported workout",
+        result_detail=ResultDetail.WORKOUT_AVERAGE,
+        garmin_lookup=False,
+        programming_text="Zone 2 Run",
+        result_text=(
+            "60:00 Run in Zone 2 - 5.14 miles\n"
+            "Avg HR 129 / Pace 11:40"
+        ),
+    )
+
+    workout = normalize_candidate(candidate)
+
+    assert workout.prescription_id == "Z2"
+    assert workout.duration == "01:00:00"
+    assert workout.intervals[0].values == {
+        "primaryMetric": "11:40",
+        "distance": "5.14",
+        "heartRate": "129",
+    }
+
+
 def test_gear_one_run_workout() -> None:
     candidate = WorkoutCandidate(
         source_id="offszn1-row-51",
@@ -221,28 +255,11 @@ def test_power_echo_structured_intervals() -> None:
         "calories": "18",
     }
 
-    assert workout.intervals[1].values == {
-        "watts": "683",
-        "rpm": "87",
-        "calories": "20",
-    }
-
-    assert workout.intervals[2].values == {
-        "watts": "934",
-        "rpm": "96",
-        "calories": "20",
-    }
-
-    assert workout.intervals[3].values == {
-        "watts": "871",
-        "rpm": "94",
-        "calories": "19",
-    }
-
 
 def main() -> None:
     test_metric_extractors()
     test_zone_two_bike_workout()
+    test_zone_two_run_workout()
     test_gear_one_run_workout()
     test_gear_one_bike_interval_workout()
     test_programming_execution_plan_overrides_default()

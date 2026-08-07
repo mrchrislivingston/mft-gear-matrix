@@ -8,6 +8,10 @@ DURATION_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+CLOCK_DURATION_PATTERN = re.compile(
+    r"\b(\d{1,2}):(\d{2})\b",
+)
+
 AVERAGE_WATTS_PATTERN = re.compile(
     r"\b(?:avg|average)\s+"
     r"(?:watt|watts|power)\s*[-:]?\s*(\d+(?:\.\d+)?)\b",
@@ -26,6 +30,12 @@ AVERAGE_PACE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+PACE_LABEL_PATTERN = re.compile(
+    r"\bpace\s+"
+    r"(\d+:\d+(?:\.\d+)?)",
+    re.IGNORECASE,
+)
+
 PACE_PER_MILE_PATTERN = re.compile(
     r"\b(\d+:\d+)\s*/\s*mile\s+average\b",
     re.IGNORECASE,
@@ -33,6 +43,11 @@ PACE_PER_MILE_PATTERN = re.compile(
 
 PACE_AVG_SUFFIX_PATTERN = re.compile(
     r"\b(\d+:\d+(?:\.\d+)?)\s+avg\b",
+    re.IGNORECASE,
+)
+
+DISTANCE_MILES_PATTERN = re.compile(
+    r"\b(\d+(?:\.\d+)?)\s*miles?\b",
     re.IGNORECASE,
 )
 
@@ -53,10 +68,28 @@ def extract_duration(
         result_text,
     )
 
-    if match is None:
+    if match is not None:
+        minutes = int(match.group(1))
+        hours, remaining_minutes = divmod(
+            minutes,
+            60,
+        )
+
+        return (
+            f"{hours:02d}:"
+            f"{remaining_minutes:02d}:00"
+        )
+
+    clock_match = CLOCK_DURATION_PATTERN.search(
+        result_text,
+    )
+
+    if clock_match is None:
         return ""
 
-    minutes = int(match.group(1))
+    minutes = int(clock_match.group(1))
+    seconds = int(clock_match.group(2))
+
     hours, remaining_minutes = divmod(
         minutes,
         60,
@@ -64,7 +97,8 @@ def extract_duration(
 
     return (
         f"{hours:02d}:"
-        f"{remaining_minutes:02d}:00"
+        f"{remaining_minutes:02d}:"
+        f"{seconds:02d}"
     )
 
 
@@ -128,6 +162,7 @@ def extract_average_pace(
 
     for pattern in (
         AVERAGE_PACE_PATTERN,
+        PACE_LABEL_PATTERN,
         PACE_PER_MILE_PATTERN,
         PACE_AVG_SUFFIX_PATTERN,
     ):
@@ -143,6 +178,21 @@ def extract_average_pace(
     return {}
 
 
+def extract_distance(
+    result_text: str,
+) -> dict[str, str]:
+    match = DISTANCE_MILES_PATTERN.search(
+        result_text,
+    )
+
+    if match is None:
+        return {}
+
+    return {
+        "distance": match.group(1),
+    }
+
+
 def extract_average_metrics(
     result_text: str,
 ) -> dict[str, str]:
@@ -152,6 +202,7 @@ def extract_average_metrics(
         extract_average_watts,
         extract_average_heart_rate,
         extract_average_pace,
+        extract_distance,
     ):
         values.update(
             extractor(result_text),

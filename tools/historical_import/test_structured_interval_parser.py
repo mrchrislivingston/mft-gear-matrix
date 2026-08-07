@@ -73,9 +73,68 @@ def test_bikeerg_missing_colons() -> None:
     }
 
 
+def test_calorie_only_interval_sequence() -> None:
+    text = (
+        "18/19/19 @ 7/8/6 damper - "
+        "8 was the highest output, but the hardest. "
+        "I probably dig 7"
+    )
+
+    intervals = extract_watts_rpm_calories(
+        text,
+    )
+
+    assert intervals == [
+        {
+            "calories": "18",
+        },
+        {
+            "calories": "19",
+        },
+        {
+            "calories": "19",
+        },
+    ]
+
+
+def test_calories_per_hour_power_bike() -> None:
+    text = (
+        "Avg Cals/hr/cals in time\n"
+        "2970/20, "
+        "2732/18, "
+        "2897/20, "
+        "2802/19"
+    )
+
+    intervals = extract_watts_rpm_calories(
+        text,
+    )
+
+    assert intervals == [
+        {
+            "caloriesPerHour": "2970",
+            "calories": "20",
+        },
+        {
+            "caloriesPerHour": "2732",
+            "calories": "18",
+        },
+        {
+            "caloriesPerHour": "2897",
+            "calories": "20",
+        },
+        {
+            "caloriesPerHour": "2802",
+            "calories": "19",
+        },
+    ]
+
+
 if __name__ == "__main__":
     test_echo_intervals()
     test_bikeerg_missing_colons()
+    test_calorie_only_interval_sequence()
+    test_calories_per_hour_power_bike()
 
     print(
         "All structured interval parser tests passed."

@@ -17,6 +17,9 @@ from normalized_models import (
     NormalizedInterval,
     NormalizedWorkout,
 )
+from pace_distance_interval_parser import (
+    extract_pace_distance_intervals,
+)
 from structured_interval_parser import (
     extract_watts_rpm_calories,
 )
@@ -69,9 +72,12 @@ def normalize_candidate(
                 "Zone candidate requires a Z1 or Z2 prescription",
             )
 
-        if candidate.modality != "bikeErg":
+        if candidate.modality not in {
+            "bikeErg",
+            "run",
+        }:
             raise ValueError(
-                "Only BikeErg Zone workouts are currently supported",
+                "Only BikeErg and Run Zone workouts are currently supported",
             )
 
         duration = extract_duration(
@@ -108,75 +114,93 @@ def normalize_candidate(
             candidate,
         )
 
-    interval_paces = extract_interval_paces(
-        candidate.result_text,
+    pace_distance_intervals = (
+        extract_pace_distance_intervals(
+            candidate.result_text,
+        )
     )
 
-    if interval_paces:
+    if pace_distance_intervals:
         intervals = tuple(
             NormalizedInterval(
                 interval_number=index + 1,
-                values={
-                    "primaryMetric": pace,
-                },
+                values=values,
             )
-            for index, pace in enumerate(
-                interval_paces,
+            for index, values in enumerate(
+                pace_distance_intervals,
             )
         )
 
     else:
-        structured_intervals = (
-            extract_watts_rpm_calories(
-                candidate.result_text,
-            )
+        interval_paces = extract_interval_paces(
+            candidate.result_text,
         )
 
-        if structured_intervals:
+        if interval_paces:
             intervals = tuple(
                 NormalizedInterval(
                     interval_number=index + 1,
-                    values=values,
+                    values={
+                        "primaryMetric": pace,
+                    },
                 )
-                for index, values in enumerate(
-                    structured_intervals,
+                for index, pace in enumerate(
+                    interval_paces,
                 )
             )
 
         else:
-            distance_intervals = (
-                extract_interval_distances(
+            structured_intervals = (
+                extract_watts_rpm_calories(
                     candidate.result_text,
                 )
             )
 
-            if distance_intervals:
+            if structured_intervals:
                 intervals = tuple(
                     NormalizedInterval(
                         interval_number=index + 1,
                         values=values,
                     )
                     for index, values in enumerate(
-                        distance_intervals,
+                        structured_intervals,
                     )
                 )
 
             else:
-                metric_values = extract_average_metrics(
-                    candidate.result_text,
+                distance_intervals = (
+                    extract_interval_distances(
+                        candidate.result_text,
+                    )
                 )
 
-                if not metric_values:
-                    raise ValueError(
-                        "No supported workout metrics could be extracted",
+                if distance_intervals:
+                    intervals = tuple(
+                        NormalizedInterval(
+                            interval_number=index + 1,
+                            values=values,
+                        )
+                        for index, values in enumerate(
+                            distance_intervals,
+                        )
                     )
 
-                intervals = (
-                    NormalizedInterval(
-                        interval_number=1,
-                        values=metric_values,
-                    ),
-                )
+                else:
+                    metric_values = extract_average_metrics(
+                        candidate.result_text,
+                    )
+
+                    if not metric_values:
+                        raise ValueError(
+                            "No supported workout metrics could be extracted",
+                        )
+
+                    intervals = (
+                        NormalizedInterval(
+                            interval_number=1,
+                            values=metric_values,
+                        ),
+                    )
 
     return NormalizedWorkout(
         source_id=candidate.source_id,
