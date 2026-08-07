@@ -65,6 +65,49 @@ Then cooldown 10:00.
     assert plan.work_duration == "1:45"
 
 
+def test_power_rounds_format() -> None:
+    plan = extract_execution_plan(
+        """Power - Air Bike
+
+Every 5:00 for 3 Rounds
+Max Calorie Air Bike in :25 @ P3
+Recover in Remaining Time
+"""
+    )
+
+    assert plan is not None
+    assert plan.interval_count == 3
+    assert plan.work_duration == ":25"
+
+
+def test_power_p1_format() -> None:
+    plan = extract_execution_plan(
+        """Power - Air Bike
+
+Every 3:00 for 5 Rounds
+Max Calorie Air Bike in :15 @ P1
+"""
+    )
+
+    assert plan is not None
+    assert plan.interval_count == 5
+    assert plan.work_duration == ":15"
+
+
+def test_power_p2_format() -> None:
+    plan = extract_execution_plan(
+        """Power - Air Bike
+
+Every 4:00 for 4 Rounds
+Max Calorie Air Bike in :20 @ P2
+"""
+    )
+
+    assert plan is not None
+    assert plan.interval_count == 4
+    assert plan.work_duration == ":20"
+
+
 def test_unstructured_programming_returns_none() -> None:
     plan = extract_execution_plan(
         "BikeErg - 1st Gear"
@@ -79,6 +122,9 @@ def main() -> None:
     test_uppercase_x_with_spaces()
     test_duration_first_format()
     test_multiple_lines_uses_first_execution_plan()
+    test_power_rounds_format()
+    test_power_p1_format()
+    test_power_p2_format()
     test_unstructured_programming_returns_none()
 
     print("All execution plan parser tests passed.")

@@ -40,8 +40,42 @@ def test_echo_intervals() -> None:
     ]
 
 
+def test_bikeerg_missing_colons() -> None:
+    text = (
+        "Rd1-8 "
+        "1019/1:57.7/86, "
+        "1095/1:49.5/94, "
+        "1120/1:47.1/90, "
+        "1129/1:46.2/91, "
+        "1105/1:48.5/95, "
+        "1122/1:46.9/96, "
+        "1129/146.2/97, "
+        "1145/144.8/98 "
+        "| Average 1108/1:49/93"
+    )
+
+    intervals = extract_watts_rpm_calories(
+        text,
+    )
+
+    assert len(intervals) == 8
+
+    assert intervals[6] == {
+        "watts": "1129",
+        "primaryMetric": "1:46.2",
+        "rpm": "97",
+    }
+
+    assert intervals[7] == {
+        "watts": "1145",
+        "primaryMetric": "1:44.8",
+        "rpm": "98",
+    }
+
+
 if __name__ == "__main__":
     test_echo_intervals()
+    test_bikeerg_missing_colons()
 
     print(
         "All structured interval parser tests passed."

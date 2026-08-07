@@ -11,6 +11,7 @@ OUTPUT_FIELDS = [
     "source_workbook",
     "source_row",
     "source_column",
+    "program_day",
     "date",
     "date_status",
     "workout_type",

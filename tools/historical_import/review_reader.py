@@ -51,6 +51,10 @@ def read_reviewed_candidates(
                     source_workbook=row["source_workbook"],
                     source_row=int(row["source_row"]),
                     source_column=int(row["source_column"]),
+                    program_day=row.get(
+                        "program_day",
+                        "",
+                    ).strip(),
                     date=row["date"],
                     date_status=DateStatus(
                         row["date_status"],

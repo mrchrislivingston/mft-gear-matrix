@@ -59,6 +59,10 @@ class WorkoutCandidate:
     review_decision: str = ""
     review_notes: str = ""
 
+    # Original program-position identifier from the source
+    # workbook, for example W5D2.
+    program_day: str = ""
+
     def to_dict(self) -> dict[str, object]:
         data = asdict(self)
 

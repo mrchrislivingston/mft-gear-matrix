@@ -15,14 +15,15 @@ class WorkoutAnalytics {
           (interval) =>
               interval.valueFor(WorkoutMetric.primaryMetric),
         )
-        .where((value) => value.trim().isNotEmpty)
+        .where(
+          (value) => value.trim().isNotEmpty,
+        )
         .toList();
 
     final values = primaryMetricUsesTimeFormat
         ? recordedValues
             .map(_paceToSeconds)
             .where((value) => value > 0)
-            .map((value) => value.toDouble())
             .toList()
         : recordedValues
             .map(_toDouble)
@@ -42,19 +43,24 @@ class WorkoutAnalytics {
 
     final variance = values
             .map(
-              (value) => math.pow(value - average, 2),
+              (value) => math.pow(
+                value - average,
+                2,
+              ),
             )
             .reduce((a, b) => a + b) /
         values.length;
 
-    final standardDeviation = math.sqrt(variance);
+    final standardDeviation =
+        math.sqrt(variance);
 
     final coefficientOfVariation =
         standardDeviation / average;
 
-    final score = (100 - (coefficientOfVariation * 100))
-        .clamp(0, 100)
-        .round();
+    final score =
+        (100 - (coefficientOfVariation * 100))
+            .clamp(0, 100)
+            .round();
 
     return '$score%';
   }
@@ -63,7 +69,7 @@ class WorkoutAnalytics {
     return double.tryParse(value.trim()) ?? 0;
   }
 
-  static int _paceToSeconds(String pace) {
+  static double _paceToSeconds(String pace) {
     final parts = pace.trim().split(':');
 
     if (parts.length != 2) {
@@ -71,13 +77,13 @@ class WorkoutAnalytics {
     }
 
     final minutes = int.tryParse(parts[0]);
-    final seconds = int.tryParse(parts[1]);
+    final seconds = double.tryParse(parts[1]);
 
     if (minutes == null || seconds == null) {
       return 0;
     }
 
-    if (seconds < 0 || seconds > 59) {
+    if (seconds < 0 || seconds >= 60) {
       return 0;
     }
 

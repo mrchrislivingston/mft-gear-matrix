@@ -12,14 +12,14 @@ Distances in Km..Thanks Garmin
     )
 
     assert distances == [
-        {"distanceKm": "1.03"},
-        {"distanceKm": "1.03"},
-        {"distanceKm": "1.03"},
-        {"distanceKm": "1.03"},
-        {"distanceKm": "1.03"},
-        {"distanceKm": "1.04"},
-        {"distanceKm": "1.06"},
-        {"distanceKm": "1.04"},
+        {"distance": "1030"},
+        {"distance": "1030"},
+        {"distance": "1030"},
+        {"distance": "1030"},
+        {"distance": "1030"},
+        {"distance": "1040"},
+        {"distance": "1060"},
+        {"distance": "1040"},
     ]
 
 

@@ -85,8 +85,9 @@ class WorkoutDetailScreen extends StatelessWidget {
   ) {
     final lines = <String>[];
 
-    for (final workoutMetric in log.modality.workoutMetrics) {
-      final value = interval.valueFor(workoutMetric).trim();
+    for (final entry in interval.values.entries) {
+      final workoutMetric = entry.key;
+      final value = entry.value.trim();
 
       if (value.isEmpty) {
         continue;
@@ -137,6 +138,15 @@ class WorkoutDetailScreen extends StatelessWidget {
     final hasDuration = log.duration.trim().isNotEmpty;
     final isContinuousWorkout = hasDuration;
 
+    final hasSourceWorkbook =
+        log.sourceWorkbook.trim().isNotEmpty;
+
+    final hasProgramDay =
+        log.programDay.trim().isNotEmpty;
+
+    final hasHistoricalSource =
+        hasSourceWorkbook || hasProgramDay;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -163,6 +173,17 @@ class WorkoutDetailScreen extends StatelessWidget {
             '${log.date.day}/'
             '${log.date.year}',
           ),
+          if (hasHistoricalSource) ...[
+            const SizedBox(height: 8),
+            Text(
+              [
+                if (hasSourceWorkbook)
+                  log.sourceWorkbook,
+                if (hasProgramDay)
+                  log.programDay,
+              ].join(' • '),
+            ),
+          ],
           if (hasDuration) ...[
             const SizedBox(height: 8),
             Text(

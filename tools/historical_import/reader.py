@@ -54,6 +54,22 @@ def has_week_day_header(date_header: str) -> bool:
     return WEEK_DAY_PATTERN.search(date_header) is not None
 
 
+def extract_program_day(
+    date_header: str,
+) -> str:
+    match = WEEK_DAY_PATTERN.search(
+        date_header,
+    )
+
+    if match is None:
+        return ""
+
+    week_number = int(match.group(1))
+    day_number = int(match.group(2))
+
+    return f"W{week_number}D{day_number}"
+
+
 def parse_date_header(
     date_header: str,
     year: int,
@@ -107,6 +123,7 @@ def _find_program_start_date(
             continue
 
         date_header = normalize_text(row[0])
+
         week_day_match = WEEK_DAY_PATTERN.search(
             date_header,
         )
@@ -272,6 +289,10 @@ def read_workout_candidates(
             )
         )
 
+        program_day = extract_program_day(
+            date_header,
+        )
+
         max_columns = max(
             len(row),
             len(result_row),
@@ -308,10 +329,12 @@ def read_workout_candidates(
             )
 
             gear = _gear_text(programming_text)
+
             prescription = _prescription_text(
                 programming_text,
                 workout_type,
             )
+
             modality = _modality_text(
                 programming_text,
                 result_text,
@@ -341,6 +364,7 @@ def read_workout_candidates(
                     source_workbook=input_path.stem,
                     source_row=row_index + 1,
                     source_column=column_index + 1,
+                    program_day=program_day,
                     date=workout_date,
                     date_status=date_status,
                     workout_type=workout_type,

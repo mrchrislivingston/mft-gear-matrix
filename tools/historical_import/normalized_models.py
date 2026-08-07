@@ -18,6 +18,8 @@ class NormalizedInterval:
 @dataclass(frozen=True)
 class NormalizedWorkout:
     source_id: str
+    source_workbook: str
+    program_day: str
 
     prescription_id: str
     modality: str

@@ -13,6 +13,13 @@ _DISTANCE_PATTERN = re.compile(
 )
 
 
+def _km_to_meters(value: str) -> str:
+    kilometers = float(value)
+    meters = round(kilometers * 1000)
+
+    return str(meters)
+
+
 def extract_interval_distances(
     result_text: str | None,
 ) -> list[dict[str, str]]:
@@ -31,6 +38,8 @@ def extract_interval_distances(
     )
 
     return [
-        {"distanceKm": value}
+        {
+            "distance": _km_to_meters(value),
+        }
         for value in values
     ]

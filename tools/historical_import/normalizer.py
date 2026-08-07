@@ -180,6 +180,8 @@ def normalize_candidate(
 
     return NormalizedWorkout(
         source_id=candidate.source_id,
+        source_workbook=candidate.source_workbook,
+        program_day=candidate.program_day,
         prescription_id=(
             candidate.gear
             or candidate.prescription

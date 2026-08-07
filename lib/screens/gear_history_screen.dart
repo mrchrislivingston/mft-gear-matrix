@@ -23,7 +23,7 @@ class GearHistoryScreen extends StatelessWidget {
     return double.tryParse(value.trim()) ?? 0;
   }
 
-  int _paceToSeconds(String pace) {
+  double _paceToSeconds(String pace) {
     final parts = pace.trim().split(':');
 
     if (parts.length != 2) {
@@ -31,25 +31,42 @@ class GearHistoryScreen extends StatelessWidget {
     }
 
     final minutes = int.tryParse(parts[0]);
-    final seconds = int.tryParse(parts[1]);
+    final seconds = double.tryParse(parts[1]);
 
     if (minutes == null || seconds == null) {
       return 0;
     }
 
-    if (seconds < 0 || seconds > 59) {
+    if (seconds < 0 || seconds >= 60) {
       return 0;
     }
 
     return (minutes * 60) + seconds;
   }
 
-  String _secondsToPace(int seconds) {
-    final minutes = seconds ~/ 60;
-    final remainingSeconds = seconds % 60;
+  String _secondsToPace(double seconds) {
+    if (seconds <= 0) {
+      return '-';
+    }
 
-    return '$minutes:'
-        '${remainingSeconds.toString().padLeft(2, '0')}';
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds - (minutes * 60);
+
+    if (remainingSeconds ==
+        remainingSeconds.roundToDouble()) {
+      return '$minutes:'
+          '${remainingSeconds.toInt().toString().padLeft(2, '0')}';
+    }
+
+    final formattedSeconds =
+        remainingSeconds.toStringAsFixed(1);
+
+    final paddedSeconds =
+        remainingSeconds < 10
+            ? '0$formattedSeconds'
+            : formattedSeconds;
+
+    return '$minutes:$paddedSeconds';
   }
 
   String get distanceUnit {
@@ -73,21 +90,27 @@ class GearHistoryScreen extends StatelessWidget {
 
   String _averagePrimaryMetric(LogEntry log) {
     final target = gear.targetForModality(modality);
-    final metric = target?.metric;
+
+    final metric =
+        target?.metric ?? modality.defaultMetric;
 
     final metricValues = log.intervals
         .map(
           (interval) =>
-              interval.valueFor(WorkoutMetric.primaryMetric),
+              interval.valueFor(
+                WorkoutMetric.primaryMetric,
+              ),
         )
-        .where((value) => value.trim().isNotEmpty)
+        .where(
+          (value) => value.trim().isNotEmpty,
+        )
         .toList();
 
     if (metricValues.isEmpty) {
       return '-';
     }
 
-    if (metric?.usesTimeFormat == true) {
+    if (metric.usesTimeFormat) {
       final valuesInSeconds = metricValues
           .map(_paceToSeconds)
           .where((value) => value > 0)
@@ -102,7 +125,7 @@ class GearHistoryScreen extends StatelessWidget {
               valuesInSeconds.length;
 
       return _secondsToPace(
-        averageSeconds.round(),
+        averageSeconds,
       );
     }
 
@@ -123,12 +146,14 @@ class GearHistoryScreen extends StatelessWidget {
   }
 
   double _totalDistance(LogEntry log) {
-    return log.intervals.fold<double>(
+    return log.intervals.fold(
       0,
       (sum, interval) {
         return sum +
             _toDouble(
-              interval.valueFor(WorkoutMetric.distance),
+              interval.valueFor(
+                WorkoutMetric.distance,
+              ),
             );
       },
     );
@@ -151,7 +176,8 @@ class GearHistoryScreen extends StatelessWidget {
       return null;
     }
 
-    return values.reduce((a, b) => a + b) / values.length;
+    return values.reduce((a, b) => a + b) /
+        values.length;
   }
 
   Widget _summaryRow({
@@ -193,8 +219,11 @@ class GearHistoryScreen extends StatelessWidget {
     LogEntry log,
     List<LogEntry> allLogs,
   ) {
-    final target = gear.targetForModality(modality);
-    final metric = target?.metric;
+    final target =
+        gear.targetForModality(modality);
+
+    final metric =
+        target?.metric ?? modality.defaultMetric;
 
     final averagePrimaryMetric =
         _averagePrimaryMetric(log);
@@ -212,7 +241,7 @@ class GearHistoryScreen extends StatelessWidget {
     );
 
     final primaryMetricUsesTimeFormat =
-        metric?.usesTimeFormat == true;
+        metric.usesTimeFormat;
 
     final executionScore =
         WorkoutAnalytics.executionScore(
@@ -230,9 +259,10 @@ class GearHistoryScreen extends StatelessWidget {
     );
 
     final performanceValue =
-        metric == null || averagePrimaryMetric == '-'
-            ? averagePrimaryMetric
-            : '$averagePrimaryMetric ${metric.unitLabel}';
+        averagePrimaryMetric == '-'
+            ? '-'
+            : '$averagePrimaryMetric '
+                '${metric.unitLabel}';
 
     final distanceValue = totalDistance <= 0
         ? '-'
@@ -249,13 +279,20 @@ class GearHistoryScreen extends StatelessWidget {
         ? '-'
         : averageRpe.toStringAsFixed(1);
 
+    final hasSourceWorkbook =
+        log.sourceWorkbook.trim().isNotEmpty;
+
+    final hasProgramDay =
+        log.programDay.trim().isNotEmpty;
+
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: 4,
         vertical: 8,
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -266,7 +303,8 @@ class GearHistoryScreen extends StatelessWidget {
                       .textTheme
                       .titleMedium
                       ?.copyWith(
-                        fontWeight: FontWeight.bold,
+                        fontWeight:
+                            FontWeight.bold,
                       ),
                 ),
               ),
@@ -280,6 +318,21 @@ class GearHistoryScreen extends StatelessWidget {
                 ),
             ],
           ),
+          if (hasSourceWorkbook ||
+              hasProgramDay) ...[
+            const SizedBox(height: 4),
+            Text(
+              [
+                if (hasSourceWorkbook)
+                  log.sourceWorkbook,
+                if (hasProgramDay)
+                  log.programDay,
+              ].join(' • '),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall,
+            ),
+          ],
           const SizedBox(height: 16),
           _summaryRow(
             label: 'Performance',
@@ -353,9 +406,13 @@ class GearHistoryScreen extends StatelessWidget {
                 final log = logs[index];
 
                 return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
+                  margin:
+                      const EdgeInsets.only(
+                    bottom: 12,
+                  ),
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius:
+                        BorderRadius.circular(12),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -368,7 +425,8 @@ class GearHistoryScreen extends StatelessWidget {
                       );
                     },
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(
+                      padding:
+                          const EdgeInsets.fromLTRB(
                         16,
                         12,
                         8,

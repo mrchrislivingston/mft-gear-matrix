@@ -10,6 +10,8 @@ from normalized_models import (
 def main() -> None:
     workout = NormalizedWorkout(
         source_id="source-1",
+        source_workbook="OffSZN 1/2026",
+        program_day="W4D5",
         prescription_id="G5",
         modality="bikeErg",
         date="2025-04-18",
@@ -30,6 +32,9 @@ def main() -> None:
     )
 
     assert workout.source_id == "source-1"
+    assert workout.source_workbook == "OffSZN 1/2026"
+    assert workout.program_day == "W4D5"
+
     assert workout.prescription_id == "G5"
     assert workout.modality == "bikeErg"
     assert workout.date == "2025-04-18"

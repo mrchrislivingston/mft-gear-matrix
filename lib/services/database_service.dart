@@ -14,7 +14,7 @@ class DatabaseService {
   static final DatabaseService instance = DatabaseService._();
 
   static const String _databaseName = 'mft_gear_matrix.db';
-  static const int _databaseVersion = 1;
+  static const int _databaseVersion = 3;
 
   Database? _database;
 
@@ -50,6 +50,31 @@ class DatabaseService {
       onCreate: (database, version) async {
         await _createTables(database);
       },
+      onUpgrade: (database, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await database.execute('''
+            ALTER TABLE workouts
+            ADD COLUMN work_duration TEXT NOT NULL DEFAULT ''
+          ''');
+
+          await database.execute('''
+            ALTER TABLE workouts
+            ADD COLUMN interval_count INTEGER NOT NULL DEFAULT 0
+          ''');
+        }
+
+        if (oldVersion < 3) {
+          await database.execute('''
+            ALTER TABLE workouts
+            ADD COLUMN source_workbook TEXT NOT NULL DEFAULT ''
+          ''');
+
+          await database.execute('''
+            ALTER TABLE workouts
+            ADD COLUMN program_day TEXT NOT NULL DEFAULT ''
+          ''');
+        }
+      },
     );
   }
 
@@ -60,7 +85,11 @@ class DatabaseService {
         prescription_id TEXT NOT NULL,
         modality TEXT NOT NULL,
         workout_date TEXT NOT NULL,
+        source_workbook TEXT NOT NULL DEFAULT '',
+        program_day TEXT NOT NULL DEFAULT '',
         duration TEXT NOT NULL DEFAULT '',
+        work_duration TEXT NOT NULL DEFAULT '',
+        interval_count INTEGER NOT NULL DEFAULT 0,
         scoring_metric TEXT,
         notes TEXT NOT NULL DEFAULT ''
       )
@@ -142,7 +171,11 @@ class DatabaseService {
           'prescription_id': workout.prescriptionId,
           'modality': workout.modality.name,
           'workout_date': workout.date.toIso8601String(),
+          'source_workbook': workout.sourceWorkbook,
+          'program_day': workout.programDay,
           'duration': workout.duration,
+          'work_duration': workout.workDuration,
+          'interval_count': workout.intervalCount,
           'scoring_metric': workout.scoringMetric?.storageKey,
           'notes': workout.notes,
         },
@@ -257,8 +290,17 @@ class DatabaseService {
           date: DateTime.parse(
             workoutRow['workout_date'] as String,
           ),
+          sourceWorkbook:
+              (workoutRow['source_workbook'] as String?) ?? '',
+          programDay:
+              (workoutRow['program_day'] as String?) ?? '',
           duration:
               (workoutRow['duration'] as String?) ?? '',
+          workDuration:
+              (workoutRow['work_duration'] as String?) ?? '',
+          intervalCount:
+              (workoutRow['interval_count'] as int?) ??
+                  intervals.length,
           scoringMetric: scoringMetric,
           notes: (workoutRow['notes'] as String?) ?? '',
           intervals: intervals,
