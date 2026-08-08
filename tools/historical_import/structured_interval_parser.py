@@ -30,6 +30,10 @@ CALORIES_PER_HOUR_PATTERN = re.compile(
     r"(\d+)\s*/\s*(\d+)"
 )
 
+CALORIES_RPM_PATTERN = re.compile(
+    r"(\d+)\s*/\s*(\d+)"
+)
+
 
 def _extract_three_metric_matches(
     pattern: re.Pattern[str],
@@ -150,6 +154,30 @@ def _extract_calories_per_hour(
     ]
 
 
+def _extract_calories_rpm(
+    result_text: str,
+) -> list[dict[str, str]]:
+    if not re.search(
+        r"cals/rpms",
+        result_text,
+        re.IGNORECASE,
+    ):
+        return []
+
+    values = re.findall(
+        CALORIES_RPM_PATTERN,
+        result_text,
+    )
+
+    return [
+        {
+            "calories": calories,
+            "rpm": rpm,
+        }
+        for calories, rpm in values
+    ]
+
+
 def _extract_calorie_sequence(
     result_text: str,
 ) -> list[dict[str, str]]:
@@ -205,6 +233,13 @@ def extract_watts_rpm_calories(
         return intervals
 
     intervals = _extract_calories_per_hour(
+        result_text,
+    )
+
+    if intervals:
+        return intervals
+
+    intervals = _extract_calories_rpm(
         result_text,
     )
 

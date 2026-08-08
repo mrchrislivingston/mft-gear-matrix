@@ -75,14 +75,20 @@ def normalize_candidate(
         if candidate.modality not in {
             "bikeErg",
             "run",
+            "row",
         }:
             raise ValueError(
-                "Only BikeErg and Run Zone workouts are currently supported",
+                "Unsupported Zone modality",
             )
 
         duration = extract_duration(
             candidate.result_text,
         )
+
+        if not duration:
+            duration = extract_duration(
+                candidate.programming_text,
+            )
 
         if not duration:
             raise ValueError(

@@ -24,6 +24,11 @@ AVERAGE_HEART_RATE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+HEART_RATE_AVG_SUFFIX_PATTERN = re.compile(
+    r"\b(\d+)\s+avg\s+hr\b",
+    re.IGNORECASE,
+)
+
 AVERAGE_PACE_PATTERN = re.compile(
     r"\b(?:avg|average)\s+pace\s*[-:]?\s*"
     r"(\d+:\d+(?:\.\d+)?)",
@@ -48,6 +53,11 @@ PACE_AVG_SUFFIX_PATTERN = re.compile(
 
 DISTANCE_MILES_PATTERN = re.compile(
     r"\b(\d+(?:\.\d+)?)\s*miles?\b",
+    re.IGNORECASE,
+)
+
+DISTANCE_KM_PATTERN = re.compile(
+    r"\b(\d+(?:\.\d+)?)\s*KM\b",
     re.IGNORECASE,
 )
 
@@ -120,10 +130,17 @@ def extract_average_watts(
 def extract_average_heart_rate(
     result_text: str,
 ) -> dict[str, str]:
-    match = (
-        AVERAGE_HEART_RATE_PATTERN.search(
-            result_text,
-        )
+    match = AVERAGE_HEART_RATE_PATTERN.search(
+        result_text,
+    )
+
+    if match is not None:
+        return {
+            "heartRate": match.group(1),
+        }
+
+    match = HEART_RATE_AVG_SUFFIX_PATTERN.search(
+        result_text,
     )
 
     if match is None:
@@ -182,6 +199,15 @@ def extract_distance(
     result_text: str,
 ) -> dict[str, str]:
     match = DISTANCE_MILES_PATTERN.search(
+        result_text,
+    )
+
+    if match is not None:
+        return {
+            "distance": match.group(1),
+        }
+
+    match = DISTANCE_KM_PATTERN.search(
         result_text,
     )
 
