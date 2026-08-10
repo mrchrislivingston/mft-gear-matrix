@@ -684,6 +684,11 @@ Complete historical migration by importing and validating the remaining historic
     native users will have migrated and the migration code can be safely
     deleted, simplifying AppState.
 
+\-   Revisit the Gear History **Execution** score. It currently measures
+    interval consistency using coefficient of variation, not percentage
+    of prescribed target achieved. Decide whether to rename it
+    (for example, **Consistency**) or change the calculation/meaning
+    during analytics/UI polish.
 **------------------------------------------------------------------------**
 
 **# Development Notes**
