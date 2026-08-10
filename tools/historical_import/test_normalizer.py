@@ -251,8 +251,90 @@ def test_power_echo_structured_intervals() -> None:
 
     assert workout.intervals[0].values == {
         "watts": "691",
-        "rpm": "87",
+        "primaryMetric": "87",
         "calories": "18",
+    }
+
+
+def test_echo_rpm_becomes_primary_metric() -> None:
+    candidate = WorkoutCandidate(
+        source_id="phase1-row-62",
+        source_workbook="Phase 1 2026",
+        source_row=62,
+        source_column=2,
+        date="2025-10-21",
+        date_status=DateStatus.INFERRED,
+        workout_type=WorkoutType.GEAR,
+        gear="G3",
+        prescription="",
+        modality="echo",
+        import_status=ImportStatus.READY,
+        status_reason="Single supported workout",
+        result_detail=ResultDetail.MIXED,
+        garmin_lookup=False,
+        programming_text=(
+            "Aerobic Echo Bike - 3rd Gear\n"
+            "AMRAP 5:00 x5"
+        ),
+        result_text=(
+            "Rd1 - Cals 79, Avg RPM 66\n"
+            "Rd2 - Cals 83, Avg RPM 68\n"
+            "Rd3 - Cals 84, Avg RPM 68\n"
+            "Rd4 - Cals 84, Avg RPM 68\n"
+            "Rd5 - Cals 85, Avg RPM 68"
+        ),
+    )
+
+    workout = normalize_candidate(candidate)
+
+    assert len(workout.intervals) == 5
+
+    assert workout.intervals[0].values == {
+        "calories": "79",
+        "primaryMetric": "66",
+    }
+
+    assert [
+        interval.values["primaryMetric"]
+        for interval in workout.intervals
+    ] == [
+        "66",
+        "68",
+        "68",
+        "68",
+        "68",
+    ]
+
+
+def test_bikeerg_rpm_stays_secondary_metric() -> None:
+    candidate = WorkoutCandidate(
+        source_id="bikeerg-rpm-secondary-test",
+        source_workbook="Test",
+        source_row=1,
+        source_column=2,
+        date="2025-10-21",
+        date_status=DateStatus.EXACT,
+        workout_type=WorkoutType.GEAR,
+        gear="G5",
+        prescription="",
+        modality="bikeErg",
+        import_status=ImportStatus.READY,
+        status_reason="Single supported workout",
+        result_detail=ResultDetail.INTERVAL_RESULTS,
+        garmin_lookup=False,
+        programming_text="C2 Bike - 5th Gear",
+        result_text=(
+            "1019/1:57.7/86, "
+            "1095/1:49.5/94"
+        ),
+    )
+
+    workout = normalize_candidate(candidate)
+
+    assert workout.intervals[0].values == {
+        "watts": "1019",
+        "primaryMetric": "1:57.7",
+        "rpm": "86",
     }
 
 
@@ -264,6 +346,8 @@ def main() -> None:
     test_gear_one_bike_interval_workout()
     test_programming_execution_plan_overrides_default()
     test_power_echo_structured_intervals()
+    test_echo_rpm_becomes_primary_metric()
+    test_bikeerg_rpm_stays_secondary_metric()
 
     print("All normalizer tests passed.")
 

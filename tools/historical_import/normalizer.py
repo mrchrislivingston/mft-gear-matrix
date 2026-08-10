@@ -55,6 +55,23 @@ def _default_execution_plan(
     return ExecutionPlan("", 1)
 
 
+def _canonicalize_interval_values(
+    candidate: WorkoutCandidate,
+    values: dict[str, str],
+) -> dict[str, str]:
+    canonical_values = dict(values)
+
+    if (
+        candidate.modality == "echo"
+        and "rpm" in canonical_values
+    ):
+        canonical_values["primaryMetric"] = (
+            canonical_values.pop("rpm")
+        )
+
+    return canonical_values
+
+
 def normalize_candidate(
     candidate: WorkoutCandidate,
 ) -> NormalizedWorkout:
@@ -120,56 +137,60 @@ def normalize_candidate(
             candidate,
         )
 
-    pace_distance_intervals = (
-        extract_pace_distance_intervals(
-            candidate.result_text,
-        )
+    structured_intervals = extract_watts_rpm_calories(
+        candidate.result_text,
     )
 
-    if pace_distance_intervals:
+    if structured_intervals:
         intervals = tuple(
             NormalizedInterval(
                 interval_number=index + 1,
-                values=values,
+                values=_canonicalize_interval_values(
+                    candidate,
+                    values,
+                ),
             )
             for index, values in enumerate(
-                pace_distance_intervals,
+                structured_intervals,
             )
         )
 
     else:
-        interval_paces = extract_interval_paces(
-            candidate.result_text,
+        pace_distance_intervals = (
+            extract_pace_distance_intervals(
+                candidate.result_text,
+            )
         )
 
-        if interval_paces:
+        if pace_distance_intervals:
             intervals = tuple(
                 NormalizedInterval(
                     interval_number=index + 1,
-                    values={
-                        "primaryMetric": pace,
-                    },
+                    values=_canonicalize_interval_values(
+                        candidate,
+                        values,
+                    ),
                 )
-                for index, pace in enumerate(
-                    interval_paces,
+                for index, values in enumerate(
+                    pace_distance_intervals,
                 )
             )
 
         else:
-            structured_intervals = (
-                extract_watts_rpm_calories(
-                    candidate.result_text,
-                )
+            interval_paces = extract_interval_paces(
+                candidate.result_text,
             )
 
-            if structured_intervals:
+            if interval_paces:
                 intervals = tuple(
                     NormalizedInterval(
                         interval_number=index + 1,
-                        values=values,
+                        values={
+                            "primaryMetric": pace,
+                        },
                     )
-                    for index, values in enumerate(
-                        structured_intervals,
+                    for index, pace in enumerate(
+                        interval_paces,
                     )
                 )
 
@@ -184,7 +205,10 @@ def normalize_candidate(
                     intervals = tuple(
                         NormalizedInterval(
                             interval_number=index + 1,
-                            values=values,
+                            values=_canonicalize_interval_values(
+                                candidate,
+                                values,
+                            ),
                         )
                         for index, values in enumerate(
                             distance_intervals,
@@ -204,7 +228,10 @@ def normalize_candidate(
                     intervals = (
                         NormalizedInterval(
                             interval_number=1,
-                            values=metric_values,
+                            values=_canonicalize_interval_values(
+                                candidate,
+                                metric_values,
+                            ),
                         ),
                     )
 

@@ -247,6 +247,7 @@ def _modality_text(
 def read_workout_candidates(
     input_path: Path,
     year: int,
+    program_start_date: datetime | None = None,
 ) -> list[WorkoutCandidate]:
     with input_path.open(
         "r",
@@ -255,9 +256,13 @@ def read_workout_candidates(
     ) as input_file:
         rows = list(csv.reader(input_file))
 
-    program_start_date = _find_program_start_date(
-        rows,
-        year,
+    resolved_program_start_date = (
+        program_start_date
+        if program_start_date is not None
+        else _find_program_start_date(
+            rows,
+            year,
+        )
     )
 
     candidates: list[WorkoutCandidate] = []
@@ -285,7 +290,9 @@ def read_workout_candidates(
             _parse_or_infer_date(
                 date_header=date_header,
                 year=year,
-                program_start_date=program_start_date,
+                program_start_date=(
+                    resolved_program_start_date
+                ),
             )
         )
 
@@ -308,7 +315,9 @@ def read_workout_candidates(
             if not programming_text:
                 continue
 
-            if not is_relevant_workout(programming_text):
+            if not is_relevant_workout(
+                programming_text,
+            ):
                 continue
 
             result_text = normalize_text(
@@ -328,7 +337,9 @@ def read_workout_candidates(
                 )
             )
 
-            gear = _gear_text(programming_text)
+            gear = _gear_text(
+                programming_text,
+            )
 
             prescription = _prescription_text(
                 programming_text,
@@ -345,15 +356,20 @@ def read_workout_candidates(
                 and date_status is DateStatus.UNRESOLVED
             ):
                 import_status = ImportStatus.REVIEW
-                status_reason = "Workout date is unresolved"
+                status_reason = (
+                    "Workout date is unresolved"
+                )
 
             source_id = " | ".join(
                 [
                     input_path.stem,
-                    workout_date or f"row-{row_index + 1}",
+                    workout_date
+                    or f"row-{row_index + 1}",
                     f"column-{column_index + 1}",
                     workout_type.value,
-                    gear or prescription or "unknown",
+                    gear
+                    or prescription
+                    or "unknown",
                     modality or "unknown",
                 ],
             )

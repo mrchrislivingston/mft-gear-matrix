@@ -16,10 +16,12 @@ MAX_ROUND_PATTERN = re.compile(
 )
 
 BIKEERG_PATTERN = re.compile(
-    r"(\d+)\s*/\s*"
-    r"(\d+:\d+(?:\.\d+)?|\d{3}(?:\.\d+)?)"
+    r"(?<![\d:.])"
+    r"(\d{3,4})\s*/\s*"
+    r"(\d+:\d{2}(?:\.\d+)?|\d{3}(?:\.\d+)?)"
     r"\s*/\s*"
-    r"(\d+)"
+    r"(\d{2,3})"
+    r"(?![\d:.])"
 )
 
 CALORIE_SEQUENCE_PATTERN = re.compile(
@@ -32,6 +34,24 @@ CALORIES_PER_HOUR_PATTERN = re.compile(
 
 CALORIES_RPM_PATTERN = re.compile(
     r"(\d+)\s*/\s*(\d+)"
+)
+
+LABELED_CALORIES_RPM_PATTERN = re.compile(
+    r"Rd\s*\d+\s*[-:]\s*"
+    r"Cals?\s*(\d+)\s*,?\s*"
+    r"(?:Avg\s*)?RPMs?\s*(\d+)",
+    re.IGNORECASE,
+)
+
+CALORIES_RPM_WATTS_HEADER_PATTERN = re.compile(
+    r"\bCals?\s*/\s*RPMs?\s*/\s*Watts?\b",
+    re.IGNORECASE,
+)
+
+CALORIES_RPM_WATTS_ROUND_PATTERN = re.compile(
+    r"^\s*(?:Rd\s*)?\d+\s*[-:]\s*"
+    r"(\d+)\s*/\s*(\d+)\s*/\s*(\d+)\s*$",
+    re.IGNORECASE | re.MULTILINE,
 )
 
 
@@ -47,6 +67,30 @@ def _extract_three_metric_matches(
                 "watts": match.group(1),
                 "rpm": match.group(2),
                 "calories": match.group(3),
+            },
+        )
+
+    return intervals
+
+
+def _extract_calories_rpm_watts(
+    result_text: str,
+) -> list[dict[str, str]]:
+    if not CALORIES_RPM_WATTS_HEADER_PATTERN.search(
+        result_text,
+    ):
+        return []
+
+    intervals: list[dict[str, str]] = []
+
+    for match in CALORIES_RPM_WATTS_ROUND_PATTERN.finditer(
+        result_text,
+    ):
+        intervals.append(
+            {
+                "calories": match.group(1),
+                "rpm": match.group(2),
+                "watts": match.group(3),
             },
         )
 
@@ -154,9 +198,30 @@ def _extract_calories_per_hour(
     ]
 
 
+def _extract_labeled_calories_rpm(
+    result_text: str,
+) -> list[dict[str, str]]:
+    return [
+        {
+            "calories": match.group(1),
+            "rpm": match.group(2),
+        }
+        for match in LABELED_CALORIES_RPM_PATTERN.finditer(
+            result_text,
+        )
+    ]
+
+
 def _extract_calories_rpm(
     result_text: str,
 ) -> list[dict[str, str]]:
+    labeled_intervals = _extract_labeled_calories_rpm(
+        result_text,
+    )
+
+    if labeled_intervals:
+        return labeled_intervals
+
     if not re.search(
         r"cals/rpms",
         result_text,
@@ -208,6 +273,13 @@ def extract_watts_rpm_calories(
     structured_text = _max_section_only(
         result_text,
     )
+
+    intervals = _extract_calories_rpm_watts(
+        result_text,
+    )
+
+    if intervals:
+        return intervals
 
     intervals = _extract_three_metric_matches(
         STANDARD_ROUND_PATTERN,

@@ -42,7 +42,11 @@ SKIP_RESULT_PATTERN = re.compile(
     r"illness|"
     r"work emergency|"
     r"woke up with a cold|"
-    r"going to take the weekend"
+    r"going to take the weekend|"
+    r"not today satan|"
+    r"instead of (?:zone|z)\s*[12]|"
+    r"called it a day|"
+    r"will do (?:a )?(?:zone|z)\s*[12].*later"
     r")\b",
     re.IGNORECASE,
 )
@@ -51,6 +55,7 @@ PARTIAL_RESULT_PATTERN = re.compile(
     r"\b("
     r"quit|"
     r"stopped|"
+    r"cut (?:this|it) off early|"
     r"only completed|"
     r"only did|"
     r"did\s+\d+\s*(?:of|/)\s*\d+|"
@@ -265,8 +270,10 @@ def detect_zone_prescriptions(
 def detect_modalities(
     programming_text: str,
 ) -> list[str]:
-    prescription_modalities = _prescription_line_modalities(
-        programming_text,
+    prescription_modalities = (
+        _prescription_line_modalities(
+            programming_text,
+        )
     )
 
     if prescription_modalities:

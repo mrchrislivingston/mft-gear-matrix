@@ -184,6 +184,53 @@ def main() -> None:
     assert status is ImportStatus.READY
     assert reason == "Single supported workout"
 
+    # Phase 1 regression cases: prescribed workout not performed.
+
+    status, reason = classify_candidate(
+        programming_text="Zone 2 - C2 Bike",
+        result_text=(
+            "Took care of some yardwork and house hold "
+            "chores instead of zone 2 today."
+        ),
+    )
+    assert status is ImportStatus.SKIP
+    assert reason == (
+        "Result indicates workout was not completed"
+    )
+
+    status, reason = classify_candidate(
+        programming_text="Build Echo - 7th Gear",
+        result_text="Saw this and said not today Satan.",
+    )
+    assert status is ImportStatus.SKIP
+    assert reason == (
+        "Result indicates workout was not completed"
+    )
+
+    status, reason = classify_candidate(
+        programming_text="Aerobic Row - 2nd Gear",
+        result_text=(
+            "Obviously something was bugging me today..."
+            "called it a day after sled and pull-ups"
+        ),
+    )
+    assert status is ImportStatus.SKIP
+    assert reason == (
+        "Result indicates workout was not completed"
+    )
+
+    status, reason = classify_candidate(
+        programming_text="Zone 2 - Echo Bike",
+        result_text=(
+            "Will do a Z2 session on the C2 bike "
+            "later this evening."
+        ),
+    )
+    assert status is ImportStatus.SKIP
+    assert reason == (
+        "Result indicates workout was not completed"
+    )
+
     print("All parser tests passed.")
 
 

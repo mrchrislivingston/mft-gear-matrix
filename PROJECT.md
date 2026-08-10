@@ -1,6 +1,6 @@
-**# MFT Gear Matrix**
+**\*\*# MFT Gear Matrix\*\***
 
-**## Vision**
+**\*\*## Vision\*\***
 
 MFT Gear Matrix is a local-first training application built to replace a
 living spreadsheet used for endurance pacing and workout tracking.
@@ -17,496 +17,359 @@ The application should eventually provide meaningful coaching insights
 that are impossible to see in a spreadsheet while remaining fast,
 simple, and entirely owned by the athlete.
 
-**------------------------------------------------------------------------**
+**\*\*------------------------------------------------------------------------\*\***
 
-**# Project Philosophy**
+**\*\*# Project Philosophy\*\***
 
-\-   Local-first
-\-   No accounts
-\-   No cloud required
-\-   No subscriptions
-\-   Fast
-\-   Simple
-\-   Athlete owns their data
-\-   Preserve history instead of replacing it
+\\- Local-first \\- No accounts \\- No cloud required \\- No
+subscriptions \\- Fast \\- Simple \\- Athlete owns their data \\-
+Preserve history instead of replacing it
 
-Cloud synchronization may be added in the future, but it is **\*\*not\*\*** part
-of the MVP.
+Cloud synchronization may be added in the future, but it is
+**\*\*\\\*\\\*not\\\*\\\*\*\*** part of the MVP.
 
-**------------------------------------------------------------------------**
+**\*\*------------------------------------------------------------------------\*\***
 
-**# Team Roles**
+**\*\*# Team Roles\*\***
 
-**## Chris**
+**\*\*## Chris\*\***
 
-**\*\*Product Owner\*\***
+**\*\*\\\*\\\*Product Owner\\\*\\\*\*\***
 
 Responsibilities
 
-\-   Defines workflow
-\-   Makes product decisions
-\-   Determines priorities
-\-   Tests every feature
-\-   Approves architecture
+\\- Defines workflow \\- Makes product decisions \\- Determines
+priorities \\- Tests every feature \\- Approves architecture
 
 No Flutter knowledge is assumed.
 
 Implementation should always be delivered in small, testable steps.
 
-**------------------------------------------------------------------------**
+**\*\*------------------------------------------------------------------------\*\***
 
-**## ChatGPT**
+**\*\*## ChatGPT\*\***
 
-**\*\*Technical Lead\*\***
+**\*\*\\\*\\\*Technical Lead\\\*\\\*\*\***
 
 Responsibilities
 
-\-   Software architecture
-\-   Flutter implementation
-\-   Data model design
-\-   Code review
-\-   Sprint planning
-\-   Maintain PROJECT.md
+\\- Software architecture \\- Flutter implementation \\- Data model
+design \\- Code review \\- Sprint planning \\- Maintain PROJECT.md
 
 Implementation should always be incremental.
 
 Wait for testing before moving to the next step.
 
-**------------------------------------------------------------------------**
+**\*\*------------------------------------------------------------------------\*\***
 
-**# Current Architecture**
+**\*\*# Current Architecture\*\***
 
-\`\`\` text
-Home
-├── Matrix
-│   └── Modality
-│       └── Prescription
-│           ├── Zone
-│           ├── Gear
-│           └── Power
-│
-│           ├── Log Workout
-│           ├── Workout Summary
-│           ├── Workout History
-│           ├── Workout Detail
-│           ├── Target Manager (Gear only)
-│           └── Target History (Gear only)
-│
-└── History
-\`\`\`
+\\\`\\\`\\\` text Home ├── Matrix │ └── Modality │ └── Prescription │
+├── Zone │ ├── Gear │ └── Power │ │ ├── Log Workout │ ├── Workout
+Summary │ ├── Workout History │ ├── Workout Detail │ ├── Target Manager
+(Gear only) │ └── Target History (Gear only) │ └── History \\\`\\\`\\\`
 
-**------------------------------------------------------------------------**
+**\*\*------------------------------------------------------------------------\*\***
 
-**# Core Architecture Decisions**
+**\*\*# Core Architecture Decisions\*\***
 
-\-   One Living Matrix
-\-   One Prescription engine
-\-   Gears are one prescription type
-\-   Zones are continuous-duration prescriptions
-\-   Power prescriptions support modality-specific protocols
-\-   Only Gear prescriptions support targets
-\-   Zone and Power prescriptions retain workout history and future
-    analytics without targets
+\\- One Living Matrix \\- One Prescription engine \\- Gears are one
+prescription type \\- Zones are continuous-duration prescriptions \\-
+Power prescriptions support modality-specific protocols \\- Only Gear
+prescriptions support targets \\- Zone and Power prescriptions retain
+workout history and future analytics without targets
 
-**------------------------------------------------------------------------**
+**\*\*------------------------------------------------------------------------\*\***
 
-**# Supported Modalities**
+**\*\*# Supported Modalities\*\***
 
-\-   Run
-\-   Echo Bike
-\-   C2 BikeErg
-\-   C2 Rower
-\-   C2 SkiErg
+\\- Run \\- Echo Bike \\- C2 BikeErg \\- C2 Rower \\- C2 SkiErg
 
-**------------------------------------------------------------------------**
+**\*\*------------------------------------------------------------------------\*\***
 
-**# Current Features**
+**\*\*# Current Features\*\***
 
-**## Completed**
+**\*\*## Completed\*\***
 
-**### Navigation**
+**\*\*### Navigation\*\***
 
-\-   Home Screen
-\-   Matrix
-\-   Modality selection
-\-   Prescription groups (Gear / Power / Aerobic)
-\-   Unified prescription detail screen
-\-   History navigation
+\\- Home Screen \\- Matrix \\- Modality selection \\- Prescription
+groups (Gear / Power / Aerobic) \\- Unified prescription detail screen
+\\- History navigation
 
-**### Targets**
+**\*\*### Targets\*\***
 
-\-   Gear-only target architecture
-\-   Independent Gear target per modality
-\-   Target Manager
-\-   Target History
-\-   Persistent targets
-\-   Automatic migration of saved targets
-\-   Automatic initial target creation from first completed Gear workout
-\-   Target controls hidden for Zone and Power prescriptions
+\\- Gear-only target architecture \\- Independent Gear target per
+modality \\- Target Manager \\- Target History \\- Persistent targets
+\\- Automatic migration of saved targets \\- Automatic initial target
+creation from first completed Gear workout \\- Target controls hidden
+for Zone and Power prescriptions
 
-**### Workout Logging**
+**\*\*### Workout Logging\*\***
 
-\-   Dynamic workout entry
-\-   Modality-specific workout screens
-\-   Dynamic metric engine
-\-   Workout validation
-\-   Target warning dialog for Gear workouts
-\-   Workout Summary
-\-   Workout Detail
-\-   Workout History
-\-   Zone workout logging
-\-   Power workout logging
-\-   Modality-specific Power protocols
-\-   Dynamic Power interval counts
-\-   Power scoring metric selection (Calories / Distance for Row, Ski,
-    BikeErg)
-\-   Fixed Power scoring for Run (Distance) and Echo (Calories)
-\-   Workout Detail uses the modality default metric when no Gear target
-    exists
+\\- Dynamic workout entry \\- Modality-specific workout screens \\-
+Dynamic metric engine \\- Workout validation \\- Target warning dialog
+for Gear workouts \\- Workout Summary \\- Workout Detail \\- Workout
+History \\- Zone workout logging \\- Power workout logging \\-
+Modality-specific Power protocols \\- Dynamic Power interval counts \\-
+Power scoring metric selection (Calories / Distance for Row, Ski,
+BikeErg) \\- Fixed Power scoring for Run (Distance) and Echo (Calories)
+\\- Workout Detail uses the modality default metric when no Gear target
+exists
 
-**### Persistence**
+**\*\*### Persistence\*\***
 
-\-   SQLite database on native platforms
-\-   SharedPreferences persistence for web
-\-   Native workout reads and writes use SQLite
-\-   Native target-history reads and writes use SQLite
-\-   Relational workout, interval, metric, and target-history storage
-\-   JSON serialization retained for web compatibility
-\-   Automatic target-history migration from SharedPreferences to SQLite
-\-   AppState as application state manager
+\\- SQLite database on native platforms \\- SharedPreferences
+persistence for web \\- Native workout reads and writes use SQLite \\-
+Native target-history reads and writes use SQLite \\- Relational
+workout, interval, metric, and target-history storage \\- JSON
+serialization retained for web compatibility \\- Automatic
+target-history migration from SharedPreferences to SQLite \\- AppState
+as application state manager
 
-**------------------------------------------------------------------------**
+**\*\*------------------------------------------------------------------------\*\***
 
-**# Technology**
+**\*\*# Technology\*\***
 
-\-   Flutter
-\-   SQLite
-\-   sqflite
-\-   SharedPreferences for web and temporary target migration
-\-   JSON serialization
-\-   Git
-\-   GitHub
+\\- Flutter \\- SQLite \\- sqflite \\- SharedPreferences for web and
+temporary target migration \\- JSON serialization \\- Git \\- GitHub
 
-**------------------------------------------------------------------------**
+**\*\*------------------------------------------------------------------------\*\***
 
-**# Data Model**
+**\*\*# Data Model\*\***
 
-**## Prescription**
+**\*\*## Prescription\*\***
 
-\-   id
-\-   name
-\-   TrainingStimulus
-\-   work/rest/intervals (Gear)
-\-   durationRange (Zone)
-\-   modality protocols (Power)
-\-   targets (Gear only)
-\-   supportsTargets capability
+\\- id \\- name \\- TrainingStimulus \\- work/rest/intervals (Gear) \\-
+durationRange (Zone) \\- modality protocols (Power) \\- targets (Gear
+only) \\- supportsTargets capability
 
-**## PrescriptionProtocol**
+**\*\*## PrescriptionProtocol\*\***
 
-\-   every
-\-   rounds
-\-   AMRAP
+\\- every \\- rounds \\- AMRAP
 
-**## Gear**
+**\*\*## Gear\*\***
 
-\-   number
-\-   work
-\-   rest
-\-   intervals
-\-   targets
+\\- number \\- work \\- rest \\- intervals \\- targets
 
-**## GearTarget**
+**\*\*## GearTarget\*\***
 
-\-   modality
-\-   metric
-\-   history
+\\- modality \\- metric \\- history
 
-**## TargetHistory**
+**\*\*## TargetHistory\*\***
 
-\-   lowTarget
-\-   highTarget
-\-   effectiveDate
+\\- lowTarget \\- highTarget \\- effectiveDate
 
-**## LogEntry**
+**\*\*## LogEntry\*\***
 
-\-   modality
-\-   prescription
-\-   workout date
-\-   duration (continuous workouts)
-\-   interval results
-\-   notes
+\\- modality \\- prescription \\- workout date \\- duration (continuous
+workouts) \\- interval results \\- notes
 
-**## IntervalResult**
+**\*\*## IntervalResult\*\***
 
-\-   interval number
-\-   dynamic workout metric values
+\\- interval number \\- dynamic workout metric values
 
-**## WorkoutMetric**
+**\*\*## WorkoutMetric\*\***
 
 Dynamic workout metrics used by each modality.
 
 Examples include:
 
-\-   Distance
-\-   Primary Metric
-\-   Watts
-\-   Calories
-\-   Calories / Hour
-\-   RPM
-\-   Stroke Rate
-\-   Heart Rate
-\-   RPE
+\\- Distance \\- Primary Metric \\- Watts \\- Calories \\- Calories /
+Hour \\- RPM \\- Stroke Rate \\- Heart Rate \\- RPE
 
 Each modality defines which workout metrics are recorded.
 
-**------------------------------------------------------------------------**
+**\*\*------------------------------------------------------------------------\*\***
 
-**# Completed Sprints**
+**\*\*# Completed Sprints\*\***
 
-**## Sprint 1**
+**\*\*## Sprint 1\*\***
 
-\-   Project setup
-\-   Navigation
-\-   Initial models
+\\- Project setup \\- Navigation \\- Initial models
 
-**## Sprint 2**
+**\*\*## Sprint 2\*\***
 
-\-   Workout logging
-\-   Validation
-\-   Workout summary
+\\- Workout logging \\- Validation \\- Workout summary
 
-**## Sprint 3**
+**\*\*## Sprint 3\*\***
 
-\-   Workout history
-\-   Gear history
-\-   Workout detail
+\\- Workout history \\- Gear history \\- Workout detail
 
-**## Sprint 4**
+**\*\*## Sprint 4\*\***
 
-\-   SharedPreferences
-\-   JSON serialization
-\-   Persistent history
-\-   Global Home navigation
+\\- SharedPreferences \\- JSON serialization \\- Persistent history \\-
+Global Home navigation
 
-**## Sprint 5**
+**\*\*## Sprint 5\*\***
 
-\-   Target Manager
-\-   Living Matrix architecture
-\-   GearTarget model
-\-   TargetHistory model
-\-   Persistent targets
-\-   Target History screen
-\-   Default matrix architecture
+\\- Target Manager \\- Living Matrix architecture \\- GearTarget model
+\\- TargetHistory model \\- Persistent targets \\- Target History screen
+\\- Default matrix architecture
 
-**## Sprint 6**
+**\*\*## Sprint 6\*\***
 
 Completed
 
-\-   Five-modality Living Matrix
-\-   Modality-aware targets
-\-   Generic Gear architecture
-\-   Generic History architecture
-\-   Generic Detail screens
-\-   Generic Summary screens
-\-   Generic Target Manager
-\-   Removed remaining run-specific assumptions
+\\- Five-modality Living Matrix \\- Modality-aware targets \\- Generic
+Gear architecture \\- Generic History architecture \\- Generic Detail
+screens \\- Generic Summary screens \\- Generic Target Manager \\-
+Removed remaining run-specific assumptions
 
-**## Sprint 7**
+**\*\*## Sprint 7\*\***
 
 Completed
 
-\-   Dynamic WorkoutMetric engine
-\-   Dynamic interval data model
-\-   Dynamic workout logging
-\-   Dynamic workout summaries
-\-   Dynamic workout detail
-\-   Dynamic workout history
-\-   Automatic first-workout target creation
-\-   Dynamic primary metric support
-\-   Migration-safe persistence
+\\- Dynamic WorkoutMetric engine \\- Dynamic interval data model \\-
+Dynamic workout logging \\- Dynamic workout summaries \\- Dynamic
+workout detail \\- Dynamic workout history \\- Automatic first-workout
+target creation \\- Dynamic primary metric support \\- Migration-safe
+persistence
 
-**## Sprint 8**
+**\*\*## Sprint 8\*\***
 
 Completed
 
-**### Architecture**
+**\*\*### Architecture\*\***
 
-\-   Introduced generic Prescription model
-\-   Added TrainingStimulus architecture
-\-   Added PrescriptionProtocol model
-\-   Added Zone prescriptions (Z1--Z2)
-\-   Added Power prescriptions (P1--P3)
-\-   Unified AppState around Prescription architecture
-\-   Preserved backward compatibility with existing Gear workflow
+\\- Introduced generic Prescription model \\- Added TrainingStimulus
+architecture \\- Added PrescriptionProtocol model \\- Added Zone
+prescriptions (Z1--Z2) \\- Added Power prescriptions (P1--P3) \\-
+Unified AppState around Prescription architecture \\- Preserved backward
+compatibility with existing Gear workflow
 
-**### UI**
+**\*\*### UI\*\***
 
-\-   Matrix now groups prescriptions into:
-    \-   Gears
-    \-   Power
-    \-   Aerobic
-\-   Unified prescription detail screen
-\-   Unified target management
-\-   Unified target history
-\-   Unified workout entry navigation
-\-   Unified workout history navigation
+\\- Matrix now groups prescriptions into: \\- Gears \\- Power \\-
+Aerobic \\- Unified prescription detail screen \\- Unified target
+management \\- Unified target history \\- Unified workout entry
+navigation \\- Unified workout history navigation
 
-**### Power Prescriptions**
+**\*\*### Power Prescriptions\*\***
 
-\-   Display Continuous Machines protocol
-\-   Display Ski / Row protocol
-\-   Improved prescription formatting
-\-   Recovery wording updated to:
-    \-   "Recover in remaining time"
+\\- Display Continuous Machines protocol \\- Display Ski / Row protocol
+\\- Improved prescription formatting \\- Recovery wording updated to:
+\\- "Recover in remaining time"
 
-**### Continuous Workouts**
+**\*\*### Continuous Workouts\*\***
 
-\-   Added duration support for continuous (Z1--Z2) workouts
-\-   Duration stored in LogEntry
-\-   Duration displayed on Workout Summary
-\-   Duration displayed on Workout Detail
-\-   Continuous workouts display "Workout" instead of "Interval 1"
+\\- Added duration support for continuous (Z1--Z2) workouts \\- Duration
+stored in LogEntry \\- Duration displayed on Workout Summary \\-
+Duration displayed on Workout Detail \\- Continuous workouts display
+"Workout" instead of "Interval 1"
 
-**## Sprint 9**
+**\*\*## Sprint 9\*\***
 
 Completed
 
-**### Dynamic Workout Logging**
+**\*\*### Dynamic Workout Logging\*\***
 
-\-   Completed Zone workout logger
-\-   Completed Power workout logger
-\-   Dynamic logging by prescription type
-\-   Modality-specific Power protocols
-\-   Dynamic interval counts from PrescriptionProtocol.rounds
-\-   Power scoring metric selection
-\-   Power history and summaries
+\\- Completed Zone workout logger \\- Completed Power workout logger \\-
+Dynamic logging by prescription type \\- Modality-specific Power
+protocols \\- Dynamic interval counts from PrescriptionProtocol.rounds
+\\- Power scoring metric selection \\- Power history and summaries
 
-**## Sprint 10**
+**\*\*## Sprint 10\*\***
 
 Completed
 
-**### Prescription Architecture**
+**\*\*### Prescription Architecture\*\***
 
-\-   Added prescription-level target eligibility through
-    \`supportsTargets\`
-\-   Restricted target management to Gear prescriptions
-\-   Removed target display and target controls from Zone and Power
-    prescriptions
-\-   Renamed \`GearDetailScreen\` to \`PrescriptionDetailScreen\`
-\-   Updated workout entry to support prescriptions without targets
-\-   Verified target warnings and initial-target creation run only for
-    Gear prescriptions
+\\- Added prescription-level target eligibility through
+\\\`supportsTargets\\\` \\- Restricted target management to Gear
+prescriptions \\- Removed target display and target controls from Zone
+and Power prescriptions \\- Renamed \\\`GearDetailScreen\\\` to
+\\\`PrescriptionDetailScreen\\\` \\- Updated workout entry to support
+prescriptions without targets \\- Verified target warnings and
+initial-target creation run only for Gear prescriptions
 
-**### History and Summary**
+**\*\*### History and Summary\*\***
 
-\-   Unified Gear, Zone, and Power workout-history behavior
-\-   Changed workout history to open Workout Summary before Workout
-    Detail
-\-   Retained interval-by-interval Workout Detail access from Workout
-    Summary
-\-   Split Workout Summary into Workout Totals and Interval Averages
-\-   Added derived total duration, distance, and calories
-\-   Added derived interval averages for recorded metrics, including
-    calories and watts
-\-   Retained workout notes and navigation to History and Home
+\\- Unified Gear, Zone, and Power workout-history behavior \\- Changed
+workout history to open Workout Summary before Workout Detail \\-
+Retained interval-by-interval Workout Detail access from Workout Summary
+\\- Split Workout Summary into Workout Totals and Interval Averages \\-
+Added derived total duration, distance, and calories \\- Added derived
+interval averages for recorded metrics, including calories and watts \\-
+Retained workout notes and navigation to History and Home
 
-**### Validation and Regression**
+**\*\*### Validation and Regression\*\***
 
-\-   Fixed duration entry for continuous workouts longer than 99:59
-\-   Completed navigation, logging, summary, detail, history, target, and
-    persistence regression testing
-\-   Verified Gear, Zone, and Power prescription workflows
+\\- Fixed duration entry for continuous workouts longer than 99:59 \\-
+Completed navigation, logging, summary, detail, history, target, and
+persistence regression testing \\- Verified Gear, Zone, and Power
+prescription workflows
 
-**------------------------------------------------------------------------**
+**\*\*------------------------------------------------------------------------\*\***
 
-**# Current Status**
+**\*\*# Current Status\*\***
 
 The application now supports three prescription families through a
 common architecture:
 
-\-   Gear (G1--G8)
-\-   Power (P1--P3)
-\-   Aerobic (Z1--Z2)
+\\- Gear (G1--G8) \\- Power (P1--P3) \\- Aerobic (Z1--Z2)
 
 Current capabilities include:
 
-\-   Five modalities
-\-   Unified prescription engine
-\-   Gear-only target management
-\-   Independent Gear target histories by modality
-\-   Dynamic workout logging for Gear, Aerobic, and Power
-\-   Power protocol support with modality-specific interval counts and
-    scoring
-\-   Persistent workout history
-\-   Persistent Gear target history
-\-   Migration-safe persistence
-\-   Workout History → Workout Summary → Workout Detail navigation
-\-   Derived workout totals and interval averages
-\-   Continuous-workout durations longer than 99:59
+\\- Five modalities \\- Unified prescription engine \\- Gear-only target
+management \\- Independent Gear target histories by modality \\- Dynamic
+workout logging for Gear, Aerobic, and Power \\- Power protocol support
+with modality-specific interval counts and scoring \\- Persistent
+workout history \\- Persistent Gear target history \\- Migration-safe
+persistence \\- Workout History → Workout Summary → Workout Detail
+navigation \\- Derived workout totals and interval averages \\-
+Continuous-workout durations longer than 99:59
 
-**------------------------------------------------------------------------**
+**\*\*------------------------------------------------------------------------\*\***
 
-**# Analytics Philosophy**
+**\*\*# Analytics Philosophy\*\***
 
-**## Store Facts**
+**\*\*## Store Facts\*\***
 
 The application permanently stores only athlete-entered data and
 prescription definitions.
 
 Examples:
 
-\-   Workout date
-\-   Modality
-\-   Prescription
-\-   Interval results
-\-   Duration
-\-   Notes
-\-   Targets
+\\- Workout date \\- Modality \\- Prescription \\- Interval results \\-
+Duration \\- Notes \\- Targets
 
 Stored data should never depend on a calculation that could change in
 the future.
 
-**## Derive Insights**
+**\*\*## Derive Insights\*\***
 
 All analytics are calculated from stored facts.
 
 Examples include:
 
-\-   Workout totals
-\-   Interval averages
-\-   Personal Records
-\-   Execution scores
-\-   Interval fade
-\-   Consistency
-\-   Historical trends
-\-   Future coaching recommendations
+\\- Workout totals \\- Interval averages \\- Personal Records \\-
+Execution scores \\- Interval fade \\- Consistency \\- Historical trends
+\\- Future coaching recommendations
 
 Derived values are never permanently stored.
 
-**## Workout Evaluation**
+**\*\*## Workout Evaluation\*\***
 
 Every completed workout is evaluated in two independent ways.
 
-**### Performance**
+**\*\*### Performance\*\***
 
 Measures the outcome of the workout.
 
 Performance is used for:
 
-\-   Personal Records
-\-   Historical comparison
-\-   Trend analysis
+\\- Personal Records \\- Historical comparison \\- Trend analysis
 
 Performance is specific to the prescription family.
 
 Examples:
 
-\-   Gear → Primary performance metric
-\-   Power → Workout score defined by the prescription
-\-   Aerobic → Trend metrics only (no Personal Records)
+\\- Gear → Primary performance metric \\- Power → Workout score defined
+by the prescription \\- Aerobic → Trend metrics only (no Personal
+Records)
 
-**### Execution**
+**\*\*### Execution\*\***
 
 Measures how well the prescription was executed.
 
@@ -514,187 +377,159 @@ Execution evaluates consistency rather than absolute performance.
 
 Potential metrics include:
 
-\-   Interval fade
-\-   Fastest vs slowest interval
-\-   Standard deviation
-\-   Coefficient of variation
+\\- Interval fade \\- Fastest vs slowest interval \\- Standard deviation
+\\- Coefficient of variation
 
 Execution is never considered a Personal Record.
 
-**------------------------------------------------------------------------**
+**\*\*------------------------------------------------------------------------\*\***
 
-**# Current Sprint**
+**\*\*# Current Sprint\*\***
 
-**## Sprint 11**
+**\*\*## Sprint 11\*\***
 
 In Progress
 
-**### Primary Objective**
+**\*\*### Primary Objective\*\***
 
 Replace native SharedPreferences persistence with a relational SQLite
 database while preserving existing workout and target history.
 
-**### Completed**
+**\*\*### Completed\*\***
 
-\-   Added SQLite and sqflite
-\-   Created relational database schema
-\-   Added workouts table
-\-   Added workout intervals table
-\-   Added interval metrics table
-\-   Added target history table
-\-   Enabled foreign-key enforcement
-\-   Added cascade deletion for workout child records
-\-   Added SQLite workout insertion
-\-   Added SQLite workout reconstruction and reading
-\-   Added SQLite workout deletion
-\-   Migrated native workout reads to SQLite
-\-   Migrated native workout writes to SQLite
-\-   Retained SharedPreferences workout fallback for web
-\-   Verified workout logging and restart persistence
-\-   Added SQLite target-history insertion
-\-   Added SQLite target-history reading
-\-   Dual-write new native target changes to SQLite and SharedPreferences
-\-   Verified target updates and target history after restart
+\\- Added SQLite and sqflite \\- Created relational database schema \\-
+Added workouts table \\- Added workout intervals table \\- Added
+interval metrics table \\- Added target history table \\- Enabled
+foreign-key enforcement \\- Added cascade deletion for workout child
+records \\- Added SQLite workout insertion \\- Added SQLite workout
+reconstruction and reading \\- Added SQLite workout deletion \\-
+Migrated native workout reads to SQLite \\- Migrated native workout
+writes to SQLite \\- Retained SharedPreferences workout fallback for web
+\\- Verified workout logging and restart persistence \\- Added SQLite
+target-history insertion \\- Added SQLite target-history reading \\-
+Dual-write new native target changes to SQLite and SharedPreferences \\-
+Verified target updates and target history after restart
 
-**### Historical Import**
+**\*\*### Historical Import\*\***
 
-\-   Created reusable historical workout import pipeline
-\-   Added workbook reader supporting multiple Misfit worksheet formats
-\-   Added automatic workout candidate detection
-\-   Added explicit and inferred date extraction
-\-   Added parser support for:
-    \-   Gear workouts (G1--G8)
-    \-   Power workouts (P1--P3)
-    \-   Aerobic workouts (Z1--Z2)
-\-   Added modality detection for:
-    \-   Run
-    \-   Row
-    \-   SkiErg
-    \-   C2 BikeErg
-    \-   Echo Bike
-\-   Added automatic review classification:
-    \-   READY
-    \-   REVIEW
-    \-   SKIP
-    \-   TBD\_LATER
-\-   Added review CSV generation workflow
-\-   Added parser regression test suite
-\-   Added unified run\_all\_tests.py regression runner
-\-   Added normalization pipeline and normalized workout models
-\-   Added review CSV reader and SQLite importer scaffold
-\-   Added interval, structured interval, and metric parsers for
-    historical workout normalization
-\-   Introduced Execution Plan architecture separating Prescription,
-    Execution Plan, and Execution Result
-\-   Added Execution Plan parser supporting both count-first (\`8×1:45\`) and duration-first (\`1:45 x 8\`) formats
-\-   Added interval distance parser for Garmin interval-distance results
-\-   Execution Plan now populates from programming text with canonical Gear fallback
-\-   Normalizer now supports interval paces, structured metrics, interval distances, and workout averages
-\-   Validated OffSZN 1 historical import at 18 of 18 READY workouts
--   Added historical workout provenance (source workbook and program day)
--   Extended SQLite schema with source_workbook and program_day
--   Added provenance validation before SQLite import
--   Historical workout detail and summary screens now display provenance
--   Historical history cards derive Performance and Execution from imported interval data
--   Added decimal-pace support (e.g. 1:50.4) throughout historical analytics
--   Verified end-to-end historical import, analytics, and UI integration
-\-   Validated parser against:
-    \-   OffSZN 1
-    \-   OffSZN 2
-    \-   Summit Games
-    \-   Phase 1
-\-   Deferred mixed Gear, mixed Power, mixed Modality, and Benchmark
-    import until future implementation
+\\- Created reusable historical workout import pipeline \\- Added
+workbook reader supporting multiple Misfit worksheet formats \\- Added
+automatic workout candidate detection \\- Added explicit and inferred
+date extraction \\- Added parser support for: \\- Gear workouts (G1--G8)
+\\- Power workouts (P1--P3) \\- Aerobic workouts (Z1--Z2) \\- Added
+modality detection for: \\- Run \\- Row \\- SkiErg \\- C2 BikeErg \\-
+Echo Bike \\- Added automatic review classification: \\- READY \\-
+REVIEW \\- SKIP \\- TBD\\\_LATER \\- Added review CSV generation
+workflow \\- Added parser regression test suite \\- Added unified
+run\\\_all\\\_tests.py regression runner \\- Added normalization
+pipeline and normalized workout models \\- Added review CSV reader and
+SQLite importer scaffold \\- Added interval, structured interval, and
+metric parsers for historical workout normalization \\- Introduced
+Execution Plan architecture separating Prescription, Execution Plan, and
+Execution Result \\- Added Execution Plan parser supporting both
+count-first (\\\`8×1:45\\\`) and duration-first (\\\`1:45 x 8\\\`)
+formats \\- Added interval distance parser for Garmin interval-distance
+results \\- Execution Plan now populates from programming text with
+canonical Gear fallback \\- Normalizer now supports interval paces,
+structured metrics, interval distances, and workout averages \\-
+Validated OffSZN 1 historical import at 18 of 18 READY workouts - Added
+historical workout provenance (source workbook and program day) -
+Extended SQLite schema with source_workbook and program_day - Added
+provenance validation before SQLite import - Historical workout detail
+and summary screens now display provenance - Historical history cards
+derive Performance and Execution from imported interval data - Added
+decimal-pace support (e.g. 1:50.4) throughout historical analytics -
+Verified end-to-end historical import, analytics, and UI integration \\-
+Validated parser against: \\- OffSZN 1 \\- OffSZN 2 \\- Summit Games \\-
+Phase 1 \\- Deferred mixed Gear, mixed Power, mixed Modality, and
+Benchmark import until future implementation - Benchmark workouts are a
+separate future workout family and must not be forced into Gear, Power,
+or Aerobic classifications - When Benchmark support is implemented,
+re-scan all historical workbooks for benchmark workouts, including
+workouts previously misclassified because benchmark programming text
+contains Gear, Power, or Zone terminology - M.A.T.T. Row Test identified
+during Phase 1 review as the first confirmed deferred Benchmark case
 
-**### Remaining**
+**\*\*### Remaining\*\***
 
-\-   Migrate existing saved target histories into SQLite
-\-   Build Gear target collections from SQLite records
-\-   Switch native target reads to SQLite
-\-   Remove native target writes from SharedPreferences
-\-   Remove obsolete legacy target persistence code
-\-   Complete persistence regression testing
+\\- Migrate existing saved target histories into SQLite \\- Build Gear
+target collections from SQLite records \\- Switch native target reads to
+SQLite \\- Remove native target writes from SharedPreferences \\- Remove
+obsolete legacy target persistence code \\- Complete persistence
+regression testing
 
-**------------------------------------------------------------------------**
+**\*\*------------------------------------------------------------------------\*\***
 
-**------------------------------------------------------------------------
+\*\*------------------------------------------------------------------------
 
-# Current Sprint
+**\# Current Sprint**
 
-## Sprint 12
+**\## Sprint 12**
 
 In Progress
 
-### Primary Objective
+**\### Primary Objective**
 
-Complete historical migration by importing and validating the remaining historical workbooks (OffSZN 2, Summit Games, Phase 1, and later workbooks) while extending the importer to support deferred edge cases such as mixed prescriptions and benchmark workouts.
+Complete historical migration by importing and validating the remaining
+historical workbooks (OffSZN 2, Summit Games, Phase 1, and later
+workbooks) while extending the importer to support deferred edge cases
+such as mixed prescriptions and benchmark workouts.
 
-# Next Priorities**
+**\# Next Priorities\*\***
 
-**## Historical Import**
+**\*\*## Historical Import\*\***
 
-\-   Extend Flutter SQLite schema with Execution Plan fields (\`work\_duration\` and \`interval\_count\`)
-\-   Build SQLite importer to write normalized historical workouts directly into the app database
-\-   Continue OffSZN 2, Summit Games, and Phase 1 workbook imports
-\-   Add Benchmark workout import
+\\- Extend Flutter SQLite schema with Execution Plan fields
+(\\\`work\\\_duration\\\` and \\\`interval\\\_count\\\`) \\- Build
+SQLite importer to write normalized historical workouts directly into
+the app database \\- Continue OffSZN 2, Summit Games, and Phase 1
+workbook imports \\- Design Benchmark workout model and import path
+before importing any benchmark workouts - Re-scan every historical
+workbook for Benchmark candidates after Benchmark support is implemented
 
-**## History Improvements**
+**\*\*## History Improvements\*\***
 
-\-   Better workout history dashboard
-\-   Workout counts
-\-   Latest workout summary
-\-   Trend indicators
+\\- Better workout history dashboard \\- Workout counts \\- Latest
+workout summary \\- Trend indicators
 
-**## Training Analytics**
+**\*\*## Training Analytics\*\***
 
-\-   Interval fade detection
-\-   Consistency analysis
-\-   Target recommendations for Gear prescriptions
-\-   Historical performance trends
+\\- Interval fade detection \\- Consistency analysis \\- Target
+recommendations for Gear prescriptions \\- Historical performance trends
 
-**## Quality of Life**
+**\*\*## Quality of Life\*\***
 
-\-   Better summary insights
-\-   Personal best indicators
-\-   Workout search
-\-   Filters
+\\- Better summary insights \\- Personal best indicators \\- Workout
+search \\- Filters
 
-**------------------------------------------------------------------------**
+**\*\*------------------------------------------------------------------------\*\***
 
-**# Future Roadmap**
+**\*\*# Future Roadmap\*\***
 
-\-   Training analytics
-\-   Trend graphs
-\-   Performance dashboards
-\-   Benchmark tracking
-\-   Weightlifting PRs
-\-   Search
-\-   Export
-\-   Backup
-\-   Optional cloud sync
-\-   Coach Mode
-\-   AI coaching insights
+\\- Training analytics \\- Trend graphs \\- Performance dashboards \\-
+Benchmark tracking \\- Weightlifting PRs \\- Search \\- Export \\-
+Backup \\- Optional cloud sync \\- Coach Mode \\- AI coaching insights
 
-**------------------------------------------------------------------------**
+**\*\*------------------------------------------------------------------------\*\***
 
-**## Future Cleanup**
+**\*\*## Future Cleanup\*\***
 
-\-   Remove the temporary SharedPreferences → SQLite target migration
-    after the first production release. At that point, all existing
-    native users will have migrated and the migration code can be safely
-    deleted, simplifying AppState.
+\\- Remove the temporary SharedPreferences → SQLite target migration
+after the first production release. At that point, all existing native
+users will have migrated and the migration code can be safely deleted,
+simplifying AppState.
 
-\-   Revisit the Gear History **Execution** score. It currently measures
-    interval consistency using coefficient of variation, not percentage
-    of prescribed target achieved. Decide whether to rename it
-    (for example, **Consistency**) or change the calculation/meaning
-    during analytics/UI polish.
-**------------------------------------------------------------------------**
+\\- Revisit the Gear History **\*\*Execution\*\*** score. It currently
+measures interval consistency using coefficient of variation, not
+percentage of prescribed target achieved. Decide whether to rename it
+(for example, **\*\*Consistency\*\***) or change the calculation/meaning
+during analytics/UI polish.
+**\*\*------------------------------------------------------------------------\*\***
 
-**# Development Notes**
+**\*\*# Development Notes\*\***
 
-The project intentionally remains in a \*\*development/testing
-environment\*\*.
+The project intentionally remains in a \\\*\\\*development/testing
+environment\\\*\\\*.
 
 Development should continue using placeholder/test workout data until
 the application is considered feature complete.

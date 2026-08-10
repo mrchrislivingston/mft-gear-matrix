@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -45,7 +46,9 @@ def test_date_parsing() -> None:
 
 def test_exact_and_inferred_candidates() -> None:
     with TemporaryDirectory() as temp_directory:
-        input_path = Path(temp_directory) / "sample.csv"
+        input_path = (
+            Path(temp_directory) / "sample.csv"
+        )
 
         with input_path.open(
             "w",
@@ -100,7 +103,10 @@ def test_exact_and_inferred_candidates() -> None:
     assert run_candidate.workout_type is WorkoutType.GEAR
     assert run_candidate.gear == "G5"
     assert run_candidate.modality == "run"
-    assert run_candidate.import_status is ImportStatus.READY
+    assert (
+        run_candidate.import_status
+        is ImportStatus.READY
+    )
 
     zone_candidate = candidates[1]
 
@@ -109,16 +115,28 @@ def test_exact_and_inferred_candidates() -> None:
     assert zone_candidate.workout_type is WorkoutType.ZONE
     assert zone_candidate.prescription == "Z2"
     assert zone_candidate.modality == "bikeErg"
-    assert zone_candidate.import_status is ImportStatus.READY
+    assert (
+        zone_candidate.import_status
+        is ImportStatus.READY
+    )
 
     inferred_candidate = candidates[2]
 
     assert inferred_candidate.date == "2025-07-28"
-    assert inferred_candidate.date_status is DateStatus.INFERRED
-    assert inferred_candidate.workout_type is WorkoutType.POWER
+    assert (
+        inferred_candidate.date_status
+        is DateStatus.INFERRED
+    )
+    assert (
+        inferred_candidate.workout_type
+        is WorkoutType.POWER
+    )
     assert inferred_candidate.prescription == "P2"
     assert inferred_candidate.modality == "echo"
-    assert inferred_candidate.import_status is ImportStatus.READY
+    assert (
+        inferred_candidate.import_status
+        is ImportStatus.READY
+    )
 
 
 def test_unresolved_date_requires_review() -> None:
@@ -163,13 +181,97 @@ def test_unresolved_date_requires_review() -> None:
     candidate = candidates[0]
 
     assert candidate.date == ""
-    assert candidate.date_status is DateStatus.UNRESOLVED
-    assert candidate.workout_type is WorkoutType.ZONE
+    assert (
+        candidate.date_status
+        is DateStatus.UNRESOLVED
+    )
+    assert (
+        candidate.workout_type
+        is WorkoutType.ZONE
+    )
     assert candidate.prescription == "Z2"
     assert candidate.modality == "bikeErg"
-    assert candidate.import_status is ImportStatus.REVIEW
+    assert (
+        candidate.import_status
+        is ImportStatus.REVIEW
+    )
     assert candidate.status_reason == (
         "Workout date is unresolved"
+    )
+
+
+def test_explicit_program_start_date() -> None:
+    with TemporaryDirectory() as temp_directory:
+        input_path = (
+            Path(temp_directory)
+            / "explicit_start_date.csv"
+        )
+
+        with input_path.open(
+            "w",
+            encoding="utf-8",
+            newline="",
+        ) as output_file:
+            writer = csv.writer(output_file)
+
+            writer.writerow(
+                [
+                    "Sat - W5D6",
+                    "Zone 2 C2 Bike",
+                ],
+            )
+
+            writer.writerow(
+                [
+                    "Notes / Results",
+                    (
+                        "35:00 today\n"
+                        "Avg HR - 127\n"
+                        "Avg Watts - 167"
+                    ),
+                ],
+            )
+
+            writer.writerow(
+                [
+                    "Fri - W9D5",
+                    "Zone 2 Row",
+                ],
+            )
+
+            writer.writerow(
+                [
+                    "Notes / Results",
+                    "45:00 Zone 2",
+                ],
+            )
+
+        candidates = read_workout_candidates(
+            input_path=input_path,
+            year=2025,
+            program_start_date=datetime(
+                2025,
+                9,
+                1,
+            ),
+        )
+
+    assert len(candidates) == 2
+
+    week_five_candidate = candidates[0]
+
+    assert week_five_candidate.date == "2025-10-04"
+    assert (
+        week_five_candidate.date_status
+        is DateStatus.INFERRED
+    )
+
+    week_nine_candidate = candidates[1]
+
+    assert week_nine_candidate.date == "2025-10-31"
+    assert (
+        week_nine_candidate.date_status
+        is DateStatus.INFERRED
     )
 
 
@@ -177,6 +279,7 @@ def main() -> None:
     test_date_parsing()
     test_exact_and_inferred_candidates()
     test_unresolved_date_requires_review()
+    test_explicit_program_start_date()
 
     print("All reader tests passed.")
 

@@ -8,8 +8,19 @@ DURATION_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-CLOCK_DURATION_PATTERN = re.compile(
-    r"\b(\d{1,2}):(\d{2})\b",
+CONTEXT_CLOCK_DURATION_PATTERN = re.compile(
+    r"\b(\d{1,2}):(\d{2})\b"
+    r"(?=\s*(?:"
+    r"in\s+(?:z|zone)\s*[12]\b|"
+    r"today\b|"
+    r"total\b"
+    r"))",
+    re.IGNORECASE,
+)
+
+LINE_START_CLOCK_DURATION_PATTERN = re.compile(
+    r"^\s*(\d{1,2}):(\d{2})\b",
+    re.MULTILINE,
 )
 
 AVERAGE_WATTS_PATTERN = re.compile(
@@ -71,35 +82,10 @@ ACTUAL_RUN_PATTERN = re.compile(
 )
 
 
-def extract_duration(
-    result_text: str,
+def _format_clock_duration(
+    minutes: int,
+    seconds: int,
 ) -> str:
-    match = DURATION_PATTERN.search(
-        result_text,
-    )
-
-    if match is not None:
-        minutes = int(match.group(1))
-        hours, remaining_minutes = divmod(
-            minutes,
-            60,
-        )
-
-        return (
-            f"{hours:02d}:"
-            f"{remaining_minutes:02d}:00"
-        )
-
-    clock_match = CLOCK_DURATION_PATTERN.search(
-        result_text,
-    )
-
-    if clock_match is None:
-        return ""
-
-    minutes = int(clock_match.group(1))
-    seconds = int(clock_match.group(2))
-
     hours, remaining_minutes = divmod(
         minutes,
         60,
@@ -109,6 +95,46 @@ def extract_duration(
         f"{hours:02d}:"
         f"{remaining_minutes:02d}:"
         f"{seconds:02d}"
+    )
+
+
+def extract_duration(
+    result_text: str,
+) -> str:
+    match = DURATION_PATTERN.search(
+        result_text,
+    )
+
+    if match is not None:
+        minutes = int(match.group(1))
+
+        return _format_clock_duration(
+            minutes,
+            0,
+        )
+
+    context_match = CONTEXT_CLOCK_DURATION_PATTERN.search(
+        result_text,
+    )
+
+    if context_match is not None:
+        return _format_clock_duration(
+            int(context_match.group(1)),
+            int(context_match.group(2)),
+        )
+
+    line_start_match = (
+        LINE_START_CLOCK_DURATION_PATTERN.search(
+            result_text,
+        )
+    )
+
+    if line_start_match is None:
+        return ""
+
+    return _format_clock_duration(
+        int(line_start_match.group(1)),
+        int(line_start_match.group(2)),
     )
 
 

@@ -60,6 +60,12 @@ def test_bikeerg_missing_colons() -> None:
 
     assert len(intervals) == 8
 
+    assert intervals[0] == {
+        "watts": "1019",
+        "primaryMetric": "1:57.7",
+        "rpm": "86",
+    }
+
     assert intervals[6] == {
         "watts": "1129",
         "primaryMetric": "1:46.2",
@@ -71,6 +77,20 @@ def test_bikeerg_missing_colons() -> None:
         "primaryMetric": "1:44.8",
         "rpm": "98",
     }
+
+
+def test_pace_sequence_is_not_bikeerg_structured_data() -> None:
+    text = (
+        "Definitely burned. Lowered the damper to 4.5 after Rd 1.\n"
+        "Averaged out to 1:50/km\n"
+        "Per Rd - 1:50.4/1:50.0/1:50.8/1:50.4"
+    )
+
+    intervals = extract_watts_rpm_calories(
+        text,
+    )
+
+    assert intervals == []
 
 
 def test_calorie_only_interval_sequence() -> None:
@@ -130,11 +150,90 @@ def test_calories_per_hour_power_bike() -> None:
     ]
 
 
+def test_labeled_echo_calories_rpm_rounds() -> None:
+    text = (
+        "Not too bad at first. 5th round was not so fun.\n\n"
+        "Rd1 - Cals 79, Avg RPM 66\n"
+        "Rd2 - Cals 83, Avg RPM 68\n"
+        "Rd3 - Cals 84, Avg RPM 68\n"
+        "Rd4 - Cals 84, Avg RPM 68\n"
+        "Rd5 - Cals 85, Avg RPM 68"
+    )
+
+    intervals = extract_watts_rpm_calories(
+        text,
+    )
+
+    assert intervals == [
+        {
+            "calories": "79",
+            "rpm": "66",
+        },
+        {
+            "calories": "83",
+            "rpm": "68",
+        },
+        {
+            "calories": "84",
+            "rpm": "68",
+        },
+        {
+            "calories": "84",
+            "rpm": "68",
+        },
+        {
+            "calories": "85",
+            "rpm": "68",
+        },
+    ]
+
+
+def test_calories_rpm_watts_round_table() -> None:
+    text = (
+        "Avg per round - Cals/RPM/Watts\n"
+        "1 - 72/70/370\n"
+        "2 - 80/72/403\n"
+        "3 - 81/72/403\n"
+        "4 - 83/73/420\n"
+        "Total cals - 316"
+    )
+
+    intervals = extract_watts_rpm_calories(
+        text,
+    )
+
+    assert intervals == [
+        {
+            "calories": "72",
+            "rpm": "70",
+            "watts": "370",
+        },
+        {
+            "calories": "80",
+            "rpm": "72",
+            "watts": "403",
+        },
+        {
+            "calories": "81",
+            "rpm": "72",
+            "watts": "403",
+        },
+        {
+            "calories": "83",
+            "rpm": "73",
+            "watts": "420",
+        },
+    ]
+
+
 if __name__ == "__main__":
     test_echo_intervals()
     test_bikeerg_missing_colons()
+    test_pace_sequence_is_not_bikeerg_structured_data()
     test_calorie_only_interval_sequence()
     test_calories_per_hour_power_bike()
+    test_labeled_echo_calories_rpm_rounds()
+    test_calories_rpm_watts_round_table()
 
     print(
         "All structured interval parser tests passed."
