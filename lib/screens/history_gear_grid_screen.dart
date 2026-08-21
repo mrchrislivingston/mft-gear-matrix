@@ -57,6 +57,28 @@ class HistoryGearGridScreen extends StatelessWidget {
         .length;
   }
 
+  DateTime? _latestPrescriptionWorkoutDate(
+    String prescriptionId,
+  ) {
+    final matchingLogs = AppState.instance.logs
+        .where(
+          (log) =>
+              log.modality == modality &&
+              log.prescriptionId == prescriptionId,
+        )
+        .toList();
+
+    if (matchingLogs.isEmpty) {
+      return null;
+    }
+
+    matchingLogs.sort(
+      (a, b) => b.date.compareTo(a.date),
+    );
+
+    return matchingLogs.first.date;
+  }
+
   String _workoutCountText(int count) {
     return count == 1 ? '1 workout' : '$count workouts';
   }
@@ -177,35 +199,62 @@ class HistoryGearGridScreen extends StatelessWidget {
           for (int index = 0;
               index < powerPrescriptions.length;
               index++) ...[
-            Card(
-              child: ListTile(
-                title: Text(
-                  powerPrescriptions[index].name,
-                ),
-                subtitle: Text(
-                  '${powerPrescriptions[index].prescriptionDisplayForModality(modality)}\n'
-                  '${_workoutCountText(
-                    _prescriptionWorkoutCount(
-                      powerPrescriptions[index].id,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Card(
+                  child: ListTile(
+                    title: Text(
+                      powerPrescriptions[index].name,
                     ),
-                  )}',
+                    subtitle: Text(
+                      powerPrescriptions[index]
+                          .prescriptionDisplayForModality(
+                            modality,
+                          ),
+                    ),
+                    trailing:
+                        const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => HistoryScreen(
+                            prescription:
+                                powerPrescriptions[index],
+                            modality: modality,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-                isThreeLine: true,
-                trailing:
-                    const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => HistoryScreen(
-                        prescription:
-                            powerPrescriptions[index],
-                        modality: modality,
+                Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: Text(
+                    _workoutCountText(
+                      _prescriptionWorkoutCount(
+                        powerPrescriptions[index].id,
                       ),
                     ),
-                  );
-                },
-              ),
+                    style:
+                        Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: Text(
+                    _latestWorkoutText(
+                      _latestPrescriptionWorkoutDate(
+                        powerPrescriptions[index].id,
+                      ),
+                    ),
+                    style:
+                        Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
             ),
             if (index < powerPrescriptions.length - 1)
               const SizedBox(height: 10),
@@ -222,35 +271,62 @@ class HistoryGearGridScreen extends StatelessWidget {
           for (int index = 0;
               index < aerobicPrescriptions.length;
               index++) ...[
-            Card(
-              child: ListTile(
-                title: Text(
-                  aerobicPrescriptions[index].name,
-                ),
-                subtitle: Text(
-                  '${aerobicPrescriptions[index].prescriptionDisplayForModality(modality)}\n'
-                  '${_workoutCountText(
-                    _prescriptionWorkoutCount(
-                      aerobicPrescriptions[index].id,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Card(
+                  child: ListTile(
+                    title: Text(
+                      aerobicPrescriptions[index].name,
                     ),
-                  )}',
+                    subtitle: Text(
+                      aerobicPrescriptions[index]
+                          .prescriptionDisplayForModality(
+                            modality,
+                          ),
+                    ),
+                    trailing:
+                        const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => HistoryScreen(
+                            prescription:
+                                aerobicPrescriptions[index],
+                            modality: modality,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-                isThreeLine: true,
-                trailing:
-                    const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => HistoryScreen(
-                        prescription:
-                            aerobicPrescriptions[index],
-                        modality: modality,
+                Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: Text(
+                    _workoutCountText(
+                      _prescriptionWorkoutCount(
+                        aerobicPrescriptions[index].id,
                       ),
                     ),
-                  );
-                },
-              ),
+                    style:
+                        Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: Text(
+                    _latestWorkoutText(
+                      _latestPrescriptionWorkoutDate(
+                        aerobicPrescriptions[index].id,
+                      ),
+                    ),
+                    style:
+                        Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
             ),
             if (index <
                 aerobicPrescriptions.length - 1)
