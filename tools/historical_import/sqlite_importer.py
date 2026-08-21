@@ -172,8 +172,19 @@ def normalize_workouts(
     workouts: list[NormalizedWorkout] = []
 
     for candidate in candidates:
-        workout = normalize_candidate(candidate)
-        workouts.append(workout)
+        try:
+            workout = normalize_candidate(candidate)
+            workouts.append(workout)
+        except ValueError as error:
+            print()
+            print("SKIPPED NORMALIZATION FAILURE")
+            print("SOURCE:", candidate.source_id)
+            print("DATE:", candidate.date)
+            print("PRESCRIPTION:", candidate.prescription)
+            print("GEAR:", candidate.gear)
+            print("MODALITY:", candidate.modality)
+            print("ERROR:", error)
+            print()
 
     return workouts
 

@@ -7,6 +7,9 @@ from execution_plan_parser import extract_execution_plan
 from interval_parser import (
     extract_interval_paces,
 )
+from interval_time_parser import (
+    extract_interval_times,
+)
 from metric_parser import (
     extract_average_metrics,
     extract_duration,
@@ -216,24 +219,42 @@ def normalize_candidate(
                     )
 
                 else:
-                    metric_values = extract_average_metrics(
+                    interval_times = extract_interval_times(
                         candidate.result_text,
                     )
 
-                    if not metric_values:
-                        raise ValueError(
-                            "No supported workout metrics could be extracted",
+                    if interval_times:
+                        intervals = tuple(
+                            NormalizedInterval(
+                                interval_number=index + 1,
+                                values={
+                                    "primaryMetric": time,
+                                },
+                            )
+                            for index, time in enumerate(
+                                interval_times,
+                            )
                         )
 
-                    intervals = (
-                        NormalizedInterval(
-                            interval_number=1,
-                            values=_canonicalize_interval_values(
-                                candidate,
-                                metric_values,
+                    else:
+                        metric_values = extract_average_metrics(
+                            candidate.result_text,
+                        )
+
+                        if not metric_values:
+                            raise ValueError(
+                                "No supported workout metrics could be extracted",
+                            )
+
+                        intervals = (
+                            NormalizedInterval(
+                                interval_number=1,
+                                values=_canonicalize_interval_values(
+                                    candidate,
+                                    metric_values,
+                                ),
                             ),
-                        ),
-                    )
+                        )
 
     return NormalizedWorkout(
         source_id=candidate.source_id,

@@ -23,6 +23,12 @@ LINE_START_CLOCK_DURATION_PATTERN = re.compile(
     re.MULTILINE,
 )
 
+MODALITY_CLOCK_DURATION_PATTERN = re.compile(
+    r"\b(?:bike|bikeerg|bike erg|run|row|rower|ski|skierg|ski erg)\s+"
+    r"(\d{1,2}):(\d{2})\b",
+    re.IGNORECASE,
+)
+
 AVERAGE_WATTS_PATTERN = re.compile(
     r"\b(?:avg|average)\s+"
     r"(?:watt|watts|power)\s*[-:]?\s*(\d+(?:\.\d+)?)\b",
@@ -121,6 +127,16 @@ def extract_duration(
         return _format_clock_duration(
             int(context_match.group(1)),
             int(context_match.group(2)),
+        )
+
+    modality_match = MODALITY_CLOCK_DURATION_PATTERN.search(
+        result_text,
+    )
+
+    if modality_match is not None:
+        return _format_clock_duration(
+            int(modality_match.group(1)),
+            int(modality_match.group(2)),
         )
 
     line_start_match = (

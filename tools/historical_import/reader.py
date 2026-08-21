@@ -300,6 +300,21 @@ def read_workout_candidates(
             date_header,
         )
 
+        if not program_day and workout_date and resolved_program_start_date:
+            workout_datetime = datetime.fromisoformat(
+                workout_date,
+            )
+
+            offset_days = (
+                workout_datetime.date()
+                - resolved_program_start_date.date()
+            ).days
+
+            if offset_days >= 0:
+                week_number = (offset_days // 7) + 1
+                day_number = (offset_days % 7) + 1
+                program_day = f"W{week_number}D{day_number}"
+
         max_columns = max(
             len(row),
             len(result_row),

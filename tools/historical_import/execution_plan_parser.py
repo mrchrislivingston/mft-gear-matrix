@@ -22,6 +22,15 @@ _DURATION_FIRST_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+_ROUNDS_CALORIES_PATTERN = re.compile(
+    r"\b(?P<interval_count>\d+)\s+Rounds?\b"
+    r".*?"
+    r"(?P<work_duration>\d+)\s*(?:/|\s|-)?\s*"
+    r"(?:\d+\s*)?"
+    r"Calories?\b",
+    re.IGNORECASE | re.DOTALL,
+)
+
 _POWER_ROUNDS_PATTERN = re.compile(
     r"\bEvery\s+\d{1,2}:\d{2}\s+for\s+"
     r"(?P<interval_count>\d+)\s+Rounds?\b",
@@ -56,6 +65,21 @@ def extract_execution_plan(
             ),
             work_duration=match.group(
                 "work_duration",
+            ),
+        )
+
+    calorie_match = _ROUNDS_CALORIES_PATTERN.search(
+        programming_text,
+    )
+
+    if calorie_match is not None:
+        return ExecutionPlan(
+            interval_count=int(
+                calorie_match.group("interval_count"),
+            ),
+            work_duration=(
+                calorie_match.group("work_duration")
+                + " calories"
             ),
         )
 
