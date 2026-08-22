@@ -477,6 +477,51 @@ historical workbooks (OffSZN 2, Summit Games, Phase 1, and later
 workbooks) while extending the importer to support deferred edge cases
 such as mixed prescriptions and benchmark workouts.
 
+### Sprint 12 Historical Import Checkpoint
+
+- OffSZN 2 historical migration is complete. A dry run against
+  `offszn2_review_v3.csv` found 20 normalized workouts and all 20 were
+  already present in SQLite.
+- Phase 1 review v8 contains 7 normalized workouts. Six were already in
+  SQLite and the missing 2025-09-22 Row workout was imported.
+- Historical import test suite currently passes 11/11 tests. The Interval
+  Time Parser test was added to `run_all_tests.py`.
+- Two Phase 1 workouts are currently stored under Matrix prescriptions
+  but were discovered to actually be named benchmark tests:
+  - 2025-09-22 Z2 Row is M.A.T.T. Row. Historical result: 2:04 average
+    pace, 930 calories/hour, 183 average watts.
+  - 2025-10-07 G6 Echo is Echo Bike Cube Test. Historical result: four
+    4:00 rounds of 72, 80, 81, and 83 calories; 316 total calories.
+- Do not delete or manually alter those SQLite records yet. Reclassify
+  them after Benchmark persistence/import support exists.
+
+### Benchmark Architecture Findings
+
+- Benchmarks should not be inferred from the literal word "benchmark".
+  Historical discovery should use a maintained list of known benchmark
+  names and aliases.
+- Benchmark definitions and benchmark attempts should be separate
+  concepts. A definition describes the named test, prescription and
+  scoring method; attempts store dated historical performances.
+- Added `BenchmarkScoreType` with initial score types: time,
+  roundsReps, calories, averageWatts, load, reps, and distance.
+- M.A.T.T. tests and Kill-O tests are different benchmark families:
+  M.A.T.T. is a 40-minute maximum-threshold test; Kill-O tests use six
+  intervals and are scored by the lowest round.
+- Cube Tests are repeated machine intervals. The observed Echo Bike Cube
+  Test is 4 x 4:00 with 4:00 rest and is scored by total calories.
+- Mount Doom is an escalating every-2:00-until-failure test and is scored
+  by total accumulated work, including work completed in the failed
+  round. Example: Bike Mount Doom starting at 20 calories, completing
+  every round through 40 and then 40 of 41 = 670 total calories.
+- Known benchmark names/aliases collected for the future historical
+  rescan include M.A.T.T. machine tests, Ski/C2 Bike/Row/Run/Echo Cube
+  Tests, Cube Steaked, Cleo, Runner/Ski/Row/C2 Bike/Echo Bike Mount Doom,
+  Kill-O-Meter/Kill-O-Watt tests, Spiders on Mars, Tour de Misfit,
+  Riverside Time Trial, Enzo Gorlomi, Cupcake Lungs, Might Not, Rule 8,
+  Bumper Cables, Pennies, Speed Not Volume, 75 Continental Drive,
+  King Larry I, Chuckles 1&2, Hurt and Injured, and Fairy Dust.
+
 # Next Priorities**
 
 **## Historical Import**
@@ -486,8 +531,22 @@ such as mixed prescriptions and benchmark workouts.
 SQLite importer to write normalized historical workouts directly into
 the app database \- Continue OffSZN 2, Summit Games, and Phase 1
 workbook imports \- Design Benchmark workout model and import path
-before importing any benchmark workouts - Re-scan every historical
-workbook for Benchmark candidates after Benchmark support is implemented
+before importing any benchmark workouts - Added initial
+`BenchmarkScoreType` model as the first Benchmark architecture component
+- Confirmed Benchmark workouts are named tests and should be discovered
+by known benchmark names rather than the word "benchmark"
+- Confirmed benchmark families include M.A.T.T., Cube Tests, Mount Doom,
+Kill-O tests, and named mixed-modal workouts
+- M.A.T.T. tests are 40-minute maximum-threshold tests and are distinct
+from Kill-O tests, which use six intervals scored by the lowest round
+- Mount Doom tests are scored by total accumulated work; historical
+results may require deriving the total from the last completed round and
+partial final round (for example, completing 40 calories through the
+round of 40 plus 40 calories of the round of 41)
+- Identified Phase 1 historical examples including M.A.T.T. Row, Echo
+Bike Cube Test, Cleo, Speed Not Volume, Rule 8, and Bike Mount Doom
+- Re-scan every historical workbook for Benchmark candidates after
+Benchmark support is implemented
 
 **## History Improvements**
 
