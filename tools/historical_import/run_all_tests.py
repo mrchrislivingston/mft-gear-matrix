@@ -11,6 +11,7 @@ TESTS = [
     ("Normalized Models", "test_normalized_models.py"),
     ("Review Reader", "test_review_reader.py"),
     ("Interval Parser", "test_interval_parser.py"),
+    ("Interval Time Parser", "test_interval_time_parser.py"),
     ("Distance Interval Parser", "test_distance_interval_parser.py"),
     ("Structured Interval Parser", "test_structured_interval_parser.py"),
     ("Execution Plan Parser", "test_execution_plan_parser.py"),
