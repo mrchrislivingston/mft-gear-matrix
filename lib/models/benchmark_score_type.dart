@@ -1,11 +1,14 @@
 enum BenchmarkScoreType {
-  time,
+  forTime,
   roundsReps,
-  calories,
+  totalCalories,
   averageWatts,
-  load,
-  reps,
-  distance;
+  totalLoad,
+  totalReps,
+  totalDistance,
+  lowestIntervalCalories,
+  lowestIntervalWatts,
+  lowestIntervalDistance;
 
   String get storageKey {
     return name;
@@ -13,20 +16,26 @@ enum BenchmarkScoreType {
 
   String get displayName {
     switch (this) {
-      case BenchmarkScoreType.time:
-        return 'Time';
+      case BenchmarkScoreType.forTime:
+        return 'For Time';
       case BenchmarkScoreType.roundsReps:
         return 'Rounds + Reps';
-      case BenchmarkScoreType.calories:
-        return 'Calories';
+      case BenchmarkScoreType.totalCalories:
+        return 'Total Calories';
       case BenchmarkScoreType.averageWatts:
         return 'Average Watts';
-      case BenchmarkScoreType.load:
-        return 'Load';
-      case BenchmarkScoreType.reps:
-        return 'Reps';
-      case BenchmarkScoreType.distance:
-        return 'Distance';
+      case BenchmarkScoreType.totalLoad:
+        return 'Total Load';
+      case BenchmarkScoreType.totalReps:
+        return 'Total Reps';
+      case BenchmarkScoreType.totalDistance:
+        return 'Total Distance';
+      case BenchmarkScoreType.lowestIntervalCalories:
+        return 'Lowest Interval Calories';
+      case BenchmarkScoreType.lowestIntervalWatts:
+        return 'Lowest Interval Watts';
+      case BenchmarkScoreType.lowestIntervalDistance:
+        return 'Lowest Interval Distance';
     }
   }
 }
