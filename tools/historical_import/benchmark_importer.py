@@ -183,6 +183,27 @@ def configured_attempts() -> list[NormalizedBenchmarkAttempt]:
                 "Round 4 - 83 cal / 73 RPM / 420 W"
             ),
         ),
+        NormalizedBenchmarkAttempt(
+            benchmark_id="matt_row",
+            date="2025-10-28",
+            score="195",
+            source_workbook="Chris Livingston - Remote Coaching - Phase 1 2026",
+            program_day="W9D1",
+            details="Avg Pace - 2:01.4\nAvg Cals/Hr - 971",
+        ),
+        NormalizedBenchmarkAttempt(
+            benchmark_id="echo_bike_cube_test",
+            date="2025-10-31",
+            score="321",
+            source_workbook="Chris Livingston - Remote Coaching - Phase 1 2026",
+            program_day="W9D5",
+            details=(
+                "Round 1 - 81 cal / 72 RPM / 403 W\n"
+                "Round 2 - 80 cal / 72 RPM / 403 W\n"
+                "Round 3 - 80 cal / 72 RPM / 403 W\n"
+                "Round 4 - 80 cal / 72 RPM / 403 W"
+            ),
+        ),
     ]
 
 
