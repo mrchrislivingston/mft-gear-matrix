@@ -97,13 +97,17 @@ def benchmark_exists(
     return row is not None
 
 
-def attempt_exists(
+def find_existing_attempt(
     connection: sqlite3.Connection,
     attempt: NormalizedBenchmarkAttempt,
-) -> bool:
-    row = connection.execute(
+) -> sqlite3.Row | tuple | None:
+    return connection.execute(
         """
-        SELECT id
+        SELECT
+            id,
+            score,
+            details,
+            notes
         FROM benchmark_attempts
         WHERE benchmark_id = ?
           AND substr(attempt_date, 1, 10) = ?
@@ -119,7 +123,62 @@ def attempt_exists(
         ),
     ).fetchone()
 
-    return row is not None
+
+def attempt_exists(
+    connection: sqlite3.Connection,
+    attempt: NormalizedBenchmarkAttempt,
+) -> bool:
+    return find_existing_attempt(
+        connection,
+        attempt,
+    ) is not None
+
+
+def attempt_needs_update(
+    connection: sqlite3.Connection,
+    attempt: NormalizedBenchmarkAttempt,
+) -> bool:
+    row = find_existing_attempt(
+        connection,
+        attempt,
+    )
+
+    if row is None:
+        return False
+
+    return (
+        row[1] != attempt.score
+        or row[2] != attempt.details
+        or row[3] != attempt.notes
+    )
+
+
+def update_attempt(
+    connection: sqlite3.Connection,
+    attempt: NormalizedBenchmarkAttempt,
+) -> None:
+    connection.execute(
+        """
+        UPDATE benchmark_attempts
+        SET
+            score = ?,
+            details = ?,
+            notes = ?
+        WHERE benchmark_id = ?
+          AND substr(attempt_date, 1, 10) = ?
+          AND source_workbook = ?
+          AND program_day = ?
+        """,
+        (
+            attempt.score,
+            attempt.details,
+            attempt.notes,
+            attempt.benchmark_id,
+            attempt.date,
+            attempt.source_workbook,
+            attempt.program_day,
+        ),
+    )
 
 
 def insert_attempt(
@@ -169,6 +228,7 @@ def configured_attempts() -> list[NormalizedBenchmarkAttempt]:
             source_workbook="Chris Livingston - Remote Coaching - Phase 1 2026",
             program_day="W4D1",
             details="Avg Pace - 2:04\nAvg Cals/Hr - 930",
+            notes="OOF - Definitely worse than an FTP",
         ),
         NormalizedBenchmarkAttempt(
             benchmark_id="echo_bike_cube_test",
@@ -190,6 +250,11 @@ def configured_attempts() -> list[NormalizedBenchmarkAttempt]:
             source_workbook="Chris Livingston - Remote Coaching - Phase 1 2026",
             program_day="W9D1",
             details="Avg Pace - 2:01.4\nAvg Cals/Hr - 971",
+            notes=(
+                "Well, this was just as enjoyable this time as it was "
+                "the previous time! Still super pumped about solid "
+                "improvement though."
+            ),
         ),
         NormalizedBenchmarkAttempt(
             benchmark_id="echo_bike_cube_test",
@@ -210,6 +275,7 @@ def configured_attempts() -> list[NormalizedBenchmarkAttempt]:
             score="32:29",
             source_workbook="Chris Livingston - Remote Coaching - Phase 1 2026",
             program_day="W4D6",
+            notes="Sub 30:00 on retest?",
         ),
         NormalizedBenchmarkAttempt(
             benchmark_id="speed_not_volume",
@@ -217,6 +283,10 @@ def configured_attempts() -> list[NormalizedBenchmarkAttempt]:
             score="5+74",
             source_workbook="Chris Livingston - Remote Coaching - Phase 1 2026",
             program_day="W5D5",
+            notes=(
+                "Close to full effort. 90-95% for sure. Like an idiot "
+                "I touched my leg with my off hand. Had to no rep myself."
+            ),
         ),
         NormalizedBenchmarkAttempt(
             benchmark_id="rule_8",
@@ -235,6 +305,7 @@ def configured_attempts() -> list[NormalizedBenchmarkAttempt]:
                 "Completed rounds 20 through 40 calories, "
                 "then completed 40 of 41 calories in the failed round."
             ),
+            notes="Hit 40 cals on the round of 41",
         ),
     ]
 
@@ -263,6 +334,7 @@ def main() -> None:
         print()
 
         ready_attempts: list[NormalizedBenchmarkAttempt] = []
+        update_attempts: list[NormalizedBenchmarkAttempt] = []
         duplicate_count = 0
 
         for attempt in attempts:
@@ -275,29 +347,41 @@ def main() -> None:
                     f"{attempt.benchmark_id}"
                 )
 
-            duplicate = attempt_exists(
+            exists = attempt_exists(
                 connection,
                 attempt,
             )
 
-            status = "SKIP" if duplicate else "READY"
+            needs_update = (
+                exists
+                and attempt_needs_update(
+                    connection,
+                    attempt,
+                )
+            )
+
+            if not exists:
+                status = "READY"
+                ready_attempts.append(attempt)
+            elif needs_update:
+                status = "UPDATE"
+                update_attempts.append(attempt)
+            else:
+                status = "SKIP"
+                duplicate_count += 1
 
             print(
-                f"{status:<5} "
+                f"{status:<6} "
                 f"{attempt.benchmark_id:<20} "
                 f"{attempt.date:<10} "
                 f"{attempt.program_day:<5} "
                 f"score={attempt.score}"
             )
 
-            if duplicate:
-                duplicate_count += 1
-            else:
-                ready_attempts.append(attempt)
-
         print()
         print("-" * 78)
         print(f"Ready:      {len(ready_attempts)}")
+        print(f"Updates:    {len(update_attempts)}")
         print(f"Duplicates: {duplicate_count}")
         print()
 
@@ -308,14 +392,18 @@ def main() -> None:
                 "for SQLite import."
             )
             print(
+                f"{len(update_attempts)} existing benchmark attempts "
+                "are ready for update."
+            )
+            print(
                 f"{duplicate_count} existing benchmark attempts "
                 "will be skipped."
             )
             print("No database changes were made.")
             return
 
-        if not ready_attempts:
-            print("Nothing to import.")
+        if not ready_attempts and not update_attempts:
+            print("Nothing to import or update.")
             print("Database was not changed.")
             return
 
@@ -327,6 +415,7 @@ def main() -> None:
 
         try:
             imported = 0
+            updated = 0
 
             for attempt in ready_attempts:
                 if attempt_exists(
@@ -341,6 +430,19 @@ def main() -> None:
                 )
                 imported += 1
 
+            for attempt in update_attempts:
+                if not attempt_exists(
+                    connection,
+                    attempt,
+                ):
+                    continue
+
+                update_attempt(
+                    connection,
+                    attempt,
+                )
+                updated += 1
+
             connection.commit()
 
         except Exception:
@@ -348,6 +450,7 @@ def main() -> None:
             raise
 
         print(f"Imported: {imported}")
+        print(f"Updated:  {updated}")
         print("SQLite transaction committed.")
 
     finally:

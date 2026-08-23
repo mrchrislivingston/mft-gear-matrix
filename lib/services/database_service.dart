@@ -327,12 +327,25 @@ class DatabaseService {
   Future<void> upsertBenchmark(Benchmark benchmark) async {
     final db = await database;
 
-    await db.insert('benchmarks', {
+    final values = {
       'id': benchmark.id,
       'name': benchmark.name,
       'description': benchmark.description,
       'score_type': benchmark.scoreType.storageKey,
-    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    };
+
+    await db.insert(
+      'benchmarks',
+      values,
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+
+    await db.update(
+      'benchmarks',
+      values,
+      where: 'id = ?',
+      whereArgs: [benchmark.id],
+    );
   }
 
   Future<List<Benchmark>> getBenchmarks() async {

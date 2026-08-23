@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'benchmark_screen.dart';
 import 'history_screen.dart';
 import 'matrix_screen.dart';
 
@@ -27,7 +28,15 @@ class HomeScreen extends StatelessWidget {
               },
             ),
             const SizedBox(height: 10),
-            _HomeButton(label: 'Benchmarks', onTap: () {}),
+            _HomeButton(
+              label: 'Benchmarks',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const BenchmarkScreen()),
+                );
+              },
+            ),
             const SizedBox(height: 10),
             _HomeButton(label: 'Weightlifting', onTap: () {}),
             const SizedBox(height: 10),
@@ -51,19 +60,13 @@ class _HomeButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  const _HomeButton({
-    required this.label,
-    required this.onTap,
-  });
+  const _HomeButton({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton(
-        onPressed: onTap,
-        child: Text(label),
-      ),
+      child: ElevatedButton(onPressed: onTap, child: Text(label)),
     );
   }
 }
