@@ -7,6 +7,8 @@ import '../models/metric.dart';
 import '../models/modality.dart';
 import '../models/target_history.dart';
 import '../models/workout_metric.dart';
+import '../models/benchmark.dart';
+import '../models/benchmark_attempt.dart';
 
 class DatabaseService {
   DatabaseService._();
@@ -14,7 +16,7 @@ class DatabaseService {
   static final DatabaseService instance = DatabaseService._();
 
   static const String _databaseName = 'mft_gear_matrix.db';
-  static const int _databaseVersion = 3;
+  static const int _databaseVersion = 4;
 
   Database? _database;
 
@@ -34,18 +36,13 @@ class DatabaseService {
   Future<Database> _openDatabase() async {
     final databaseDirectory = await getDatabasesPath();
 
-    final databasePath = join(
-      databaseDirectory,
-      _databaseName,
-    );
+    final databasePath = join(databaseDirectory, _databaseName);
 
     return openDatabase(
       databasePath,
       version: _databaseVersion,
       onConfigure: (database) async {
-        await database.execute(
-          'PRAGMA foreign_keys = ON',
-        );
+        await database.execute('PRAGMA foreign_keys = ON');
       },
       onCreate: (database, version) async {
         await _createTables(database);
@@ -73,6 +70,10 @@ class DatabaseService {
             ALTER TABLE workouts
             ADD COLUMN program_day TEXT NOT NULL DEFAULT ''
           ''');
+        }
+
+        if (oldVersion < 4) {
+          await _createBenchmarkTables(database);
         }
       },
     );
@@ -159,46 +160,74 @@ class DatabaseService {
         effective_date
       )
     ''');
+
+    await _createBenchmarkTables(database);
+  }
+
+  Future<void> _createBenchmarkTables(Database database) async {
+    await database.execute('''
+      CREATE TABLE benchmarks (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        score_type TEXT NOT NULL
+      )
+    ''');
+
+    await database.execute('''
+      CREATE TABLE benchmark_attempts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        benchmark_id TEXT NOT NULL,
+        attempt_date TEXT NOT NULL,
+        score TEXT NOT NULL,
+        source_workbook TEXT NOT NULL DEFAULT '',
+        program_day TEXT NOT NULL DEFAULT '',
+        details TEXT NOT NULL DEFAULT '',
+        notes TEXT NOT NULL DEFAULT '',
+        FOREIGN KEY (benchmark_id)
+          REFERENCES benchmarks (id)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    await database.execute('''
+      CREATE INDEX index_benchmark_attempts_lookup
+      ON benchmark_attempts (
+        benchmark_id,
+        attempt_date
+      )
+    ''');
   }
 
   Future<int> insertWorkout(LogEntry workout) async {
     final db = await database;
 
     return db.transaction((transaction) async {
-      final workoutId = await transaction.insert(
-        'workouts',
-        {
-          'prescription_id': workout.prescriptionId,
-          'modality': workout.modality.name,
-          'workout_date': workout.date.toIso8601String(),
-          'source_workbook': workout.sourceWorkbook,
-          'program_day': workout.programDay,
-          'duration': workout.duration,
-          'work_duration': workout.workDuration,
-          'interval_count': workout.intervalCount,
-          'scoring_metric': workout.scoringMetric?.storageKey,
-          'notes': workout.notes,
-        },
-      );
+      final workoutId = await transaction.insert('workouts', {
+        'prescription_id': workout.prescriptionId,
+        'modality': workout.modality.name,
+        'workout_date': workout.date.toIso8601String(),
+        'source_workbook': workout.sourceWorkbook,
+        'program_day': workout.programDay,
+        'duration': workout.duration,
+        'work_duration': workout.workDuration,
+        'interval_count': workout.intervalCount,
+        'scoring_metric': workout.scoringMetric?.storageKey,
+        'notes': workout.notes,
+      });
 
       for (final interval in workout.intervals) {
-        final intervalId = await transaction.insert(
-          'workout_intervals',
-          {
-            'workout_id': workoutId,
-            'interval_number': interval.intervalNumber,
-          },
-        );
+        final intervalId = await transaction.insert('workout_intervals', {
+          'workout_id': workoutId,
+          'interval_number': interval.intervalNumber,
+        });
 
         for (final metricEntry in interval.values.entries) {
-          await transaction.insert(
-            'interval_metrics',
-            {
-              'interval_id': intervalId,
-              'metric': metricEntry.key.storageKey,
-              'value': metricEntry.value,
-            },
-          );
+          await transaction.insert('interval_metrics', {
+            'interval_id': intervalId,
+            'metric': metricEntry.key.storageKey,
+            'value': metricEntry.value,
+          });
         }
       }
 
@@ -209,11 +238,7 @@ class DatabaseService {
   Future<void> deleteWorkout(int workoutId) async {
     final db = await database;
 
-    await db.delete(
-      'workouts',
-      where: 'id = ?',
-      whereArgs: [workoutId],
-    );
+    await db.delete('workouts', where: 'id = ?', whereArgs: [workoutId]);
   }
 
   Future<List<LogEntry>> getWorkouts() async {
@@ -262,15 +287,13 @@ class DatabaseService {
 
         intervals.add(
           IntervalResult(
-            intervalNumber:
-                intervalRow['interval_number'] as int,
+            intervalNumber: intervalRow['interval_number'] as int,
             values: values,
           ),
         );
       }
 
-      final savedScoringMetric =
-          workoutRow['scoring_metric'] as String?;
+      final savedScoringMetric = workoutRow['scoring_metric'] as String?;
 
       WorkoutMetric? scoringMetric;
 
@@ -282,25 +305,15 @@ class DatabaseService {
 
       workouts.add(
         LogEntry.forPrescription(
-          prescriptionId:
-              workoutRow['prescription_id'] as String,
-          modality: Modality.values.byName(
-            workoutRow['modality'] as String,
-          ),
-          date: DateTime.parse(
-            workoutRow['workout_date'] as String,
-          ),
-          sourceWorkbook:
-              (workoutRow['source_workbook'] as String?) ?? '',
-          programDay:
-              (workoutRow['program_day'] as String?) ?? '',
-          duration:
-              (workoutRow['duration'] as String?) ?? '',
-          workDuration:
-              (workoutRow['work_duration'] as String?) ?? '',
+          prescriptionId: workoutRow['prescription_id'] as String,
+          modality: Modality.values.byName(workoutRow['modality'] as String),
+          date: DateTime.parse(workoutRow['workout_date'] as String),
+          sourceWorkbook: (workoutRow['source_workbook'] as String?) ?? '',
+          programDay: (workoutRow['program_day'] as String?) ?? '',
+          duration: (workoutRow['duration'] as String?) ?? '',
+          workDuration: (workoutRow['work_duration'] as String?) ?? '',
           intervalCount:
-              (workoutRow['interval_count'] as int?) ??
-                  intervals.length,
+              (workoutRow['interval_count'] as int?) ?? intervals.length,
           scoringMetric: scoringMetric,
           notes: (workoutRow['notes'] as String?) ?? '',
           intervals: intervals,
@@ -311,6 +324,54 @@ class DatabaseService {
     return workouts;
   }
 
+  Future<void> upsertBenchmark(Benchmark benchmark) async {
+    final db = await database;
+
+    await db.insert('benchmarks', {
+      'id': benchmark.id,
+      'name': benchmark.name,
+      'description': benchmark.description,
+      'score_type': benchmark.scoreType.storageKey,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<Benchmark>> getBenchmarks() async {
+    final db = await database;
+
+    final rows = await db.query('benchmarks', orderBy: 'name ASC');
+
+    return rows.map((row) => Benchmark.fromDatabaseMap(row)).toList();
+  }
+
+  Future<int> insertBenchmarkAttempt(BenchmarkAttempt attempt) async {
+    final db = await database;
+
+    return db.insert('benchmark_attempts', {
+      'benchmark_id': attempt.benchmarkId,
+      'attempt_date': attempt.date.toIso8601String(),
+      'score': attempt.score,
+      'source_workbook': attempt.sourceWorkbook,
+      'program_day': attempt.programDay,
+      'details': attempt.details,
+      'notes': attempt.notes,
+    });
+  }
+
+  Future<List<BenchmarkAttempt>> getBenchmarkAttempts({
+    String? benchmarkId,
+  }) async {
+    final db = await database;
+
+    final rows = await db.query(
+      'benchmark_attempts',
+      where: benchmarkId == null ? null : 'benchmark_id = ?',
+      whereArgs: benchmarkId == null ? null : [benchmarkId],
+      orderBy: 'attempt_date DESC, id DESC',
+    );
+
+    return rows.map((row) => BenchmarkAttempt.fromDatabaseMap(row)).toList();
+  }
+
   Future<int> insertTargetHistory({
     required String prescriptionId,
     required Modality modality,
@@ -319,18 +380,14 @@ class DatabaseService {
   }) async {
     final db = await database;
 
-    return db.insert(
-      'target_history',
-      {
-        'prescription_id': prescriptionId,
-        'modality': modality.name,
-        'metric': metric.name,
-        'low_target': target.lowTarget,
-        'high_target': target.highTarget,
-        'effective_date':
-            target.effectiveDate.toIso8601String(),
-      },
-    );
+    return db.insert('target_history', {
+      'prescription_id': prescriptionId,
+      'modality': modality.name,
+      'metric': metric.name,
+      'low_target': target.lowTarget,
+      'high_target': target.highTarget,
+      'effective_date': target.effectiveDate.toIso8601String(),
+    });
   }
 
   Future<bool> insertTargetHistoryIfAbsent({
@@ -369,17 +426,14 @@ class DatabaseService {
       return false;
     }
 
-    await db.insert(
-      'target_history',
-      {
-        'prescription_id': prescriptionId,
-        'modality': modality.name,
-        'metric': metric.name,
-        'low_target': target.lowTarget,
-        'high_target': target.highTarget,
-        'effective_date': effectiveDate,
-      },
-    );
+    await db.insert('target_history', {
+      'prescription_id': prescriptionId,
+      'modality': modality.name,
+      'metric': metric.name,
+      'low_target': target.lowTarget,
+      'high_target': target.highTarget,
+      'effective_date': effectiveDate,
+    });
 
     return true;
   }
@@ -398,11 +452,7 @@ class DatabaseService {
         AND modality = ?
         AND metric = ?
       ''',
-      whereArgs: [
-        prescriptionId,
-        modality.name,
-        metric.name,
-      ],
+      whereArgs: [prescriptionId, modality.name, metric.name],
       orderBy: 'effective_date ASC, id ASC',
     );
 
@@ -410,9 +460,7 @@ class DatabaseService {
       return TargetHistory(
         lowTarget: row['low_target'] as String,
         highTarget: row['high_target'] as String,
-        effectiveDate: DateTime.parse(
-          row['effective_date'] as String,
-        ),
+        effectiveDate: DateTime.parse(row['effective_date'] as String),
       );
     }).toList();
   }
@@ -437,22 +485,16 @@ class DatabaseService {
     final targetsByKey = <String, GearTarget>{};
 
     for (final row in rows) {
-      final modality = Modality.values.byName(
-        row['modality'] as String,
-      );
+      final modality = Modality.values.byName(row['modality'] as String);
 
-      final metric = Metric.values.byName(
-        row['metric'] as String,
-      );
+      final metric = Metric.values.byName(row['metric'] as String);
 
       final key = '${modality.name}:${metric.name}';
 
       final historyItem = TargetHistory(
         lowTarget: row['low_target'] as String,
         highTarget: row['high_target'] as String,
-        effectiveDate: DateTime.parse(
-          row['effective_date'] as String,
-        ),
+        effectiveDate: DateTime.parse(row['effective_date'] as String),
       );
 
       final existingTarget = targetsByKey[key];
@@ -465,10 +507,7 @@ class DatabaseService {
         );
       } else {
         targetsByKey[key] = existingTarget.copyWith(
-          history: [
-            ...existingTarget.history,
-            historyItem,
-          ],
+          history: [...existingTarget.history, historyItem],
         );
       }
     }
@@ -487,9 +526,7 @@ class DatabaseService {
       ORDER BY name
     ''');
 
-    return results
-        .map((row) => row['name'] as String)
-        .toList();
+    return results.map((row) => row['name'] as String).toList();
   }
 
   Future<void> close() async {

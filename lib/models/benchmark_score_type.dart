@@ -7,6 +7,10 @@ enum BenchmarkScoreType {
   reps,
   distance;
 
+  String get storageKey {
+    return name;
+  }
+
   String get displayName {
     switch (this) {
       case BenchmarkScoreType.time:
