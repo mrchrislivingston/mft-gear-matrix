@@ -357,6 +357,35 @@ class DatabaseService {
     });
   }
 
+  Future<bool> insertBenchmarkAttemptIfAbsent(BenchmarkAttempt attempt) async {
+    final db = await database;
+
+    final existingRows = await db.query(
+      'benchmark_attempts',
+      columns: ['id'],
+      where: '''
+        benchmark_id = ?
+        AND attempt_date = ?
+        AND source_workbook = ?
+        AND program_day = ?
+      ''',
+      whereArgs: [
+        attempt.benchmarkId,
+        attempt.date.toIso8601String(),
+        attempt.sourceWorkbook,
+        attempt.programDay,
+      ],
+      limit: 1,
+    );
+
+    if (existingRows.isNotEmpty) {
+      return false;
+    }
+
+    await insertBenchmarkAttempt(attempt);
+    return true;
+  }
+
   Future<List<BenchmarkAttempt>> getBenchmarkAttempts({
     String? benchmarkId,
   }) async {
