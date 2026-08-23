@@ -204,6 +204,38 @@ def configured_attempts() -> list[NormalizedBenchmarkAttempt]:
                 "Round 4 - 80 cal / 72 RPM / 403 W"
             ),
         ),
+        NormalizedBenchmarkAttempt(
+            benchmark_id="cleo",
+            date="2025-09-27",
+            score="32:29",
+            source_workbook="Chris Livingston - Remote Coaching - Phase 1 2026",
+            program_day="W4D6",
+        ),
+        NormalizedBenchmarkAttempt(
+            benchmark_id="speed_not_volume",
+            date="2025-10-03",
+            score="5+74",
+            source_workbook="Chris Livingston - Remote Coaching - Phase 1 2026",
+            program_day="W5D5",
+        ),
+        NormalizedBenchmarkAttempt(
+            benchmark_id="rule_8",
+            date="2025-10-06",
+            score="7:23",
+            source_workbook="Chris Livingston - Remote Coaching - Phase 1 2026",
+            program_day="W6D1",
+        ),
+        NormalizedBenchmarkAttempt(
+            benchmark_id="bike_mount_doom",
+            date="2025-11-01",
+            score="670",
+            source_workbook="Chris Livingston - Remote Coaching - Phase 1 2026",
+            program_day="W9D6",
+            details=(
+                "Completed rounds 20 through 40 calories, "
+                "then completed 40 of 41 calories in the failed round."
+            ),
+        ),
     ]
 
 
