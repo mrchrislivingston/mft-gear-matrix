@@ -22,6 +22,10 @@ def main() -> None:
     ) == [2]
 
     assert detect_power_prescriptions(
+        "P4 Echo Bike",
+    ) == [4]
+
+    assert detect_power_prescriptions(
         (
             "Max Calorie C2 Bike in :20 @ P2\n"
             "Use P3 session from last week for comparison."

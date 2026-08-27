@@ -16,12 +16,12 @@ GEAR_SHORT_PATTERN = re.compile(
 )
 
 POWER_PATTERN = re.compile(
-    r"\bP([1-3])\b",
+    r"\bP([1-4])\b",
     re.IGNORECASE,
 )
 
 PRESCRIBED_POWER_PATTERN = re.compile(
-    r"@\s*P([1-3])\b",
+    r"@\s*P([1-4])\b",
     re.IGNORECASE,
 )
 

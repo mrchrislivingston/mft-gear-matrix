@@ -10,45 +10,49 @@ import '../models/training_stimulus.dart';
 /// Order:
 /// Z1–Z2
 /// G1–G8
-/// P3–P1
+/// P4–P1
 List<Prescription> buildDefaultPrescriptions() {
   return [
-    _buildZonePrescription(
-      id: 'Z1',
-      name: 'Zone 1',
-    ),
-    _buildZonePrescription(
-      id: 'Z2',
-      name: 'Zone 2',
-    ),
+    _buildZonePrescription(id: 'Z1', name: 'Zone 1'),
+    _buildZonePrescription(id: 'Z2', name: 'Zone 2'),
 
     _buildGear(1, '15:00', '1:00', 2, '9:15', '9:30'),
-    _buildGear(2, '13:00', '1:15', 2, '8:45', '9:00'),
-    _buildGear(3, '8:00', '1:30', 3, '8:00', '8:15'),
-    _buildGear(4, '6:00', '2:30', 3, '7:45', '8:00'),
-    _buildGear(5, '4:00', '2:45', 4, '7:30', '7:45'),
-    _buildGear(6, '3:30', '3:00', 4, '7:15', '7:30'),
+    _buildGear(2, '8:00', '1:15', 3, '8:45', '9:00'),
+    _buildGear(3, '6:00', '1:30', 4, '8:00', '8:15'),
+    _buildGear(4, '4:00', '2:00', 5, '7:45', '8:00'),
+    _buildGear(5, '3:30', '2:30', 5, '7:30', '7:45'),
+    _buildGear(6, '3:00', '3:00', 5, '7:15', '7:30'),
     _buildGear(7, '2:30', '3:15', 5, '7:00', '7:15'),
-    _buildGear(8, '1:30', '3:30', 7, '6:45', '7:00'),
+    _buildGear(8, '2:00', '3:30', 5, '6:45', '7:00'),
 
+    _buildPowerPrescription(
+      id: 'P4',
+      name: 'Power 4',
+      continuousEvery: '3:00',
+      continuousRounds: 3,
+      continuousAmrap: ':45',
+      skiRowEvery: '4:00',
+      skiRowRounds: 3,
+      skiRowAmrap: '1:15',
+    ),
     _buildPowerPrescription(
       id: 'P3',
       name: 'Power 3',
-      continuousEvery: '5:00',
+      continuousEvery: '3:00',
       continuousRounds: 3,
-      continuousAmrap: ':30',
-      skiRowEvery: '5:00',
+      continuousAmrap: ':30-:35',
+      skiRowEvery: '4:00',
       skiRowRounds: 3,
       skiRowAmrap: '1:00',
     ),
     _buildPowerPrescription(
       id: 'P2',
       name: 'Power 2',
-      continuousEvery: '4:00',
+      continuousEvery: '3:00',
       continuousRounds: 4,
-      continuousAmrap: ':20',
-      skiRowEvery: '3:00',
-      skiRowRounds: 5,
+      continuousAmrap: ':20-:25',
+      skiRowEvery: '4:00',
+      skiRowRounds: 4,
       skiRowAmrap: ':45',
     ),
     _buildPowerPrescription(
@@ -56,7 +60,7 @@ List<Prescription> buildDefaultPrescriptions() {
       name: 'Power 1',
       continuousEvery: '3:00',
       continuousRounds: 5,
-      continuousAmrap: ':15',
+      continuousAmrap: ':10-:20',
       skiRowEvery: '3:00',
       skiRowRounds: 5,
       skiRowAmrap: ':30',
@@ -155,47 +159,20 @@ Gear _buildGear(
           ),
         ],
       ),
-      const GearTarget(
-        modality: Modality.row,
-        metric: Metric.minPer500m,
-      ),
-      const GearTarget(
-        modality: Modality.ski,
-        metric: Metric.minPer500m,
-      ),
-      const GearTarget(
-        modality: Modality.bikeErg,
-        metric: Metric.minPer1000m,
-      ),
-      const GearTarget(
-        modality: Modality.echo,
-        metric: Metric.rpm,
-      ),
+      const GearTarget(modality: Modality.row, metric: Metric.minPer500m),
+      const GearTarget(modality: Modality.ski, metric: Metric.minPer500m),
+      const GearTarget(modality: Modality.bikeErg, metric: Metric.minPer1000m),
+      const GearTarget(modality: Modality.echo, metric: Metric.rpm),
     ],
   );
 }
 
 List<GearTarget> _emptyTargets() {
   return const [
-    GearTarget(
-      modality: Modality.run,
-      metric: Metric.minPerMile,
-    ),
-    GearTarget(
-      modality: Modality.row,
-      metric: Metric.minPer500m,
-    ),
-    GearTarget(
-      modality: Modality.ski,
-      metric: Metric.minPer500m,
-    ),
-    GearTarget(
-      modality: Modality.bikeErg,
-      metric: Metric.minPer1000m,
-    ),
-    GearTarget(
-      modality: Modality.echo,
-      metric: Metric.rpm,
-    ),
+    GearTarget(modality: Modality.run, metric: Metric.minPerMile),
+    GearTarget(modality: Modality.row, metric: Metric.minPer500m),
+    GearTarget(modality: Modality.ski, metric: Metric.minPer500m),
+    GearTarget(modality: Modality.bikeErg, metric: Metric.minPer1000m),
+    GearTarget(modality: Modality.echo, metric: Metric.rpm),
   ];
 }

@@ -25,11 +25,7 @@ class PrescriptionProtocol {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'every': every,
-      'rounds': rounds,
-      'amrap': amrap,
-    };
+    return {'every': every, 'rounds': rounds, 'amrap': amrap};
   }
 
   factory PrescriptionProtocol.fromJson(Map<String, dynamic> json) {
@@ -46,7 +42,7 @@ class PrescriptionProtocol {
 /// This can represent:
 /// - G1–G8 interval prescriptions
 /// - Z1–Z2 continuous-duration prescriptions
-/// - P1–P3 modality-specific power protocols
+/// - P1–P4 modality-specific power protocols
 class Prescription {
   final String id;
   final String name;
@@ -64,7 +60,7 @@ class Prescription {
   /// Example: 30:00–90:00
   final String? durationRange;
 
-  /// Modality-specific protocols used by P1–P3.
+  /// Modality-specific protocols used by P1–P4.
   final Map<Modality, PrescriptionProtocol> protocols;
 
   final List<GearTarget> targets;
@@ -114,10 +110,7 @@ class Prescription {
     return '$work work / $rest rest × $intervals';
   }
 
-  GearTarget? findTarget({
-    required Modality modality,
-    required Metric metric,
-  }) {
+  GearTarget? findTarget({required Modality modality, required Metric metric}) {
     for (final target in targets) {
       if (target.modality == modality && target.metric == metric) {
         return target;
@@ -141,10 +134,7 @@ class Prescription {
     required Modality modality,
     required Metric metric,
   }) {
-    return findTarget(
-      modality: modality,
-      metric: metric,
-    )?.currentTarget;
+    return findTarget(modality: modality, metric: metric)?.currentTarget;
   }
 
   String targetDisplayForModality(Modality modality) {
@@ -185,25 +175,21 @@ class Prescription {
       'intervals': intervals,
       'durationRange': durationRange,
       'protocols': protocols.map(
-        (modality, protocol) => MapEntry(
-          modality.name,
-          protocol.toJson(),
-        ),
+        (modality, protocol) => MapEntry(modality.name, protocol.toJson()),
       ),
       'targets': targets.map((target) => target.toJson()).toList(),
     };
   }
 
   factory Prescription.fromJson(Map<String, dynamic> json) {
-    final protocolJson =
-        Map<String, dynamic>.from(json['protocols'] as Map? ?? {});
+    final protocolJson = Map<String, dynamic>.from(
+      json['protocols'] as Map? ?? {},
+    );
 
     return Prescription(
       id: json['id'] as String,
       name: json['name'] as String,
-      stimulus: TrainingStimulus.values.byName(
-        json['stimulus'] as String,
-      ),
+      stimulus: TrainingStimulus.values.byName(json['stimulus'] as String),
       work: json['work'] as String? ?? '',
       rest: json['rest'] as String? ?? '',
       intervals: json['intervals'] as int? ?? 1,
@@ -218,9 +204,8 @@ class Prescription {
       ),
       targets: (json['targets'] as List? ?? [])
           .map(
-            (item) => GearTarget.fromJson(
-              Map<String, dynamic>.from(item as Map),
-            ),
+            (item) =>
+                GearTarget.fromJson(Map<String, dynamic>.from(item as Map)),
           )
           .toList(),
     );
@@ -241,18 +226,15 @@ class Gear extends Prescription {
     required super.intervals,
     super.targets = const [],
   }) : super(
-          id: 'G$number',
-          name: 'Gear $number',
-          stimulus: number <= 3
-              ? TrainingStimulus.aerobic
-              : TrainingStimulus.anaerobic,
-        );
+         id: 'G$number',
+         name: 'Gear $number',
+         stimulus: number <= 3
+             ? TrainingStimulus.aerobic
+             : TrainingStimulus.anaerobic,
+       );
 
   GearTarget? get runPaceTarget {
-    return findTarget(
-      modality: Modality.run,
-      metric: Metric.minPerMile,
-    );
+    return findTarget(modality: Modality.run, metric: Metric.minPerMile);
   }
 
   String get targetPaceDisplay {
@@ -293,9 +275,8 @@ class Gear extends Prescription {
       intervals: json['intervals'] as int,
       targets: (json['targets'] as List? ?? [])
           .map(
-            (item) => GearTarget.fromJson(
-              Map<String, dynamic>.from(item as Map),
-            ),
+            (item) =>
+                GearTarget.fromJson(Map<String, dynamic>.from(item as Map)),
           )
           .toList(),
     );

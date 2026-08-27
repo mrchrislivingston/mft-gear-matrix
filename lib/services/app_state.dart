@@ -38,7 +38,7 @@ class AppState {
   /// Returns the complete matrix in its defined default order.
   ///
   /// G1–G8 come from the persisted Gear list.
-  /// P1–P3 and Z1–Z2 come from the persisted non-Gear list.
+  /// P1–P4 and Z1–Z2 come from the persisted non-Gear list.
   List<Prescription> get prescriptions {
     final defaults = buildDefaultPrescriptions();
 
