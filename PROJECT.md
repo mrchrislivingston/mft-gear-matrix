@@ -516,6 +516,18 @@ such as mixed prescriptions and benchmark workouts.
   produced exactly the eight attempts already stored in SQLite.
 - The W9D1 M.A.T.T. programming date infers to 2025-10-27, while the
   authoritative stored attempt date remains 2025-10-28.
+- Resolved three non-mixed historical exceptions:
+  - OffSZN 2 W8D5 was marked SKIP because the programmed mixed-Gear
+    workout was not performed.
+  - Phase 1 W8D4 was marked SKIP because Zone 1 yard work has no
+    supported app modality.
+  - Phase 1 W8D5 was imported as a partial G3 Row workout with five
+    prescribed intervals and three completed intervals (97/92/91).
+- Phase 1 dry-run verification now reports zero workouts ready and six
+  existing workouts skipped.
+- Fourteen completed historical workouts remain deferred. Eleven use
+  multiple prescriptions within one workout, and three use multiple
+  modalities. These require a Mixed Workout data model before import.
 
 ### Benchmark Architecture Findings
 
