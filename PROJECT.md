@@ -499,11 +499,23 @@ such as mixed prescriptions and benchmark workouts.
 - Added an idempotent `benchmark_reclassifier.py` migration utility.
 - Historical-import regression testing now automatically discovers every
   `test_*.py` file, works from any current directory, reports failure
-  details, and passes 17/17 tests.
+  details, and passes 19/19 tests.
 - Added direct coverage for benchmark importing, benchmark
   reclassification, SQLite importing, metric parsing, and the
   historical-import CLI. The previously omitted pace-distance parser
   test is now included automatically.
+- Added a maintained Benchmark registry covering the known benchmark
+  names and aliases, including punctuation and spacing variants such as
+  MATT, M.A.T.T., and M. A. T. T.
+- Added a CSV-aware Benchmark reader that preserves the existing
+  programming-row and Notes/Results column alignment.
+- Benchmark names are required in programming text. References to another
+  benchmark in result notes do not create false candidate attempts.
+- Re-scanned OffSZN 1, OffSZN 2, Summit Games, and Phase 1 with the full
+  registry. The first three contained no benchmark candidates; Phase 1
+  produced exactly the eight attempts already stored in SQLite.
+- The W9D1 M.A.T.T. programming date infers to 2025-10-27, while the
+  authoritative stored attempt date remains 2025-10-28.
 
 ### Benchmark Architecture Findings
 
