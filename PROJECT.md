@@ -482,18 +482,28 @@ such as mixed prescriptions and benchmark workouts.
 - OffSZN 2 historical migration is complete. A dry run against
   `offszn2_review_v3.csv` found 20 normalized workouts and all 20 were
   already present in SQLite.
-- Phase 1 review v8 contains 7 normalized workouts. Six were already in
-  SQLite and the missing 2025-09-22 Row workout was imported.
-- Historical import test suite currently passes 11/11 tests. The Interval
-  Time Parser test was added to `run_all_tests.py`.
-- Two Phase 1 workouts are currently stored under Matrix prescriptions
-  but were discovered to actually be named benchmark tests:
-  - 2025-09-22 Z2 Row is M.A.T.T. Row. Historical result: 2:04 average
-    pace, 930 calories/hour, 183 average watts.
-  - 2025-10-07 G6 Echo is Echo Bike Cube Test. Historical result: four
-    4:00 rounds of 72, 80, 81, and 83 calories; 316 total calories.
-- Do not delete or manually alter those SQLite records yet. Reclassify
-  them after Benchmark persistence/import support exists.
+- Phase 1 review v8 contains 7 normalized Matrix workouts. The missing
+  2025-09-22 Row workout was initially imported before being identified
+  as a benchmark.
+- Benchmark persistence and historical import are implemented. Eight
+  Phase 1 benchmark attempts are stored in SQLite.
+- The two Phase 1 workouts previously misclassified under Matrix
+  prescriptions were reclassified on 2026-09-02:
+  - 2025-09-22 Z2 Row → M.A.T.T. Row, scored at 183 average watts.
+  - 2025-10-07 G6 Echo → Echo Bike Cube Test, scored at 316 total
+    calories from rounds of 72, 80, 81, and 83.
+- Reclassification removed only the duplicate Matrix workout rows and
+  their cascading interval data after verifying the corresponding
+  benchmark attempts existed. A timestamped database backup was created
+  before the transaction.
+- Added an idempotent `benchmark_reclassifier.py` migration utility.
+- Historical-import regression testing now automatically discovers every
+  `test_*.py` file, works from any current directory, reports failure
+  details, and passes 17/17 tests.
+- Added direct coverage for benchmark importing, benchmark
+  reclassification, SQLite importing, metric parsing, and the
+  historical-import CLI. The previously omitted pace-distance parser
+  test is now included automatically.
 
 ### Benchmark Architecture Findings
 
@@ -526,27 +536,16 @@ such as mixed prescriptions and benchmark workouts.
 
 **## Historical Import**
 
-\- Extend Flutter SQLite schema with Execution Plan fields
-(\`work\_duration\` and \`interval\_count\`) \- Build
-SQLite importer to write normalized historical workouts directly into
-the app database \- Continue OffSZN 2, Summit Games, and Phase 1
-workbook imports \- Design Benchmark workout model and import path
-before importing any benchmark workouts - Added initial
-`BenchmarkScoreType` model as the first Benchmark architecture component
-- Confirmed Benchmark workouts are named tests and should be discovered
-by known benchmark names rather than the word "benchmark"
-- Confirmed benchmark families include M.A.T.T., Cube Tests, Mount Doom,
-Kill-O tests, and named mixed-modal workouts
-- M.A.T.T. tests are 40-minute maximum-threshold tests and are distinct
-from Kill-O tests, which use six intervals scored by the lowest round
-- Mount Doom tests are scored by total accumulated work; historical
-results may require deriving the total from the last completed round and
-partial final round (for example, completing 40 calories through the
-round of 40 plus 40 calories of the round of 41)
-- Identified Phase 1 historical examples including M.A.T.T. Row, Echo
-Bike Cube Test, Cleo, Speed Not Volume, Rule 8, and Bike Mount Doom
-- Re-scan every historical workbook for Benchmark candidates after
-Benchmark support is implemented
+- Re-scan every historical workbook using the maintained benchmark names
+  and aliases.
+- Add any newly discovered benchmark definitions and attempts through the
+  Benchmark import path rather than Matrix prescriptions.
+- Extend benchmark discovery beyond the currently configured Phase 1
+  attempts into reusable parsing and normalization.
+- Implement the remaining deferred mixed-Gear, mixed-Power, and
+  mixed-modality workout cases.
+- Keep all historical-import components covered by the automatically
+  discovered regression suite.
 
 **## History Improvements**
 
