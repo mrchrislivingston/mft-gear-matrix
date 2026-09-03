@@ -1,4 +1,5 @@
 import 'misfit_csv_service.dart';
+import 'misfit_date_resolver.dart';
 import 'misfit_execution_plan_parser.dart';
 import 'misfit_workout_parser.dart';
 
@@ -7,6 +8,8 @@ class MisfitWorkoutCandidate {
   final int sourceColumn;
   final String dateHeader;
   final String programDay;
+  final String date;
+  final MisfitDateStatus dateStatus;
   final MisfitWorkoutType workoutType;
   final String prescription;
   final String modality;
@@ -22,6 +25,8 @@ class MisfitWorkoutCandidate {
     required this.sourceColumn,
     required this.dateHeader,
     required this.programDay,
+    this.date = '',
+    this.dateStatus = MisfitDateStatus.unresolved,
     required this.workoutType,
     required this.prescription,
     required this.modality,
@@ -58,10 +63,12 @@ class MisfitCandidateSummary {
 
 class MisfitCandidateReader {
   final MisfitWorkoutParser parser;
+  final MisfitDateResolver dateResolver;
   final MisfitExecutionPlanParser executionPlanParser;
 
   const MisfitCandidateReader({
     this.parser = const MisfitWorkoutParser(),
+    this.dateResolver = const MisfitDateResolver(),
     this.executionPlanParser = const MisfitExecutionPlanParser(),
   });
 
@@ -79,7 +86,16 @@ class MisfitCandidateReader {
     caseSensitive: false,
   );
 
-  MisfitCandidateSummary read(MisfitCsvDocument document) {
+  MisfitCandidateSummary read(MisfitCsvDocument document, {int? startYear}) {
+    final dateResolution = startYear == null
+        ? null
+        : dateResolver.resolve(
+            headers: document.rows
+                .where((row) => row.isNotEmpty)
+                .map((row) => parser.normalizeText(row.first)),
+            startYear: startYear,
+          );
+
     final candidates = <MisfitWorkoutCandidate>[];
 
     for (var rowIndex = 0; rowIndex < document.rows.length; rowIndex++) {
@@ -94,6 +110,9 @@ class MisfitCandidateReader {
       if (!_hasSupportedHeader(dateHeader)) {
         continue;
       }
+
+      final programDay = _extractProgramDay(dateHeader);
+      final resolvedDate = dateResolution?.dateFor(programDay);
 
       final resultRowIndex = rowIndex + 1;
 
@@ -133,7 +152,9 @@ class MisfitCandidateReader {
             sourceRow: rowIndex + 1,
             sourceColumn: columnIndex + 1,
             dateHeader: dateHeader,
-            programDay: _extractProgramDay(dateHeader),
+            programDay: programDay,
+            date: resolvedDate?.date ?? '',
+            dateStatus: resolvedDate?.status ?? MisfitDateStatus.unresolved,
             workoutType: workoutType,
             prescription: _prescriptionText(workoutType, programmingText),
             modality: modalities.join('/'),

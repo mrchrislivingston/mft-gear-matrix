@@ -202,37 +202,134 @@ class DatabaseService {
   Future<int> insertWorkout(LogEntry workout) async {
     final db = await database;
 
+    return db.transaction((transaction) {
+      return _insertWorkout(transaction, workout);
+    });
+  }
+
+  Future<int> insertWorkoutsAtomically(List<LogEntry> workouts) async {
+    final db = await database;
+
     return db.transaction((transaction) async {
-      final workoutId = await transaction.insert('workouts', {
-        'prescription_id': workout.prescriptionId,
-        'modality': workout.modality.name,
-        'workout_date': workout.date.toIso8601String(),
-        'source_workbook': workout.sourceWorkbook,
-        'program_day': workout.programDay,
-        'duration': workout.duration,
-        'work_duration': workout.workDuration,
-        'interval_count': workout.intervalCount,
-        'scoring_metric': workout.scoringMetric?.storageKey,
-        'notes': workout.notes,
-      });
+      var imported = 0;
 
-      for (final interval in workout.intervals) {
-        final intervalId = await transaction.insert('workout_intervals', {
-          'workout_id': workoutId,
-          'interval_number': interval.intervalNumber,
-        });
+      for (final workout in workouts) {
+        final duplicate = await _workoutExists(
+          transaction,
+          prescriptionId: workout.prescriptionId,
+          modality: workout.modality.name,
+          date: workout.date.toIso8601String().substring(0, 10),
+          workDuration: workout.workDuration,
+          intervalCount: workout.intervalCount,
+          sourceWorkbook: workout.sourceWorkbook,
+          programDay: workout.programDay,
+        );
 
-        for (final metricEntry in interval.values.entries) {
-          await transaction.insert('interval_metrics', {
-            'interval_id': intervalId,
-            'metric': metricEntry.key.storageKey,
-            'value': metricEntry.value,
-          });
+        if (duplicate) {
+          continue;
         }
+
+        await _insertWorkout(transaction, workout);
+        imported++;
       }
 
-      return workoutId;
+      return imported;
     });
+  }
+
+  Future<int> _insertWorkout(
+    DatabaseExecutor executor,
+    LogEntry workout,
+  ) async {
+    final workoutId = await executor.insert('workouts', {
+      'prescription_id': workout.prescriptionId,
+      'modality': workout.modality.name,
+      'workout_date': workout.date.toIso8601String(),
+      'source_workbook': workout.sourceWorkbook,
+      'program_day': workout.programDay,
+      'duration': workout.duration,
+      'work_duration': workout.workDuration,
+      'interval_count': workout.intervalCount,
+      'scoring_metric': workout.scoringMetric?.storageKey,
+      'notes': workout.notes,
+    });
+
+    for (final interval in workout.intervals) {
+      final intervalId = await executor.insert('workout_intervals', {
+        'workout_id': workoutId,
+        'interval_number': interval.intervalNumber,
+      });
+
+      for (final metricEntry in interval.values.entries) {
+        await executor.insert('interval_metrics', {
+          'interval_id': intervalId,
+          'metric': metricEntry.key.storageKey,
+          'value': metricEntry.value,
+        });
+      }
+    }
+
+    return workoutId;
+  }
+
+  Future<bool> workoutExists({
+    required String prescriptionId,
+    required String modality,
+    required String date,
+    required String workDuration,
+    required int intervalCount,
+    required String sourceWorkbook,
+    required String programDay,
+  }) async {
+    final db = await database;
+
+    return _workoutExists(
+      db,
+      prescriptionId: prescriptionId,
+      modality: modality,
+      date: date,
+      workDuration: workDuration,
+      intervalCount: intervalCount,
+      sourceWorkbook: sourceWorkbook,
+      programDay: programDay,
+    );
+  }
+
+  Future<bool> _workoutExists(
+    DatabaseExecutor executor, {
+    required String prescriptionId,
+    required String modality,
+    required String date,
+    required String workDuration,
+    required int intervalCount,
+    required String sourceWorkbook,
+    required String programDay,
+  }) async {
+    final rows = await executor.query(
+      'workouts',
+      columns: ['id'],
+      where: '''
+        prescription_id = ?
+        AND modality = ?
+        AND substr(workout_date, 1, 10) = ?
+        AND work_duration = ?
+        AND interval_count = ?
+        AND source_workbook = ?
+        AND program_day = ?
+      ''',
+      whereArgs: [
+        prescriptionId,
+        modality,
+        date,
+        workDuration,
+        intervalCount,
+        sourceWorkbook,
+        programDay,
+      ],
+      limit: 1,
+    );
+
+    return rows.isNotEmpty;
   }
 
   Future<void> deleteWorkout(int workoutId) async {

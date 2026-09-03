@@ -579,6 +579,41 @@ such as mixed prescriptions and benchmark workouts.
 - Next steps are calendar-date resolution, duplicate detection,
   explicit final approval, and transactional SQLite import.
 
+### In-App Historical Import Completion Checkpoint
+
+- Added calendar-date resolution for Misfit worksheet headers, including
+  ordinal dates, numeric dates, inferred program days, and calendar-year
+  rollover. Users confirm the calendar year containing W1D1 before
+  review.
+- Phase II date resolution mapped all 53 candidates, from W1D1 on
+  2025-11-03 through the January 2026 program days.
+- Added read-only SQLite duplicate detection using the same workout
+  identity as the Python importer: prescription, modality, date, work
+  duration, interval count, source workbook, and program day.
+- Successfully normalized candidates are selected by default. Parse
+  failures and existing database records are excluded and cannot be
+  accidentally selected.
+- Added normalized-preview conversion into typed `LogEntry`,
+  `IntervalResult`, `Modality`, and `WorkoutMetric` values while
+  preserving the original recorded result as workout notes.
+- Added an explicit final confirmation dialog and an atomic SQLite batch
+  import. Duplicate identity is rechecked inside the transaction before
+  any workout is inserted.
+- Imported 17 Phase II Matrix workouts through the app. The G4 Run at
+  W3D2 and the note-only Z2 Echo workouts at W4D1 and W6D1 were
+  intentionally excluded.
+- The database now contains 80 Matrix workouts: 76 historical imports
+  and 4 manual/app workouts. Eight benchmark attempts remain stored
+  separately.
+- A post-import duplicate scan found all 17 Phase II workouts already
+  present, and the G2 Row W4D6 workout was verified in History with its
+  date, execution plan, two interval distances, paces, and original
+  notes.
+- Flutter tests pass 89/89 and the Python historical-import suite passes
+  22/22.
+- Next steps are in-app benchmark discovery/import and additional import
+  workflow polish.
+
 ### Benchmark Architecture Findings
 
 - Benchmarks should not be inferred from the literal word "benchmark".

@@ -388,6 +388,23 @@ class AppState {
     return mergedTargets;
   }
 
+  Future<int> importLogsAtomically(List<LogEntry> importedLogs) async {
+    if (kIsWeb) {
+      throw UnsupportedError('Historical CSV import is not supported on web.');
+    }
+
+    final imported = await DatabaseService.instance.insertWorkoutsAtomically(
+      importedLogs,
+    );
+
+    final sqliteWorkouts = await DatabaseService.instance.getWorkouts();
+    logs
+      ..clear()
+      ..addAll(sqliteWorkouts);
+
+    return imported;
+  }
+
   Future<void> addLog(LogEntry log) async {
     logs.add(log);
 
