@@ -6,6 +6,8 @@ import sqlite3
 from pathlib import Path
 
 from benchmark_models import NormalizedBenchmarkAttempt
+from benchmark_normalizer import normalize_benchmark_candidates
+from benchmark_reader import read_benchmark_candidates
 
 
 DEFAULT_DATABASE_PATH = (
@@ -16,6 +18,12 @@ DEFAULT_DATABASE_PATH = (
     / "Data"
     / "Documents"
     / "mft_gear_matrix.db"
+)
+
+PHASE_II_INPUT_PATH = (
+    Path(__file__).resolve().parent
+    / "input"
+    / "Chris Livingston - Remote Coaching - Phase II 2025_2026.csv"
 )
 
 
@@ -310,6 +318,15 @@ def configured_attempts() -> list[NormalizedBenchmarkAttempt]:
     ]
 
 
+def phase_ii_attempts() -> list[NormalizedBenchmarkAttempt]:
+    candidates = read_benchmark_candidates(
+        input_path=PHASE_II_INPUT_PATH,
+        year=2025,
+    )
+
+    return normalize_benchmark_candidates(candidates)
+
+
 def main() -> None:
     args = parse_args()
     database_path: Path = args.database
@@ -327,10 +344,22 @@ def main() -> None:
 
         print(f"Database: {database_path}")
         print("Database schema: OK")
-        attempts = configured_attempts()
+        original_attempts = configured_attempts()
+        imported_phase_attempts = phase_ii_attempts()
+        attempts = original_attempts + imported_phase_attempts
 
         print()
-        print(f"Configured benchmark attempts: {len(attempts)}")
+        print(
+            "Configured benchmark attempts: "
+            f"{len(original_attempts)}"
+        )
+        print(
+            "Phase II benchmark attempts: "
+            f"{len(imported_phase_attempts)}"
+        )
+        print(
+            f"Total benchmark attempts considered: {len(attempts)}"
+        )
         print()
 
         ready_attempts: list[NormalizedBenchmarkAttempt] = []

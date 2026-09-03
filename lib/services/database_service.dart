@@ -496,6 +496,23 @@ class DatabaseService {
     return true;
   }
 
+  Future<Map<String, int>> getBenchmarkAttemptCounts() async {
+    final db = await database;
+
+    final rows = await db.rawQuery('''
+      SELECT
+        benchmark_id,
+        COUNT(*) AS attempt_count
+      FROM benchmark_attempts
+      GROUP BY benchmark_id
+    ''');
+
+    return {
+      for (final row in rows)
+        row['benchmark_id'] as String: (row['attempt_count'] as num).toInt(),
+    };
+  }
+
   Future<List<BenchmarkAttempt>> getBenchmarkAttempts({
     String? benchmarkId,
   }) async {

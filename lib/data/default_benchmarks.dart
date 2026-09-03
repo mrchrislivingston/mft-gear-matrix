@@ -4,6 +4,57 @@ import '../models/benchmark_score_type.dart';
 List<Benchmark> buildDefaultBenchmarks() {
   return const [
     Benchmark(
+      id: 'matt_echo_bike',
+      name: 'M.A.T.T. Echo Bike Test',
+      description: """
+AMRAP 40 Minutes
+
+Echo Bike for Average Pace
+
+Score is average Watts
+
+""",
+      scoreType: BenchmarkScoreType.averageWatts,
+    ),
+    Benchmark(
+      id: 'cube_steaked',
+      name: 'Cube Steaked',
+      description: """
+Four 4:00 AMRAP sections with 4:00 rest.
+
+Score is total reps completed in the max-rep sections.
+
+""",
+      scoreType: BenchmarkScoreType.totalReps,
+    ),
+    Benchmark(
+      id: 'row_mount_doom',
+      name: 'Row Mount Doom',
+      description: """
+Every 2:00 Until Failure
+
+Row 20/13 Calories
+
+Add 1 Calorie Every Round
+
+Score is total accumulated calories, including calories completed
+in the failed round.
+
+""",
+      scoreType: BenchmarkScoreType.totalCalories,
+    ),
+    Benchmark(
+      id: 'power_output_bike_test',
+      name: 'Power Output Bike Test',
+      description: """
+For Time
+
+50/40 Calorie C2 Bike
+
+""",
+      scoreType: BenchmarkScoreType.forTime,
+    ),
+    Benchmark(
       id: 'matt_row',
       name: 'M.A.T.T. Row Test',
       description: '''

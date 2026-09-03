@@ -614,6 +614,37 @@ such as mixed prescriptions and benchmark workouts.
 - Next steps are in-app benchmark discovery/import and additional import
   workflow polish.
 
+### Phase II Benchmark Import Checkpoint
+
+- Phase II benchmark discovery now scans every result row between a
+  programming row and the next workout header instead of assuming that
+  the result is exactly one row below the programming.
+- Retests select the result row whose `WEEK N` label matches the
+  programming week. Exact carried-forward results can be discarded as a
+  fallback, while unresolved ambiguity is flagged for review rather than
+  guessed.
+- The Phase II worksheet contains eight benchmark occurrences: six
+  recorded attempts and two Power Output Bike Test occurrences with no
+  recorded result.
+- Added definitions for M.A.T.T. Echo Bike Test, Cube Steaked, Row Mount
+  Doom, and Power Output Bike Test.
+- Imported the six recorded Phase II benchmark attempts:
+  - M.A.T.T. Echo Bike: 288 watts on 2025-11-03 and 302 watts on
+    2025-12-29.
+  - Cube Steaked: 145 reps on 2025-11-04 and 185 reps on 2025-12-30.
+  - Row Mount Doom: 543 calories on 2025-11-08 and 588 calories on
+    2026-01-03.
+- The benchmark importer remains dry-run-first, duplicate-safe,
+  backup-protected, and transactional. The database now contains 14
+  benchmark attempts.
+- The Benchmarks screen now displays the attempt count for every
+  benchmark definition, including zero-attempt benchmarks.
+- Flutter tests pass 90/90 and the Python historical-import suite passes
+  25/25.
+- Next steps are bringing reusable benchmark discovery, normalization,
+  review, and import into the same in-app CSV workflow used for Matrix
+  workouts, followed by rescanning the remaining historical workbooks.
+
 ### Benchmark Architecture Findings
 
 - Benchmarks should not be inferred from the literal word "benchmark".
@@ -645,12 +676,12 @@ such as mixed prescriptions and benchmark workouts.
 
 **## Historical Import**
 
-- Re-scan every historical workbook using the maintained benchmark names
-  and aliases.
-- Add any newly discovered benchmark definitions and attempts through the
+- Add reusable benchmark discovery, normalization, review, duplicate
+  detection, and import to the existing in-app CSV workflow.
+- Re-scan the remaining historical workbooks using the maintained
+  benchmark names and aliases.
+- Add newly discovered benchmark definitions and attempts through the
   Benchmark import path rather than Matrix prescriptions.
-- Extend benchmark discovery beyond the currently configured Phase 1
-  attempts into reusable parsing and normalization.
 - Implement the remaining deferred mixed-Gear, mixed-Power, and
   mixed-modality workout cases.
 - Keep all historical-import components covered by the automatically

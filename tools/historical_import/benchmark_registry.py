@@ -25,6 +25,14 @@ BENCHMARK_REGISTRY = (
         ),
     ),
     BenchmarkRegistryEntry(
+        key="power_output_bike_test",
+        display_name="Power Output Bike Test",
+        aliases=(
+            "Power Output Bike Test",
+            "Power Output C2 Bike Test",
+        ),
+    ),
+    BenchmarkRegistryEntry(
         key="cleo",
         display_name="Cleo",
         aliases=("Cleo",),

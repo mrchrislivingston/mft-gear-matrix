@@ -19,6 +19,9 @@ class BenchmarkCandidate:
     modality: str
     programming_text: str
     result_text: str
+    result_source_row: int = 0
+    result_status: str = "selected"
+    result_reason: str = ""
 
     def to_dict(self) -> dict[str, object]:
         data = asdict(self)
