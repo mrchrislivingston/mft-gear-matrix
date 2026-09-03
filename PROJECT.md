@@ -555,6 +555,30 @@ such as mixed prescriptions and benchmark workouts.
   duplicate detection, explicit approval, SQLite import, and in-app
   benchmark discovery.
 
+### In-App Result Normalization Checkpoint
+
+- The in-app Misfit CSV workflow now matches the Python candidate scan
+  for the Phase II 2025–2026 worksheet: 53 candidates, including 20
+  READY, 32 SKIP, and 1 TBD_LATER.
+- Added Dart parsers for execution plans, average metrics, interval
+  paces, interval times, structured interval values, distances, and
+  pace-distance pairs.
+- Added Phase II result-format support in both the Dart and Python
+  parsers, including fractional-mile distances, numbered meter results,
+  distance/pace pairs, and duration-only Zone results.
+- Result normalization succeeds for 17 of the 20 READY Phase II
+  candidates. The G4 Run at W3D2 and the note-only Z2 Echo workouts at
+  W4D1 and W6D1 remain excluded.
+- The review screen displays captured execution and interval data,
+  identifies parse failures, and provides per-workout Include/Skip
+  controls. Successfully parsed workouts are included by default;
+  failures are disabled and excluded.
+- The import workflow remains preview-only and makes no SQLite changes.
+- Flutter tests pass 76/76 and the Python historical-import suite passes
+  22/22.
+- Next steps are calendar-date resolution, duplicate detection,
+  explicit final approval, and transactional SQLite import.
+
 ### Benchmark Architecture Findings
 
 - Benchmarks should not be inferred from the literal word "benchmark".

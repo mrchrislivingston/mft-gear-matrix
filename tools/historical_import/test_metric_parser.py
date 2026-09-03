@@ -111,6 +111,7 @@ class MetricParserTests(unittest.TestCase):
                 "watts": "183",
                 "heartRate": "151",
                 "primaryMetric": "2:04",
+                "distance": "9680",
             },
         )
 

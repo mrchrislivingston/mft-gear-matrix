@@ -53,7 +53,7 @@ AVERAGE_PACE_PATTERN = re.compile(
 )
 
 PACE_LABEL_PATTERN = re.compile(
-    r"\bpace\s+"
+    r"\bpace\s*[-:]?\s*"
     r"(\d+:\d+(?:\.\d+)?)",
     re.IGNORECASE,
 )
@@ -68,13 +68,18 @@ PACE_AVG_SUFFIX_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+LABELED_DISTANCE_PATTERN = re.compile(
+    r"\bdistance\s*[-:]\s*(\.?\d+(?:\.\d+)?)\b",
+    re.IGNORECASE,
+)
+
 DISTANCE_MILES_PATTERN = re.compile(
-    r"\b(\d+(?:\.\d+)?)\s*miles?\b",
+    r"(?<!\d)(\.?\d+(?:\.\d+)?)\s*miles?\b",
     re.IGNORECASE,
 )
 
 DISTANCE_KM_PATTERN = re.compile(
-    r"\b(\d+(?:\.\d+)?)\s*KM\b",
+    r"(?<!\d)(\.?\d+(?:\.\d+)?)\s*KM\b",
     re.IGNORECASE,
 )
 
@@ -240,6 +245,14 @@ def extract_average_pace(
 def extract_distance(
     result_text: str,
 ) -> dict[str, str]:
+    match = LABELED_DISTANCE_PATTERN.search(
+        result_text,
+    )
+    if match is not None:
+        return {
+            "distance": match.group(1),
+        }
+
     match = DISTANCE_MILES_PATTERN.search(
         result_text,
     )

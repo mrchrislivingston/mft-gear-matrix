@@ -242,19 +242,30 @@ def normalize_candidate(
                         )
 
                         if not metric_values:
-                            raise ValueError(
-                                "No supported workout metrics could be extracted",
-                            )
-
-                        intervals = (
-                            NormalizedInterval(
-                                interval_number=1,
-                                values=_canonicalize_interval_values(
-                                    candidate,
-                                    metric_values,
+                            if (
+                                candidate.workout_type is WorkoutType.ZONE
+                                and extract_duration(candidate.result_text)
+                            ):
+                                intervals = (
+                                    NormalizedInterval(
+                                        interval_number=1,
+                                        values={},
+                                    ),
+                                )
+                            else:
+                                raise ValueError(
+                                    "No supported workout metrics could be extracted",
+                                )
+                        else:
+                            intervals = (
+                                NormalizedInterval(
+                                    interval_number=1,
+                                    values=_canonicalize_interval_values(
+                                        candidate,
+                                        metric_values,
+                                    ),
                                 ),
-                            ),
-                        )
+                            )
 
     return NormalizedWorkout(
         source_id=candidate.source_id,

@@ -6,8 +6,11 @@ from distance_interval_parser import extract_interval_distances
 def test_kilometer_distances() -> None:
     distances = extract_interval_distances(
         """This was hard, but manageable.
+
 Distances in Km..Thanks Garmin
+
 1.03/1.03/1.03/1.03/1.03/1.04/1.06/1.04
+
 """
     )
 
@@ -21,6 +24,32 @@ Distances in Km..Thanks Garmin
         {"distance": "1060"},
         {"distance": "1040"},
     ]
+
+
+def test_numbered_meter_distances() -> None:
+    distances = extract_interval_distances(
+        """Probably should have done more than 18 box jump overs.
+
+1-500, 2-238, 3-532, 4-251, 5-522
+Total - 2043
+"""
+    )
+
+    assert distances == [
+        {"distance": "500"},
+        {"distance": "238"},
+        {"distance": "532"},
+        {"distance": "251"},
+        {"distance": "522"},
+    ]
+
+
+def test_nonsequential_numbered_values_return_empty() -> None:
+    distances = extract_interval_distances(
+        "1-500, 3-532, 4-251"
+    )
+
+    assert distances == []
 
 
 def test_unlabeled_numbers_return_empty() -> None:
@@ -41,9 +70,10 @@ def test_no_distances_returns_empty() -> None:
 
 def main() -> None:
     test_kilometer_distances()
+    test_numbered_meter_distances()
+    test_nonsequential_numbered_values_return_empty()
     test_unlabeled_numbers_return_empty()
     test_no_distances_returns_empty()
-
     print("All distance interval parser tests passed.")
 
 

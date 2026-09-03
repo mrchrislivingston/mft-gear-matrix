@@ -12,6 +12,19 @@ PACE_DISTANCE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+DISTANCE_PACE_SLASH_PATTERN = re.compile(
+    r"(?P<distance>\d+(?:\.\d+)?)\s*m\s*/\s*"
+    r"(?P<pace>\d{1,2}:\d{2}(?:\.\d+)?)",
+    re.IGNORECASE,
+)
+
+DISTANCE_PACE_TABLE_PATTERN = re.compile(
+    r"(?P<distance>\d+(?:\.\d+)?)\s*m\s*,\s*"
+    r"(?P<pace>\d{1,2}:\d{2}(?:\.\d+)?)"
+    r"\s*min\s*/\s*mile",
+    re.IGNORECASE,
+)
+
 
 def _normalize_pace(value: str) -> str:
     if ":" in value:
@@ -25,10 +38,7 @@ def _normalize_pace(value: str) -> str:
     if match is None:
         return value
 
-    return (
-        f"{match.group(1)}:"
-        f"{match.group(2)}"
-    )
+    return f"{match.group(1)}:{match.group(2)}"
 
 
 def _normalize_distance(
@@ -40,6 +50,33 @@ def _normalize_distance(
         return str(round(kilometers * 1000))
 
     return value
+
+
+def _without_summary_lines(result_text: str) -> str:
+    return "\n".join(
+        line
+        for line in result_text.splitlines()
+        if not re.match(
+            r"^\s*Total\b",
+            line,
+            re.IGNORECASE,
+        )
+    )
+
+
+def _extract_distance_first(
+    pattern: re.Pattern[str],
+    interval_text: str,
+) -> list[dict[str, str]]:
+    return [
+        {
+            "primaryMetric": _normalize_pace(
+                match.group("pace"),
+            ),
+            "distance": match.group("distance"),
+        }
+        for match in pattern.finditer(interval_text)
+    ]
 
 
 def extract_pace_distance_intervals(
@@ -55,21 +92,35 @@ def extract_pace_distance_intervals(
         flags=re.IGNORECASE,
     )[0]
 
-    intervals: list[dict[str, str]] = []
-
-    for match in PACE_DISTANCE_PATTERN.finditer(
+    interval_text = _without_summary_lines(
         interval_text,
-    ):
-        intervals.append(
-            {
-                "primaryMetric": _normalize_pace(
-                    match.group("pace"),
-                ),
-                "distance": _normalize_distance(
-                    match.group("distance"),
-                    match.group("unit"),
-                ),
-            },
-        )
+    )
 
-    return intervals
+    intervals = _extract_distance_first(
+        DISTANCE_PACE_TABLE_PATTERN,
+        interval_text,
+    )
+    if intervals:
+        return intervals
+
+    intervals = _extract_distance_first(
+        DISTANCE_PACE_SLASH_PATTERN,
+        interval_text,
+    )
+    if intervals:
+        return intervals
+
+    return [
+        {
+            "primaryMetric": _normalize_pace(
+                match.group("pace"),
+            ),
+            "distance": _normalize_distance(
+                match.group("distance"),
+                match.group("unit"),
+            ),
+        }
+        for match in PACE_DISTANCE_PATTERN.finditer(
+            interval_text,
+        )
+    ]
