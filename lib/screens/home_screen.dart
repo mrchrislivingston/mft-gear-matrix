@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'benchmark_screen.dart';
 import 'history_screen.dart';
+import 'import_history_screen.dart';
 import 'matrix_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -46,6 +47,18 @@ class HomeScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const HistoryScreen()),
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+            _HomeButton(
+              label: 'Import Misfit History',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ImportHistoryScreen(),
+                  ),
                 );
               },
             ),

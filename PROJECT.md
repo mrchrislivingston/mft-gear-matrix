@@ -529,6 +529,32 @@ such as mixed prescriptions and benchmark workouts.
   multiple prescriptions within one workout, and three use multiple
   modalities. These require a Mixed Workout data model before import.
 
+### In-App Misfit CSV Import Checkpoint
+
+- Added the first read-only in-app historical import workflow for Misfit
+  coaching spreadsheets.
+- Added local macOS CSV selection using `file_picker` and CSV decoding
+  using the `csv` package. User-selected read-only file access was added
+  to both macOS entitlement files.
+- Added an `Import Misfit History` home-screen entry with Google Sheets
+  CSV-export instructions.
+- Ported Matrix workout discovery and classification from Python to
+  Dart for Gear, Power, and Zone workouts.
+- Validated the Dart scanner against the previously unprocessed Phase II
+  2025–2026 workbook. Dart and Python produced exact parity: 53 Matrix
+  candidates, including 20 READY, 32 SKIP, and 1 TBD_LATER.
+- Added a filterable, read-only review screen showing source location,
+  prescription, modality, programming, recorded result, and status.
+- Ported execution-plan parsing to Dart. Supported formats include
+  count-first, duration-first, multiplication-symbol, calorie-round,
+  and Power interval prescriptions.
+- The import workflow remains preview-only and makes no SQLite changes.
+- Flutter tests pass 32/32 and the Python historical-import suite passes
+  19/19.
+- Next steps are calendar-date resolution, result normalization,
+  duplicate detection, explicit approval, SQLite import, and in-app
+  benchmark discovery.
+
 ### Benchmark Architecture Findings
 
 - Benchmarks should not be inferred from the literal word "benchmark".
