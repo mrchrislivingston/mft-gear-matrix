@@ -33,3 +33,4 @@ class NormalizedWorkout:
     notes: str
 
     intervals: tuple[NormalizedInterval, ...]
+    scoring_metric: str | None = None

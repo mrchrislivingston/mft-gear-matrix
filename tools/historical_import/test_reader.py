@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory
 
 from models import DateStatus, ImportStatus, WorkoutType
 from reader import (
+    _parse_or_infer_date,
     has_supported_date_header,
     has_week_day_header,
     parse_date_header,
@@ -275,11 +276,48 @@ def test_explicit_program_start_date() -> None:
     )
 
 
+
+def test_corrects_one_day_program_calendar_conflict() -> None:
+    program_start = datetime(2026, 1, 5)
+
+    corrected_date, corrected_status = _parse_or_infer_date(
+        "Sun - Jan 11 - W2D1",
+        2026,
+        program_start,
+    )
+
+    assert corrected_date == "2026-01-12"
+    assert corrected_status is DateStatus.CORRECTED
+
+    exact_date, exact_status = _parse_or_infer_date(
+        "Mon - Jan 12 - W2D1",
+        2026,
+        program_start,
+    )
+
+    assert exact_date == "2026-01-12"
+    assert exact_status is DateStatus.EXACT
+
+    try:
+        _parse_or_infer_date(
+            "Fri - Jan 9 - W2D1",
+            2026,
+            program_start,
+        )
+    except ValueError as error:
+        assert "W2D1 date conflicts" in str(error)
+    else:
+        raise AssertionError(
+            "Expected a larger date conflict to fail",
+        )
+
+
 def main() -> None:
     test_date_parsing()
     test_exact_and_inferred_candidates()
     test_unresolved_date_requires_review()
     test_explicit_program_start_date()
+    test_corrects_one_day_program_calendar_conflict()
 
     print("All reader tests passed.")
 

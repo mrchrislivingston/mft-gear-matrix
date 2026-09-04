@@ -8,7 +8,8 @@ enum BenchmarkScoreType {
   totalDistance,
   lowestIntervalCalories,
   lowestIntervalWatts,
-  lowestIntervalDistance;
+  lowestIntervalDistance,
+  unconfigured;
 
   String get storageKey {
     return name;
@@ -36,6 +37,8 @@ enum BenchmarkScoreType {
         return 'Lowest Interval Watts';
       case BenchmarkScoreType.lowestIntervalDistance:
         return 'Lowest Interval Distance';
+      case BenchmarkScoreType.unconfigured:
+        return 'Scoring details pending';
     }
   }
 }

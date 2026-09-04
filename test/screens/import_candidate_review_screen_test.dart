@@ -119,4 +119,65 @@ void main() {
     expect(find.text('Selected for import: 0'), findsOneWidget);
     expect(tester.widget<Checkbox>(enabledCheckbox).value, isFalse);
   });
+  testWidgets('allows a parsed review workout to be manually included', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    const summary = MisfitCandidateSummary(
+      candidates: [
+        MisfitWorkoutCandidate(
+          sourceRow: 19,
+          sourceColumn: 10,
+          dateHeader: 'Wed - Feb 4 - W5D3',
+          programDay: 'W5D3',
+          workoutType: MisfitWorkoutType.gear,
+          prescription: 'G7',
+          modality: 'echo',
+          importStatus: MisfitImportStatus.review,
+          statusReason: 'Result may describe a partial workout',
+          resultDetail: MisfitResultDetail.intervalResults,
+          programmingText:
+              'Build Echo - 7th Gear\n'
+              'AMRAP 2:30 x 5\n'
+              'Echo Bike for Meters @ 7th Gear\n'
+              'Rest 3:15',
+          resultText:
+              'Made it through 3 rounds.\n'
+              'RPM/Cals/Watts/KM\n'
+              '73/54/434/1.84KM\n'
+              '74/56/451/1.86KM\n'
+              '74/56/451/1.86KM',
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(home: ImportCandidateReviewScreen(summary: summary)),
+    );
+
+    expect(find.text('Selected for import: 0'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Needs review (1)'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('G7 • echo'), findsOneWidget);
+
+    await tester.tap(find.text('G7 • echo'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Captured intervals: 3'), findsOneWidget);
+
+    final checkbox = find.byType(Checkbox);
+    expect(checkbox, findsOneWidget);
+    expect(tester.widget<Checkbox>(checkbox).onChanged, isNotNull);
+    expect(tester.widget<Checkbox>(checkbox).value, isFalse);
+
+    await tester.tap(checkbox);
+    await tester.pump();
+
+    expect(find.text('Selected for import: 1'), findsOneWidget);
+    expect(tester.widget<Checkbox>(checkbox).value, isTrue);
+  });
 }

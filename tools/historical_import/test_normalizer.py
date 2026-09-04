@@ -245,18 +245,19 @@ def test_power_echo_structured_intervals() -> None:
     workout = normalize_candidate(candidate)
 
     assert workout.prescription_id == "P2"
+    assert workout.scoring_metric == "calories"
     assert workout.modality == "echo"
 
     assert len(workout.intervals) == 4
 
     assert workout.intervals[0].values == {
         "watts": "691",
-        "primaryMetric": "87",
+        "rpm": "87",
         "calories": "18",
     }
 
 
-def test_echo_rpm_becomes_primary_metric() -> None:
+def test_echo_rpm_stays_supporting_metric() -> None:
     candidate = WorkoutCandidate(
         source_id="phase1-row-62",
         source_workbook="Phase 1 2026",
@@ -286,16 +287,17 @@ def test_echo_rpm_becomes_primary_metric() -> None:
     )
 
     workout = normalize_candidate(candidate)
+    assert workout.scoring_metric == "calories"
 
     assert len(workout.intervals) == 5
 
     assert workout.intervals[0].values == {
         "calories": "79",
-        "primaryMetric": "66",
+        "rpm": "66",
     }
 
     assert [
-        interval.values["primaryMetric"]
+        interval.values["rpm"]
         for interval in workout.intervals
     ] == [
         "66",
@@ -346,7 +348,7 @@ def main() -> None:
     test_gear_one_bike_interval_workout()
     test_programming_execution_plan_overrides_default()
     test_power_echo_structured_intervals()
-    test_echo_rpm_becomes_primary_metric()
+    test_echo_rpm_stays_supporting_metric()
     test_bikeerg_rpm_stays_secondary_metric()
 
     print("All normalizer tests passed.")

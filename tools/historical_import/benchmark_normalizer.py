@@ -13,6 +13,24 @@ _AVERAGE_WATTS_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+_TOTAL_AVERAGE_WATTS_PATTERN = re.compile(
+    r"\bTotal\s+Avg\s*-\s*[^,\n]+,\s*"
+    r"(?P<score>\d+)\s*w\b",
+    re.IGNORECASE,
+)
+
+_TOTAL_CALORIES_PATTERN = re.compile(
+    r"\bTotal\s+(?:Cals?|Calories?)\s*[-:]\s*"
+    r"(?P<score>\d+)\b",
+    re.IGNORECASE,
+)
+
+_ROUND_DETAIL_PATTERN = re.compile(
+    r"(?m)^\s*Rd\d+\s*-\s*.+$",
+    re.IGNORECASE,
+)
+
+
 _AVERAGE_RPM_PATTERN = re.compile(
     r"\bAvg(?:erage)?\s+RPM\s*[-:]\s*(?P<rpm>\d+)\b",
     re.IGNORECASE,
@@ -49,6 +67,14 @@ def _matt_benchmark_id(
     if "echo" in modalities:
         return "matt_echo_bike"
 
+    programming = candidate.programming_text.casefold()
+
+    if "c2 bike" in programming or "bikeerg" in programming:
+        return "matt_c2_bike"
+
+    if "ski" in modalities or "ski" in programming:
+        return "matt_ski"
+
     if "row" in modalities:
         return "matt_row"
 
@@ -64,6 +90,11 @@ def _normalize_matt(
     watts_match = _AVERAGE_WATTS_PATTERN.search(
         candidate.result_text,
     )
+
+    if watts_match is None:
+        watts_match = _TOTAL_AVERAGE_WATTS_PATTERN.search(
+            candidate.result_text,
+        )
 
     if watts_match is None:
         raise ValueError(
@@ -192,6 +223,61 @@ def _normalize_row_mount_doom(
     )
 
 
+def _normalize_row_cube_test(
+    candidate: BenchmarkCandidate,
+) -> NormalizedBenchmarkAttempt:
+    match = _TOTAL_CALORIES_PATTERN.search(
+        candidate.result_text,
+    )
+
+    if match is None:
+        raise ValueError(
+            "Row Cube Test result does not contain total calories"
+        )
+
+    round_details = [
+        value.strip()
+        for value in _ROUND_DETAIL_PATTERN.findall(
+            candidate.result_text,
+        )
+    ]
+
+    return NormalizedBenchmarkAttempt(
+        benchmark_id="row_cube_test",
+        date=candidate.date,
+        score=match.group("score"),
+        source_workbook=candidate.source_workbook,
+        program_day=candidate.program_day,
+        details="\n".join(round_details),
+        notes=candidate.result_text,
+    )
+
+
+def _normalize_spiders_on_mars(
+    candidate: BenchmarkCandidate,
+) -> NormalizedBenchmarkAttempt:
+    calorie_values = re.findall(
+        r"\b(\d+)\s+Cals?\b",
+        candidate.result_text,
+        re.IGNORECASE,
+    )
+
+    if not calorie_values:
+        raise ValueError(
+            "Spiders on Mars result does not contain "
+            "final-row calories"
+        )
+
+    return NormalizedBenchmarkAttempt(
+        benchmark_id="spiders_on_mars",
+        date=candidate.date,
+        score=calorie_values[-1],
+        source_workbook=candidate.source_workbook,
+        program_day=candidate.program_day,
+        notes=candidate.result_text,
+    )
+
+
 def normalize_benchmark_candidate(
     candidate: BenchmarkCandidate,
 ) -> NormalizedBenchmarkAttempt | None:
@@ -215,9 +301,20 @@ def normalize_benchmark_candidate(
     if candidate.benchmark_key == "row_mount_doom":
         return _normalize_row_mount_doom(candidate)
 
-    if candidate.benchmark_key == "power_output_bike_test":
+    if candidate.benchmark_key == "row_cube_test":
+        return _normalize_row_cube_test(candidate)
+
+    if candidate.benchmark_key == "spiders_on_mars":
+        return _normalize_spiders_on_mars(candidate)
+
+    if candidate.benchmark_key in {
+        "power_output_bike_test",
+        "power_output_echo_bike_test",
+        "power_output_ski_test",
+        "power_output_row_test",
+    }:
         raise ValueError(
-            "Power Output Bike Test has a recorded result, "
+            "Power Output test has a recorded result, "
             "but no supported result parser"
         )
 

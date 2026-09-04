@@ -226,6 +226,66 @@ def test_calories_rpm_watts_round_table() -> None:
     ]
 
 
+def test_rpm_calories_watts_kilometer_table() -> None:
+    text = (
+        "RPM/Cals/Watts/KM\n"
+        "73/54/434/1.84KM\n"
+        "74/56/451/1.86KM\n"
+        "74/56/451/1.86KM"
+    )
+
+    assert extract_watts_rpm_calories(text) == [
+        {
+            "rpm": "73",
+            "calories": "54",
+            "watts": "434",
+            "distance": "1840",
+        },
+        {
+            "rpm": "74",
+            "calories": "56",
+            "watts": "451",
+            "distance": "1860",
+        },
+        {
+            "rpm": "74",
+            "calories": "56",
+            "watts": "451",
+            "distance": "1860",
+        },
+    ]
+
+
+def test_distance_watts_calories_pace_table() -> None:
+    text = (
+        "Dist/Watts/Cals/Pace\n"
+        "692/275/52/1:48.4\n"
+        "703/288/54/1:46.7\n"
+        "709/295/55/1:45.8"
+    )
+
+    assert extract_watts_rpm_calories(text) == [
+        {
+            "distance": "692",
+            "watts": "275",
+            "calories": "52",
+            "primaryMetric": "1:48.4",
+        },
+        {
+            "distance": "703",
+            "watts": "288",
+            "calories": "54",
+            "primaryMetric": "1:46.7",
+        },
+        {
+            "distance": "709",
+            "watts": "295",
+            "calories": "55",
+            "primaryMetric": "1:45.8",
+        },
+    ]
+
+
 if __name__ == "__main__":
     test_echo_intervals()
     test_bikeerg_missing_colons()
@@ -234,6 +294,8 @@ if __name__ == "__main__":
     test_calories_per_hour_power_bike()
     test_labeled_echo_calories_rpm_rounds()
     test_calories_rpm_watts_round_table()
+    test_rpm_calories_watts_kilometer_table()
+    test_distance_watts_calories_pace_table()
 
     print(
         "All structured interval parser tests passed."

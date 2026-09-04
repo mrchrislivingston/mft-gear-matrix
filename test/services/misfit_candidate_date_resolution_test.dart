@@ -45,6 +45,27 @@ Result,Rowed for 55 min.
     expect(candidates['W9D4']?.date, '2026-01-01');
   });
 
+  test('attaches corrected dates from the program calendar', () {
+    const source = """
+Mon - Jan 5 - W1D1,Zone 2 Row
+Result,Rowed for 50 min.
+Mon - Jan 11 - W2D1,Zone 2 Row
+Result,Rowed for 50 min.
+""";
+
+    final document = csvService.decodeBytes(
+      Uint8List.fromList(utf8.encode(source)),
+    );
+
+    final summary = reader.read(document, startYear: 2026);
+    final weekTwo = summary.candidates.singleWhere(
+      (candidate) => candidate.programDay == 'W2D1',
+    );
+
+    expect(weekTwo.date, '2026-01-12');
+    expect(weekTwo.dateStatus, MisfitDateStatus.corrected);
+  });
+
   test('leaves candidate dates unresolved without a start year', () {
     const source = '''
 Mon - W1D1 - Nov 3rd,Zone 2 Row

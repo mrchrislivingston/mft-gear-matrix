@@ -33,10 +33,13 @@ void main() {
     );
   }
 
-  MisfitNormalizationAttempt attemptFor(MisfitWorkoutCandidate candidate) {
+  MisfitNormalizationAttempt attemptFor(
+    MisfitWorkoutCandidate candidate, {
+    WorkoutMetric? scoringMetric,
+  }) {
     return MisfitNormalizationAttempt(
       candidate: candidate,
-      workout: const MisfitNormalizedWorkoutPreview(
+      workout: MisfitNormalizedWorkoutPreview(
         prescriptionId: 'G3',
         modality: 'row',
         executionPlan: MisfitExecutionPlan(
@@ -44,6 +47,7 @@ void main() {
           intervalCount: 3,
         ),
         duration: '',
+        scoringMetric: scoringMetric,
         intervals: [
           MisfitNormalizedInterval(
             intervalNumber: 1,
@@ -81,6 +85,24 @@ void main() {
       WorkoutMetric.primaryMetric: '1:55',
       WorkoutMetric.heartRate: '151',
     });
+  });
+
+  test('preserves the normalized scoring metric', () {
+    final sourceCandidate = candidate(
+      programDay: 'W1D1',
+      date: '2025-11-03',
+      modality: 'echo',
+    );
+
+    final log = builder.build(
+      attempt: attemptFor(
+        sourceCandidate,
+        scoringMetric: WorkoutMetric.distance,
+      ),
+      sourceWorkbook: 'Phase III 2026',
+    );
+
+    expect(log.scoringMetric, WorkoutMetric.distance);
   });
 
   test('buildSelected includes only checked candidates', () {

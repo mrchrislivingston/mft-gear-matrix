@@ -56,10 +56,27 @@ def test_bikeerg_missing_colon_pace() -> None:
     ]
 
 
+def test_numbered_distance_and_pace_rows_with_hyphens() -> None:
+    text = (
+        "Rd1 - 1598m - 1:52.6\n"
+        "Rd2 - 1602m - 1:52.3\n"
+        "Rd3 - 1613m - 1:51.5\n"
+        "Total - 4813"
+    )
+    intervals = extract_pace_distance_intervals(text)
+
+    assert intervals == [
+        {"primaryMetric": "1:52.6", "distance": "1598"},
+        {"primaryMetric": "1:52.3", "distance": "1602"},
+        {"primaryMetric": "1:51.5", "distance": "1613"},
+    ]
+
+
 def main() -> None:
     test_run_mile_pace_and_distance()
     test_run_km_distance_converts_to_meters()
     test_bikeerg_missing_colon_pace()
+    test_numbered_distance_and_pace_rows_with_hyphens()
 
     print(
         "All pace/distance interval parser tests passed."

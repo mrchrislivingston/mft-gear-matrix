@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from distance_interval_parser import (
     extract_interval_distances,
 )
@@ -62,17 +64,27 @@ def _canonicalize_interval_values(
     candidate: WorkoutCandidate,
     values: dict[str, str],
 ) -> dict[str, str]:
-    canonical_values = dict(values)
+    return dict(values)
 
-    if (
-        candidate.modality == "echo"
-        and "rpm" in canonical_values
+
+def _scoring_metric_for(
+    candidate: WorkoutCandidate,
+) -> str | None:
+    if candidate.modality != "echo":
+        return None
+
+    programming = candidate.programming_text.lower()
+
+    if re.search(
+        r"\b(?:meters?|metres?|distance)\b",
+        programming,
     ):
-        canonical_values["primaryMetric"] = (
-            canonical_values.pop("rpm")
-        )
+        return "distance"
 
-    return canonical_values
+    if re.search(r"\bwatts?\b", programming):
+        return "watts"
+
+    return "calories"
 
 
 def normalize_candidate(
@@ -281,4 +293,5 @@ def normalize_candidate(
         duration=duration,
         notes=candidate.result_text,
         intervals=intervals,
+        scoring_metric=_scoring_metric_for(candidate),
     )

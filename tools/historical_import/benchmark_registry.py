@@ -26,10 +26,42 @@ BENCHMARK_REGISTRY = (
     ),
     BenchmarkRegistryEntry(
         key="power_output_bike_test",
-        display_name="Power Output Bike Test",
+        display_name="Power Output C2 Bike Test",
         aliases=(
             "Power Output Bike Test",
             "Power Output C2 Bike Test",
+            "C2 Bike Power Output Test",
+            "BikeErg Power Output Test",
+            "Bike Erg Power Output Test",
+        ),
+    ),
+    BenchmarkRegistryEntry(
+        key="power_output_echo_bike_test",
+        display_name="Power Output Echo Bike Test",
+        aliases=(
+            "Power Output Echo Bike Test",
+            "Echo Bike Power Output Test",
+        ),
+    ),
+    BenchmarkRegistryEntry(
+        key="power_output_ski_test",
+        display_name="Power Output Ski Test",
+        aliases=(
+            "Power Output Ski Test",
+            "Power Output SkiErg Test",
+            "Ski Power Output Test",
+            "SkiErg Power Output Test",
+            "Ski Erg Power Output Test",
+        ),
+    ),
+    BenchmarkRegistryEntry(
+        key="power_output_row_test",
+        display_name="Power Output Row Test",
+        aliases=(
+            "Power Output Row Test",
+            "Power Output Rower Test",
+            "Row Power Output Test",
+            "Rower Power Output Test",
         ),
     ),
     BenchmarkRegistryEntry(

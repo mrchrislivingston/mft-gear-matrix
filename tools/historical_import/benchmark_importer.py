@@ -26,6 +26,12 @@ PHASE_II_INPUT_PATH = (
     / "Chris Livingston - Remote Coaching - Phase II 2025_2026.csv"
 )
 
+PHASE_III_INPUT_PATH = (
+    Path(__file__).resolve().parent
+    / "input"
+    / "Chris Livingston - Remote Coaching - Phase III 2026.csv"
+)
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -327,6 +333,15 @@ def phase_ii_attempts() -> list[NormalizedBenchmarkAttempt]:
     return normalize_benchmark_candidates(candidates)
 
 
+def phase_iii_attempts() -> list[NormalizedBenchmarkAttempt]:
+    candidates = read_benchmark_candidates(
+        input_path=PHASE_III_INPUT_PATH,
+        year=2026,
+    )
+
+    return normalize_benchmark_candidates(candidates)
+
+
 def main() -> None:
     args = parse_args()
     database_path: Path = args.database
@@ -345,8 +360,13 @@ def main() -> None:
         print(f"Database: {database_path}")
         print("Database schema: OK")
         original_attempts = configured_attempts()
-        imported_phase_attempts = phase_ii_attempts()
-        attempts = original_attempts + imported_phase_attempts
+        phase_ii_imported_attempts = phase_ii_attempts()
+        phase_iii_imported_attempts = phase_iii_attempts()
+        attempts = (
+            original_attempts
+            + phase_ii_imported_attempts
+            + phase_iii_imported_attempts
+        )
 
         print()
         print(
@@ -355,7 +375,11 @@ def main() -> None:
         )
         print(
             "Phase II benchmark attempts: "
-            f"{len(imported_phase_attempts)}"
+            f"{len(phase_ii_imported_attempts)}"
+        )
+        print(
+            "Phase III benchmark attempts: "
+            f"{len(phase_iii_imported_attempts)}"
         )
         print(
             f"Total benchmark attempts considered: {len(attempts)}"

@@ -1,3 +1,4 @@
+import '../models/workout_metric.dart';
 import 'misfit_candidate_reader.dart';
 import 'misfit_distance_interval_parser.dart';
 import 'misfit_execution_plan_parser.dart';
@@ -23,6 +24,7 @@ class MisfitNormalizedWorkoutPreview {
   final String modality;
   final MisfitExecutionPlan executionPlan;
   final String duration;
+  final WorkoutMetric? scoringMetric;
   final List<MisfitNormalizedInterval> intervals;
 
   const MisfitNormalizedWorkoutPreview({
@@ -30,6 +32,7 @@ class MisfitNormalizedWorkoutPreview {
     required this.modality,
     required this.executionPlan,
     required this.duration,
+    this.scoringMetric,
     required this.intervals,
   });
 }
@@ -83,6 +86,7 @@ class MisfitWorkoutNormalizer {
       modality: candidate.modality,
       executionPlan: executionPlan,
       duration: duration,
+      scoringMetric: _scoringMetricFor(candidate),
       intervals: List.unmodifiable(intervals),
     );
   }
@@ -165,11 +169,25 @@ class MisfitWorkoutNormalizer {
   ) {
     final canonicalValues = Map<String, String>.from(values);
 
-    if (candidate.modality == 'echo' && canonicalValues.containsKey('rpm')) {
-      canonicalValues['primaryMetric'] = canonicalValues.remove('rpm')!;
+    return Map.unmodifiable(canonicalValues);
+  }
+
+  WorkoutMetric? _scoringMetricFor(MisfitWorkoutCandidate candidate) {
+    if (candidate.modality != 'echo') {
+      return null;
     }
 
-    return Map.unmodifiable(canonicalValues);
+    final programming = candidate.programmingText.toLowerCase();
+
+    if (RegExp(r'\b(?:meters?|metres?|distance)\b').hasMatch(programming)) {
+      return WorkoutMetric.distance;
+    }
+
+    if (RegExp(r'\bwatts?\b').hasMatch(programming)) {
+      return WorkoutMetric.watts;
+    }
+
+    return WorkoutMetric.calories;
   }
 
   MisfitExecutionPlan _defaultExecutionPlan(MisfitWorkoutCandidate candidate) {

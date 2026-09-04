@@ -49,6 +49,7 @@ class MisfitLogEntryBuilder {
       duration: workout.duration,
       workDuration: workout.executionPlan.workDuration,
       intervalCount: workout.executionPlan.intervalCount,
+      scoringMetric: workout.scoringMetric,
       notes: candidate.resultText,
       intervals: List.unmodifiable(intervals),
     );

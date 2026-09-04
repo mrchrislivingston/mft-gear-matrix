@@ -49,6 +49,61 @@ _MONTHS = {
 }
 
 
+def _is_likely_benchmark_result(
+    benchmark_key: str,
+    result_text: str,
+) -> bool:
+    if benchmark_key == "matt":
+        return bool(
+            re.search(
+                r"\bAvg(?:erage)?\s+Watts?\b"
+                r"|\bTotal\s+Avg\b.*?\b\d+\s*w\b",
+                result_text,
+                re.IGNORECASE | re.DOTALL,
+            ),
+        )
+
+    if (
+        benchmark_key.endswith("_cube_test")
+        or benchmark_key == "cube_steaked"
+    ):
+        return bool(
+            re.search(
+                r"\bTotal\s+(?:Cals?|Calories?)\s*[-:]\s*\d+\b"
+                r"|\bTotal\s*-\s*\d+\b",
+                result_text,
+                re.IGNORECASE,
+            ),
+        )
+
+    if benchmark_key.endswith("_mount_doom"):
+        return bool(
+            re.search(
+                r"\bthrough\s+\d+\s+of\s+"
+                r"(?:the\s+)?round\s+of\s+\d+\b",
+                result_text,
+                re.IGNORECASE,
+            ),
+        )
+
+    if benchmark_key == "spiders_on_mars":
+        return bool(
+            re.search(
+                r"\b\d+\s+Cals?\b",
+                result_text,
+                re.IGNORECASE,
+            ),
+        )
+
+    if benchmark_key.startswith("power_output_"):
+        # A bare time in another column could belong to any workout.
+        # Until an explicit cross-column Power Output result format is
+        # observed, only the normal same-column fallback is safe.
+        return False
+
+    return False
+
+
 def _cell(
     row: list[str],
     column_index: int,
@@ -129,6 +184,38 @@ def _find_phase_start_date(
         return datetime(year, month, day)
 
     return None
+
+
+def _result_cells(
+    rows: list[list[str]],
+    programming_row_index: int,
+) -> list[tuple[int, str, int, str]]:
+    values: list[tuple[int, str, int, str]] = []
+
+    for row_index in range(
+        programming_row_index + 1,
+        len(rows),
+    ):
+        row = rows[row_index]
+        label = normalize_text(row[0]) if row else ""
+
+        if _is_programming_header(label):
+            break
+
+        for column_index in range(1, len(row)):
+            result_text = _cell(row, column_index)
+
+            if result_text:
+                values.append(
+                    (
+                        row_index + 1,
+                        label,
+                        column_index,
+                        result_text,
+                    ),
+                )
+
+    return values
 
 
 def _result_rows(
@@ -240,6 +327,128 @@ def _select_result(
     )
 
 
+def _select_benchmark_result(
+    rows: list[list[str]],
+    programming_row_index: int,
+    programming_column_index: int,
+    benchmark_key: str,
+    program_day: str,
+    previous_results: set[str],
+) -> tuple[str, int, str, str]:
+    all_cells = _result_cells(
+        rows,
+        programming_row_index,
+    )
+
+    compatible_cells = [
+        cell
+        for cell in all_cells
+        if _is_likely_benchmark_result(
+            benchmark_key,
+            cell[3],
+        )
+    ]
+
+    target_week = _week_number(program_day)
+
+    if target_week is not None:
+        matching_week_cells = [
+            cell
+            for cell in compatible_cells
+            if (
+                (match := _WEEK_RESULT_PATTERN.fullmatch(cell[1]))
+                is not None
+                and int(match.group("week")) == target_week
+            )
+        ]
+
+        if len(matching_week_cells) == 1:
+            row_number, _, _, result_text = matching_week_cells[0]
+
+            return (
+                result_text,
+                row_number,
+                "selected",
+                f"Matched WEEK {target_week} compatible result cell",
+            )
+
+        if len(matching_week_cells) > 1:
+            return (
+                "",
+                0,
+                "needs_review",
+                f"Multiple compatible WEEK {target_week} result cells",
+            )
+
+    same_column_cells = [
+        cell
+        for cell in compatible_cells
+        if cell[2] == programming_column_index
+    ]
+
+    if len(same_column_cells) == 1:
+        row_number, _, _, result_text = same_column_cells[0]
+
+        return (
+            result_text,
+            row_number,
+            "selected",
+            "Compatible result found in programming column",
+        )
+
+    new_compatible_cells = [
+        cell
+        for cell in compatible_cells
+        if cell[3] not in previous_results
+    ]
+
+    if len(new_compatible_cells) == 1:
+        row_number, _, _, result_text = new_compatible_cells[0]
+
+        discarded_carried_forward = (
+            len(new_compatible_cells) < len(compatible_cells)
+        )
+
+        return (
+            result_text,
+            row_number,
+            "selected",
+            (
+                "Discarded an exact carried-forward result"
+                if discarded_carried_forward
+                else "Compatible result found in another column"
+            ),
+        )
+
+    if len(compatible_cells) == 1:
+        row_number, _, _, result_text = compatible_cells[0]
+
+        return (
+            result_text,
+            row_number,
+            "selected",
+            "Compatible result found in another column",
+        )
+
+    if len(compatible_cells) > 1:
+        return (
+            "",
+            0,
+            "needs_review",
+            "Multiple compatible benchmark result cells",
+        )
+
+    return _select_result(
+        _result_rows(
+            rows,
+            programming_row_index,
+            programming_column_index,
+        ),
+        program_day,
+        previous_results,
+    )
+
+
 def read_benchmark_candidates(
     input_path: Path,
     year: int,
@@ -334,10 +543,13 @@ def read_benchmark_candidates(
                     result_source_row,
                     result_status,
                     result_reason,
-                ) = _select_result(
-                    possible_results,
-                    program_day,
-                    known_results,
+                ) = _select_benchmark_result(
+                    rows=rows,
+                    programming_row_index=row_index,
+                    programming_column_index=column_index,
+                    benchmark_key=benchmark_match.key,
+                    program_day=program_day,
+                    previous_results=known_results,
                 )
 
                 if result_text:

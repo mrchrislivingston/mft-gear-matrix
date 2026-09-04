@@ -40,6 +40,21 @@ void main() {
     ]);
   });
 
+  test('parses numbered distance and pace rows separated by hyphens', () {
+    const text = '''
+Rd1 - 1598m - 1:52.6
+Rd2 - 1602m - 1:52.3
+Rd3 - 1613m - 1:51.5
+Total - 4813
+''';
+
+    expect(parser.extract(text), [
+      {'primaryMetric': '1:52.6', 'distance': '1598'},
+      {'primaryMetric': '1:52.3', 'distance': '1602'},
+      {'primaryMetric': '1:51.5', 'distance': '1613'},
+    ]);
+  });
+
   test('does not parse pace-only sequences', () {
     expect(parser.extract('1:50.4/1:50.0/1:50.8/1:50.4'), isEmpty);
   });

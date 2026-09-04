@@ -40,7 +40,7 @@ void main() {
       result: '',
     );
 
-    final summary = service.normalizeReady(
+    final summary = service.normalizeImportable(
       MisfitCandidateSummary(
         candidates: [successfulCandidate, failedCandidate, skippedCandidate],
       ),
@@ -64,7 +64,7 @@ void main() {
       result: '1-500, 2-510, 3-520',
     );
 
-    final summary = service.normalizeReady(
+    final summary = service.normalizeImportable(
       MisfitCandidateSummary(candidates: [rowCandidate]),
     );
 
@@ -75,5 +75,26 @@ void main() {
       '510',
       '520',
     ]);
+  });
+  test('parses review candidates while ignoring skipped candidates', () {
+    final reviewCandidate = candidate(
+      status: MisfitImportStatus.review,
+      result: '1-500, 2-510, 3-520',
+    );
+    final skippedCandidate = candidate(
+      status: MisfitImportStatus.skip,
+      result: '1-600, 2-610, 3-620',
+    );
+
+    final summary = service.normalizeImportable(
+      MisfitCandidateSummary(candidates: [reviewCandidate, skippedCandidate]),
+    );
+
+    expect(summary.attempts, hasLength(1));
+    expect(summary.attemptFor(reviewCandidate)!.succeeded, isTrue);
+    expect(summary.attemptFor(skippedCandidate), isNull);
+    expect(summary.readyTotal, 0);
+    expect(summary.readySuccessful, 0);
+    expect(summary.readyFailed, 0);
   });
 }

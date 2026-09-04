@@ -43,6 +43,25 @@ LABELED_CALORIES_RPM_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+DISTANCE_WATTS_CALORIES_PACE_HEADER_PATTERN = re.compile(
+    r"\bDist(?:ance)?\s*/\s*Watts?\s*/\s*Cals?\s*/\s*Pace\b",
+    re.IGNORECASE,
+)
+DISTANCE_WATTS_CALORIES_PACE_ROW_PATTERN = re.compile(
+    r"^\s*(\d+(?:\.\d+)?)\s*/\s*(\d+)\s*/\s*(\d+)\s*/\s*"
+    r"(\d{1,2}:\d{2}(?:\.\d+)?)\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+RPM_CALORIES_WATTS_DISTANCE_HEADER_PATTERN = re.compile(
+    r"\bRPMs?\s*/\s*Cals?\s*/\s*Watts?\s*/\s*KM\b",
+    re.IGNORECASE,
+)
+RPM_CALORIES_WATTS_DISTANCE_ROW_PATTERN = re.compile(
+    r"^\s*(\d+)\s*/\s*(\d+)\s*/\s*(\d+)\s*/\s*"
+    r"(\d+(?:\.\d+)?)\s*KM\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+
 CALORIES_RPM_WATTS_HEADER_PATTERN = re.compile(
     r"\bCals?\s*/\s*RPMs?\s*/\s*Watts?\b",
     re.IGNORECASE,
@@ -71,6 +90,48 @@ def _extract_three_metric_matches(
         )
 
     return intervals
+
+
+def _extract_distance_watts_calories_pace(
+    result_text: str,
+) -> list[dict[str, str]]:
+    if not DISTANCE_WATTS_CALORIES_PACE_HEADER_PATTERN.search(
+        result_text,
+    ):
+        return []
+
+    return [
+        {
+            "distance": match.group(1),
+            "watts": match.group(2),
+            "calories": match.group(3),
+            "primaryMetric": match.group(4),
+        }
+        for match in DISTANCE_WATTS_CALORIES_PACE_ROW_PATTERN.finditer(
+            result_text,
+        )
+    ]
+
+
+def _extract_rpm_calories_watts_distance(
+    result_text: str,
+) -> list[dict[str, str]]:
+    if not RPM_CALORIES_WATTS_DISTANCE_HEADER_PATTERN.search(
+        result_text,
+    ):
+        return []
+
+    return [
+        {
+            "rpm": match.group(1),
+            "calories": match.group(2),
+            "watts": match.group(3),
+            "distance": str(round(float(match.group(4)) * 1000)),
+        }
+        for match in RPM_CALORIES_WATTS_DISTANCE_ROW_PATTERN.finditer(
+            result_text,
+        )
+    ]
 
 
 def _extract_calories_rpm_watts(
@@ -273,6 +334,18 @@ def extract_watts_rpm_calories(
     structured_text = _max_section_only(
         result_text,
     )
+
+    intervals = _extract_distance_watts_calories_pace(
+        result_text,
+    )
+    if intervals:
+        return intervals
+
+    intervals = _extract_rpm_calories_watts_distance(
+        result_text,
+    )
+    if intervals:
+        return intervals
 
     intervals = _extract_calories_rpm_watts(
         result_text,

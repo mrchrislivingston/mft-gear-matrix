@@ -10,6 +10,13 @@ class MisfitPaceDistanceIntervalParser {
     caseSensitive: false,
   );
 
+  static final RegExp _distancePaceDashPattern = RegExp(
+    r'\b(?:Rd\s*)?\d+\s*-\s*'
+    r'(\d+(?:\.\d+)?)\s*m\s*-\s*'
+    r'(\d{1,2}:\d{2}(?:\.\d+)?)',
+    caseSensitive: false,
+  );
+
   static final RegExp _distancePaceSlashPattern = RegExp(
     r'(\d+(?:\.\d+)?)\s*m\s*/\s*'
     r'(\d{1,2}:\d{2}(?:\.\d+)?)',
@@ -50,6 +57,11 @@ class MisfitPaceDistanceIntervalParser {
       intervalText,
     );
 
+    if (intervals.isNotEmpty) {
+      return intervals;
+    }
+
+    intervals = _extractDistanceFirst(_distancePaceDashPattern, intervalText);
     if (intervals.isNotEmpty) {
       return intervals;
     }

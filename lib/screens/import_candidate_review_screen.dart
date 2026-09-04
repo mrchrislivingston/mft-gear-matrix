@@ -46,14 +46,15 @@ class _ImportCandidateReviewScreenState
   @override
   void initState() {
     super.initState();
-    _normalizationSummary = _normalizationService.normalizeReady(
+    _normalizationSummary = _normalizationService.normalizeImportable(
       widget.summary,
     );
     _duplicateCheckService =
         widget.duplicateCheckService ?? MisfitDuplicateCheckService();
 
     for (final attempt in _normalizationSummary.attempts) {
-      if (attempt.succeeded) {
+      if (attempt.succeeded &&
+          attempt.candidate.importStatus == MisfitImportStatus.ready) {
         _includedCandidates.add(attempt.candidate);
       }
     }
@@ -373,7 +374,7 @@ class _NormalizationSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasFailures = summary.failed > 0;
+    final hasFailures = summary.readyFailed > 0;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Card(
@@ -392,9 +393,9 @@ class _NormalizationSummaryCard extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Result parsing: ${summary.successful} of '
-                '${summary.attempts.length} ready workouts parsed'
-                '${hasFailures ? ' • ${summary.failed} failed' : ''}',
+                'Result parsing: ${summary.readySuccessful} of '
+                '${summary.readyTotal} ready workouts parsed'
+                '${hasFailures ? ' • ${summary.readyFailed} failed' : ''}',
               ),
             ),
           ],
@@ -492,6 +493,13 @@ class _CandidateCard extends StatelessWidget {
             ),
           ],
           if (workout != null) ...[
+            if (workout.scoringMetric case final scoringMetric?) ...[
+              const SizedBox(height: 16),
+              Text(
+                'Scoring metric: ${_metricLabel(scoringMetric.storageKey)}',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            ],
             const SizedBox(height: 16),
             Text(
               'Captured intervals: ${workout.intervals.length}',

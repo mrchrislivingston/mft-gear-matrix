@@ -5,7 +5,7 @@ class MisfitResolvedDate {
   const MisfitResolvedDate({required this.date, required this.status});
 }
 
-enum MisfitDateStatus { exact, inferred, unresolved }
+enum MisfitDateStatus { exact, inferred, corrected, unresolved }
 
 class MisfitDateResolution {
   final String programStartDate;
@@ -124,19 +124,24 @@ class MisfitDateResolver {
     for (final record in records) {
       final date = programStart.add(Duration(days: record.offsetDays));
       final explicitDate = record.explicitDate;
+      var status = explicitDate == null
+          ? MisfitDateStatus.inferred
+          : MisfitDateStatus.exact;
 
       if (explicitDate != null &&
           (date.month != explicitDate.month || date.day != explicitDate.day)) {
-        throw FormatException(
-          '${record.programDay} date conflicts with the program calendar',
-        );
+        if (!_isOneDayConflict(date, explicitDate)) {
+          throw FormatException(
+            '${record.programDay} date conflicts with the program calendar',
+          );
+        }
+
+        status = MisfitDateStatus.corrected;
       }
 
       resolvedDates[record.programDay] = MisfitResolvedDate(
         date: _isoDate(date),
-        status: explicitDate == null
-            ? MisfitDateStatus.inferred
-            : MisfitDateStatus.exact,
+        status: status,
       );
     }
 
@@ -182,6 +187,30 @@ class MisfitDateResolver {
       'dec' => 12,
       _ => throw FormatException('Unsupported month: $month'),
     };
+  }
+
+  bool _isOneDayConflict(DateTime programDate, _MonthDay explicitDate) {
+    for (
+      var year = programDate.year - 1;
+      year <= programDate.year + 1;
+      year++
+    ) {
+      final candidate = _validatedDate(
+        year,
+        explicitDate.month,
+        explicitDate.day,
+      );
+
+      if (candidate == null) {
+        continue;
+      }
+
+      if (candidate.difference(programDate).inDays.abs() == 1) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   DateTime? _validatedDate(int year, int month, int day) {

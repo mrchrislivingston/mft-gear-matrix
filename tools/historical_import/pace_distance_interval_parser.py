@@ -12,6 +12,13 @@ PACE_DISTANCE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+DISTANCE_PACE_DASH_PATTERN = re.compile(
+    r"\b(?:Rd\s*)?\d+\s*-\s*"
+    r"(?P<distance>\d+(?:\.\d+)?)\s*m\s*-\s*"
+    r"(?P<pace>\d{1,2}:\d{2}(?:\.\d+)?)",
+    re.IGNORECASE,
+)
+
 DISTANCE_PACE_SLASH_PATTERN = re.compile(
     r"(?P<distance>\d+(?:\.\d+)?)\s*m\s*/\s*"
     r"(?P<pace>\d{1,2}:\d{2}(?:\.\d+)?)",
@@ -98,6 +105,13 @@ def extract_pace_distance_intervals(
 
     intervals = _extract_distance_first(
         DISTANCE_PACE_TABLE_PATTERN,
+        interval_text,
+    )
+    if intervals:
+        return intervals
+
+    intervals = _extract_distance_first(
+        DISTANCE_PACE_DASH_PATTERN,
         interval_text,
     )
     if intervals:

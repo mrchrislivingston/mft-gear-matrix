@@ -35,6 +35,30 @@ class MisfitStructuredIntervalParser {
     caseSensitive: false,
   );
 
+  static final RegExp _distanceWattsCaloriesPaceHeaderPattern = RegExp(
+    r'\bDist(?:ance)?\s*/\s*Watts?\s*/\s*Cals?\s*/\s*Pace\b',
+    caseSensitive: false,
+  );
+
+  static final RegExp _distanceWattsCaloriesPaceRowPattern = RegExp(
+    r'^\s*(\d+(?:\.\d+)?)\s*/\s*(\d+)\s*/\s*(\d+)\s*/\s*'
+    r'(\d{1,2}:\d{2}(?:\.\d+)?)\s*$',
+    caseSensitive: false,
+    multiLine: true,
+  );
+
+  static final RegExp _rpmCaloriesWattsDistanceHeaderPattern = RegExp(
+    r'\bRPMs?\s*/\s*Cals?\s*/\s*Watts?\s*/\s*KM\b',
+    caseSensitive: false,
+  );
+
+  static final RegExp _rpmCaloriesWattsDistanceRowPattern = RegExp(
+    r'^\s*(\d+)\s*/\s*(\d+)\s*/\s*(\d+)\s*/\s*'
+    r'(\d+(?:\.\d+)?)\s*KM\s*$',
+    caseSensitive: false,
+    multiLine: true,
+  );
+
   static final RegExp _caloriesRpmWattsHeaderPattern = RegExp(
     r'\bCals?\s*/\s*RPMs?\s*/\s*Watts?\b',
     caseSensitive: false,
@@ -50,7 +74,17 @@ class MisfitStructuredIntervalParser {
   List<Map<String, String>> extract(String resultText) {
     final structuredText = _maxSectionOnly(resultText);
 
-    var intervals = _extractCaloriesRpmWatts(resultText);
+    var intervals = _extractDistanceWattsCaloriesPace(resultText);
+    if (intervals.isNotEmpty) {
+      return intervals;
+    }
+
+    intervals = _extractRpmCaloriesWattsDistance(resultText);
+    if (intervals.isNotEmpty) {
+      return intervals;
+    }
+
+    intervals = _extractCaloriesRpmWatts(resultText);
     if (intervals.isNotEmpty) {
       return intervals;
     }
@@ -97,6 +131,50 @@ class MisfitStructuredIntervalParser {
             'watts': match.group(1)!,
             'rpm': match.group(2)!,
             'calories': match.group(3)!,
+          };
+        })
+        .toList(growable: false);
+  }
+
+  List<Map<String, String>> _extractDistanceWattsCaloriesPace(
+    String resultText,
+  ) {
+    if (!_distanceWattsCaloriesPaceHeaderPattern.hasMatch(resultText)) {
+      return const [];
+    }
+
+    return _distanceWattsCaloriesPaceRowPattern
+        .allMatches(resultText)
+        .map((match) {
+          return {
+            'distance': match.group(1)!,
+            'watts': match.group(2)!,
+            'calories': match.group(3)!,
+            'primaryMetric': match.group(4)!,
+          };
+        })
+        .toList(growable: false);
+  }
+
+  List<Map<String, String>> _extractRpmCaloriesWattsDistance(
+    String resultText,
+  ) {
+    if (!_rpmCaloriesWattsDistanceHeaderPattern.hasMatch(resultText)) {
+      return const [];
+    }
+
+    return _rpmCaloriesWattsDistanceRowPattern
+        .allMatches(resultText)
+        .map((match) {
+          final distanceMeters = (double.parse(match.group(4)!) * 1000)
+              .round()
+              .toString();
+
+          return {
+            'rpm': match.group(1)!,
+            'calories': match.group(2)!,
+            'watts': match.group(3)!,
+            'distance': distanceMeters,
           };
         })
         .toList(growable: false);

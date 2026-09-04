@@ -64,6 +64,26 @@ void main() {
     expect(resolution.dateFor('W1D1')?.status, MisfitDateStatus.unresolved);
   });
 
+  test('uses program calendar for a one-day spreadsheet typo', () {
+    final resolution = resolver.resolve(
+      headers: const [
+        'Mon - Jan 5 - W1D1',
+        'Mon - Jan 11 - W2D1',
+        'Tues - Jan 12 - W2D2',
+        'Sat - Jan 17 - W2D6',
+      ],
+      startYear: 2026,
+    );
+
+    expect(resolution.programStartDate, '2026-01-05');
+    expect(resolution.dateFor('W2D1')?.date, '2026-01-12');
+    expect(resolution.dateFor('W2D1')?.status, MisfitDateStatus.corrected);
+    expect(resolution.dateFor('W2D2')?.date, '2026-01-13');
+    expect(resolution.dateFor('W2D2')?.status, MisfitDateStatus.corrected);
+    expect(resolution.dateFor('W2D6')?.date, '2026-01-17');
+    expect(resolution.dateFor('W2D6')?.status, MisfitDateStatus.exact);
+  });
+
   test('rejects a conflicting explicit date', () {
     expect(
       () => resolver.resolve(

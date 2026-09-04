@@ -29,6 +29,7 @@ class ResultDetail(str, Enum):
 class DateStatus(str, Enum):
     EXACT = "exact"
     INFERRED = "inferred"
+    CORRECTED = "corrected"
     UNRESOLVED = "unresolved"
 
 

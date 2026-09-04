@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+
+import 'package:mft_gear_matrix/models/workout_metric.dart';
 import 'package:mft_gear_matrix/services/misfit_candidate_reader.dart';
 import 'package:mft_gear_matrix/services/misfit_workout_normalizer.dart';
 import 'package:mft_gear_matrix/services/misfit_workout_parser.dart';
@@ -91,7 +93,7 @@ void main() {
     );
   });
 
-  test('makes Echo RPM the primary metric', () {
+  test('keeps Echo RPM supporting and defaults scoring to calories', () {
     final workout = normalizer.normalize(
       candidate(
         type: MisfitWorkoutType.power,
@@ -105,10 +107,42 @@ void main() {
       ),
     );
 
+    expect(workout.scoringMetric, WorkoutMetric.calories);
     expect(workout.intervals.first.values, {
       'watts': '691',
+      'rpm': '87',
       'calories': '18',
-      'primaryMetric': '87',
+    });
+  });
+
+  test('scores an Echo for-meters workout by distance', () {
+    final workout = normalizer.normalize(
+      candidate(
+        type: MisfitWorkoutType.gear,
+        prescription: 'G7',
+        modality: 'echo',
+        programming:
+            'Build Echo - 7th Gear\n'
+            'AMRAP 2:30 x 5\n'
+            'Echo Bike for Meters @ 7th Gear\n'
+            'Rest 3:15',
+        result:
+            'Made it through 3 rounds.\n'
+            'RPM/Cals/Watts/KM\n'
+            '73/54/434/1.84KM\n'
+            '74/56/451/1.86KM\n'
+            '74/56/451/1.86KM',
+      ),
+    );
+
+    expect(workout.scoringMetric, WorkoutMetric.distance);
+    expect(workout.executionPlan.intervalCount, 5);
+    expect(workout.intervals, hasLength(3));
+    expect(workout.intervals.first.values, {
+      'rpm': '73',
+      'calories': '54',
+      'watts': '434',
+      'distance': '1840',
     });
   });
 

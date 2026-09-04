@@ -120,4 +120,69 @@ void main() {
       {'calories': '83', 'rpm': '73', 'watts': '420'},
     ]);
   });
+  test('parses RPM, calories, watts, and kilometer tables', () {
+    const text = '''
+Made it through 3 rounds.
+RPM/Cals/Watts/KM
+73/54/434/1.84KM
+74/56/451/1.86KM
+74/56/451/1.86KM
+''';
+
+    expect(parser.extract(text), [
+      {'rpm': '73', 'calories': '54', 'watts': '434', 'distance': '1840'},
+      {'rpm': '74', 'calories': '56', 'watts': '451', 'distance': '1860'},
+      {'rpm': '74', 'calories': '56', 'watts': '451', 'distance': '1860'},
+    ]);
+  });
+  test('parses distance, watts, calories, and pace tables', () {
+    const text = '''
+Dist/Watts/Cals/Pace
+692/275/52/1:48.4
+703/288/54/1:46.7
+709/295/55/1:45.8
+443/333/36/1:41.6
+454/359/38/1:39.1
+461/376/40/1:37.6
+''';
+
+    expect(parser.extract(text), [
+      {
+        'distance': '692',
+        'watts': '275',
+        'calories': '52',
+        'primaryMetric': '1:48.4',
+      },
+      {
+        'distance': '703',
+        'watts': '288',
+        'calories': '54',
+        'primaryMetric': '1:46.7',
+      },
+      {
+        'distance': '709',
+        'watts': '295',
+        'calories': '55',
+        'primaryMetric': '1:45.8',
+      },
+      {
+        'distance': '443',
+        'watts': '333',
+        'calories': '36',
+        'primaryMetric': '1:41.6',
+      },
+      {
+        'distance': '454',
+        'watts': '359',
+        'calories': '38',
+        'primaryMetric': '1:39.1',
+      },
+      {
+        'distance': '461',
+        'watts': '376',
+        'calories': '40',
+        'primaryMetric': '1:37.6',
+      },
+    ]);
+  });
 }

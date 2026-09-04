@@ -260,7 +260,7 @@ def insert_workout(
             workout.duration,
             workout.execution_plan.work_duration,
             workout.execution_plan.interval_count,
-            None,
+            workout.scoring_metric,
             workout.notes,
         ),
     )

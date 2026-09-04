@@ -27,6 +27,27 @@ class MisfitNormalizationSummary {
 
   int get failed => attempts.length - successful;
 
+  int get readyTotal {
+    return attempts
+        .where(
+          (attempt) =>
+              attempt.candidate.importStatus == MisfitImportStatus.ready,
+        )
+        .length;
+  }
+
+  int get readySuccessful {
+    return attempts
+        .where(
+          (attempt) =>
+              attempt.candidate.importStatus == MisfitImportStatus.ready &&
+              attempt.succeeded,
+        )
+        .length;
+  }
+
+  int get readyFailed => readyTotal - readySuccessful;
+
   MisfitNormalizationAttempt? attemptFor(MisfitWorkoutCandidate candidate) {
     for (final attempt in attempts) {
       if (identical(attempt.candidate, candidate)) {
@@ -45,13 +66,14 @@ class MisfitNormalizationPreviewService {
     this.normalizer = const MisfitWorkoutNormalizer(),
   });
 
-  MisfitNormalizationSummary normalizeReady(
+  MisfitNormalizationSummary normalizeImportable(
     MisfitCandidateSummary candidateSummary,
   ) {
     final attempts = <MisfitNormalizationAttempt>[];
 
     for (final candidate in candidateSummary.candidates) {
-      if (candidate.importStatus != MisfitImportStatus.ready) {
+      if (candidate.importStatus != MisfitImportStatus.ready &&
+          candidate.importStatus != MisfitImportStatus.review) {
         continue;
       }
 

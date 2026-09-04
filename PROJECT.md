@@ -645,6 +645,50 @@ such as mixed prescriptions and benchmark workouts.
   review, and import into the same in-app CSV workflow used for Matrix
   workouts, followed by rescanning the remaining historical workbooks.
 
+### Phase III Historical Import Checkpoint
+
+- Phase III date resolution maps all 41 Matrix candidates from W1D1 on
+  2026-01-05 through W6D3 on 2026-02-11. A one-day spreadsheet date
+  conflict in W2 is corrected from the authoritative program calendar.
+- Safe mixed-Gear workouts can now be expanded into separate candidates
+  when the programmed interval groups and recorded result rows match
+  exactly. The W6D3 Row workout was split into three G7 intervals and
+  three G8 intervals with their respective work durations.
+- Ambiguous Row/C2 Bike Zone workouts can be resolved from internally
+  consistent duration, pace, and distance results. The W5D4 Z2 workout
+  was correctly identified as C2 Bike.
+- Partial workouts remain excluded by default but can be manually
+  included after review. The W5D3 G7 Echo workout imported its three
+  completed intervals out of five prescribed intervals.
+- Echo Bike RPM is retained as a supporting metric rather than treated
+  as the scoring metric. Echo workouts now explicitly select calories,
+  distance, or watts as appropriate; the partial G7 Echo workout is
+  scored by distance.
+- Added structured parsing for Echo RPM/calories/watts/kilometer tables,
+  Row distance/watts/calories/pace tables, and hyphen-separated
+  distance/pace interval results.
+- The Phase III worksheet produces 41 Matrix candidates: 17 READY,
+  1 REVIEW, 0 deferred, and 23 skipped. Two READY candidates remain
+  intentionally excluded because their recorded results do not
+  represent supported completed workouts.
+- Imported 16 Phase III Matrix workouts through the app. A post-import
+  duplicate scan reports 0 new and 16 already imported, with the import
+  action disabled.
+- Imported three Phase III benchmark attempts separately: M.A.T.T. C2
+  Bike at 230 watts, Row Cube Test at 330 calories, and Spiders on Mars
+  at 6 calories.
+- Added all maintained benchmark-registry entries to the Benchmarks UI,
+  including definitions with zero attempts. Unconfirmed descriptions
+  and scoring rules remain intentionally blank until the Phase 0/1
+  workbook review.
+- Added all four confirmed Power Output benchmark definitions: Echo
+  Bike, C2 Bike, Ski, and Row, each programmed as 50/40 calories for
+  time.
+- The database now contains 96 Matrix workouts and 17 benchmark
+  attempts.
+- Flutter tests pass 105/105 and the Python historical-import suite
+  passes 31/31. Static analysis retains eight previously known issues.
+
 ### Benchmark Architecture Findings
 
 - Benchmarks should not be inferred from the literal word "benchmark".
@@ -678,12 +722,13 @@ such as mixed prescriptions and benchmark workouts.
 
 - Add reusable benchmark discovery, normalization, review, duplicate
   detection, and import to the existing in-app CSV workflow.
-- Re-scan the remaining historical workbooks using the maintained
-  benchmark names and aliases.
+- Process the Phase 0/1 2026 workbooks using the maintained benchmark
+  names and aliases, adding confirmed benchmark descriptions and
+  scoring criteria as they are discovered.
 - Add newly discovered benchmark definitions and attempts through the
   Benchmark import path rather than Matrix prescriptions.
-- Implement the remaining deferred mixed-Gear, mixed-Power, and
-  mixed-modality workout cases.
+- Extend safe candidate expansion to additional mixed-Gear,
+  mixed-Power, and mixed-modality result formats as they are reviewed.
 - Keep all historical-import components covered by the automatically
   discovered regression suite.
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+from dataclasses import replace
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -8,6 +9,7 @@ from pathlib import Path
 from models import (
     DateStatus,
     ImportStatus,
+    ResultDetail,
     WorkoutCandidate,
     WorkoutType,
 )
@@ -171,9 +173,6 @@ def _parse_or_infer_date(
         year,
     )
 
-    if exact_date:
-        return exact_date, exact_status
-
     week_day_match = WEEK_DAY_PATTERN.search(
         date_header,
     )
@@ -182,6 +181,8 @@ def _parse_or_infer_date(
         week_day_match is None
         or program_start_date is None
     ):
+        if exact_date:
+            return exact_date, exact_status
         return "", DateStatus.UNRESOLVED
 
     week_number = int(week_day_match.group(1))
@@ -192,15 +193,64 @@ def _parse_or_infer_date(
         + (day_number - 1)
     )
 
-    inferred_date = program_start_date + timedelta(
+    calendar_date = program_start_date + timedelta(
         days=offset_days,
     )
+    calendar_date_text = calendar_date.date().isoformat()
 
-    return (
-        inferred_date.date().isoformat(),
-        DateStatus.INFERRED,
+    if not exact_date:
+        return (
+            calendar_date_text,
+            DateStatus.INFERRED,
+        )
+
+    parsed_explicit_date = datetime.fromisoformat(
+        exact_date,
     )
 
+    explicit_date_options = []
+    for candidate_year in (
+        calendar_date.year - 1,
+        calendar_date.year,
+        calendar_date.year + 1,
+    ):
+        try:
+            explicit_date_options.append(
+                parsed_explicit_date.replace(
+                    year=candidate_year,
+                ),
+            )
+        except ValueError:
+            continue
+
+    explicit_date = min(
+        explicit_date_options,
+        key=lambda candidate_date: abs(
+            (
+                candidate_date.date()
+                - calendar_date.date()
+            ).days,
+        ),
+    )
+    difference_days = abs(
+        (explicit_date.date() - calendar_date.date()).days,
+    )
+
+    if difference_days == 0:
+        return calendar_date_text, exact_status
+
+    if difference_days == 1:
+        return (
+            calendar_date_text,
+            DateStatus.CORRECTED,
+        )
+
+    program_day = (
+        f"W{week_number}D{day_number}"
+    )
+    raise ValueError(
+        f"{program_day} date conflicts with the program calendar",
+    )
 
 def _gear_text(programming_text: str) -> str:
     return "/".join(
@@ -242,6 +292,188 @@ def _modality_text(
             result_text=result_text,
         ),
     )
+
+
+def _resolve_ambiguous_erg_modality(
+    workout_type: WorkoutType,
+    modality: str,
+    result_text: str,
+) -> str | None:
+    if (
+        workout_type is not WorkoutType.ZONE
+        or set(modality.split("/")) != {"row", "bikeErg"}
+    ):
+        return None
+
+    duration_match = re.search(
+        r"\b(\d{1,3}):(\d{2})\s+in\s+(?:zone\s*)?z?2\b",
+        result_text,
+        re.IGNORECASE,
+    )
+    pace_match = re.search(
+        r"\bAvg\s+Pace\s*[-:]\s*"
+        r"(\d{1,2}):(\d{2}(?:\.\d+)?)\b",
+        result_text,
+        re.IGNORECASE,
+    )
+    distance_match = re.search(
+        r"\bDistance\s*[-:]\s*"
+        r"(\d+(?:\.\d+)?)\s*KM\b",
+        result_text,
+        re.IGNORECASE,
+    )
+
+    if not all((duration_match, pace_match, distance_match)):
+        return None
+
+    assert duration_match is not None
+    assert pace_match is not None
+    assert distance_match is not None
+
+    duration_seconds = (
+        int(duration_match.group(1)) * 60
+        + int(duration_match.group(2))
+    )
+    pace_seconds = (
+        int(pace_match.group(1)) * 60
+        + float(pace_match.group(2))
+    )
+    recorded_kilometers = float(distance_match.group(1))
+
+    if (
+        duration_seconds <= 0
+        or pace_seconds <= 0
+        or recorded_kilometers <= 0
+    ):
+        return None
+
+    expected_bike_kilometers = duration_seconds / pace_seconds
+    expected_row_kilometers = expected_bike_kilometers * 0.5
+
+    bike_error = (
+        abs(recorded_kilometers - expected_bike_kilometers)
+        / recorded_kilometers
+    )
+    row_error = (
+        abs(recorded_kilometers - expected_row_kilometers)
+        / recorded_kilometers
+    )
+
+    tolerance = 0.08
+
+    if bike_error <= tolerance and bike_error < row_error:
+        return "bikeErg"
+
+    if row_error <= tolerance and row_error < bike_error:
+        return "row"
+
+    return None
+
+
+def _expand_mixed_gear_candidate(
+    candidate: WorkoutCandidate,
+) -> list[WorkoutCandidate]:
+    if (
+        candidate.workout_type is not WorkoutType.GEAR
+        or candidate.import_status is not ImportStatus.TBD_LATER
+        or candidate.status_reason != "Mixed-gear workout"
+        or not candidate.modality
+        or "/" in candidate.modality
+    ):
+        return [candidate]
+
+    gears = detect_gears(candidate.programming_text)
+    plan_matches = list(
+        re.finditer(
+            r"\bAMRAP\s+(\d{1,2}:\d{2})\s*[x×]\s*(\d+)\b",
+            candidate.programming_text,
+            re.IGNORECASE,
+        ),
+    )
+    has_supported_header = re.search(
+        r"\bDist(?:ance)?\s*/\s*Watts?\s*/\s*"
+        r"Cals?\s*/\s*Pace\b",
+        candidate.result_text,
+        re.IGNORECASE,
+    )
+    result_matches = list(
+        re.finditer(
+            r"^\s*(\d+(?:\.\d+)?)\s*/\s*(\d+)\s*/\s*"
+            r"(\d+)\s*/\s*"
+            r"(\d{1,2}:\d{2}(?:\.\d+)?)\s*$",
+            candidate.result_text,
+            re.IGNORECASE | re.MULTILINE,
+        ),
+    )
+
+    if (
+        has_supported_header is None
+        or len(gears) < 2
+        or len(gears) != len(plan_matches)
+    ):
+        return [candidate]
+
+    expected_result_count = sum(
+        int(match.group(2))
+        for match in plan_matches
+    )
+
+    if len(result_matches) != expected_result_count:
+        return [candidate]
+
+    trailing_notes = candidate.result_text[
+        result_matches[-1].end():
+    ].strip()
+    heading = candidate.programming_text.splitlines()[0]
+    expanded: list[WorkoutCandidate] = []
+    result_index = 0
+
+    for index, gear_number in enumerate(gears):
+        plan_match = plan_matches[index]
+        interval_count = int(plan_match.group(2))
+        selected_results = result_matches[
+            result_index:result_index + interval_count
+        ]
+        result_index += interval_count
+
+        next_plan_start = (
+            plan_matches[index + 1].start()
+            if index + 1 < len(plan_matches)
+            else len(candidate.programming_text)
+        )
+        programming_section = candidate.programming_text[
+            plan_match.start():next_plan_start
+        ].strip()
+
+        split_result_lines = [
+            "Dist/Watts/Cals/Pace",
+            *[
+                match.group(0).strip()
+                for match in selected_results
+            ],
+        ]
+
+        if trailing_notes:
+            split_result_lines.append(trailing_notes)
+
+        gear = f"G{gear_number}"
+
+        expanded.append(
+            replace(
+                candidate,
+                source_id=f"{candidate.source_id} | split-{gear}",
+                gear=gear,
+                import_status=ImportStatus.READY,
+                status_reason="Split from a mixed-gear workout",
+                result_detail=ResultDetail.INTERVAL_RESULTS,
+                programming_text=(
+                    f"{heading}\n{programming_section}"
+                ),
+                result_text="\n".join(split_result_lines),
+            ),
+        )
+
+    return expanded
 
 
 def read_workout_candidates(
@@ -366,6 +598,24 @@ def read_workout_candidates(
                 result_text,
             )
 
+            resolved_erg_modality = (
+                _resolve_ambiguous_erg_modality(
+                    workout_type,
+                    modality,
+                    result_text,
+                )
+            )
+
+            if resolved_erg_modality is not None:
+                modality = resolved_erg_modality
+
+                if import_status is ImportStatus.TBD_LATER:
+                    import_status = ImportStatus.READY
+                    status_reason = (
+                        "Result duration, pace, and distance "
+                        "identify the modality"
+                    )
+
             if (
                 import_status is ImportStatus.READY
                 and date_status is DateStatus.UNRESOLVED
@@ -389,28 +639,30 @@ def read_workout_candidates(
                 ],
             )
 
-            candidates.append(
-                WorkoutCandidate(
-                    source_id=source_id,
-                    source_workbook=input_path.stem,
-                    source_row=row_index + 1,
-                    source_column=column_index + 1,
-                    program_day=program_day,
-                    date=workout_date,
-                    date_status=date_status,
-                    workout_type=workout_type,
-                    gear=gear,
-                    prescription=prescription,
-                    modality=modality,
-                    import_status=import_status,
-                    status_reason=status_reason,
-                    result_detail=detect_result_detail(
-                        result_text,
-                    ),
-                    garmin_lookup=False,
-                    programming_text=programming_text,
-                    result_text=result_text,
+            candidate = WorkoutCandidate(
+                source_id=source_id,
+                source_workbook=input_path.stem,
+                source_row=row_index + 1,
+                source_column=column_index + 1,
+                program_day=program_day,
+                date=workout_date,
+                date_status=date_status,
+                workout_type=workout_type,
+                gear=gear,
+                prescription=prescription,
+                modality=modality,
+                import_status=import_status,
+                status_reason=status_reason,
+                result_detail=detect_result_detail(
+                    result_text,
                 ),
+                garmin_lookup=False,
+                programming_text=programming_text,
+                result_text=result_text,
+            )
+
+            candidates.extend(
+                _expand_mixed_gear_candidate(candidate),
             )
 
     return candidates
