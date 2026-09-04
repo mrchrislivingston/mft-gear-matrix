@@ -185,4 +185,22 @@ Dist/Watts/Cals/Pace
       },
     ]);
   });
+
+  test('parses labeled calorie-only rounds when explicitly requested', () {
+    const text = '''
+Gross - Computer lost info on avg RPMs
+Rd1 - 68
+Rd2 - 69
+Rd3 - 71
+Rd4 - 70
+''';
+
+    expect(parser.extract(text), isEmpty);
+    expect(parser.extractLabeledRoundCalories(text), [
+      {'calories': '68'},
+      {'calories': '69'},
+      {'calories': '71'},
+      {'calories': '70'},
+    ]);
+  });
 }

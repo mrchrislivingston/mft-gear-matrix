@@ -153,6 +153,10 @@ void main() {
     final examples = [
       (programming: 'P2 Echo Bike', result: 'Skipped because sick'),
       (
+        programming: 'Aerobic Row - 2nd Gear',
+        result: 'Stomach bug took me out today',
+      ),
+      (
         programming: 'Zone 2 - C2 Bike',
         result:
             'Took care of some yardwork and house hold chores '
@@ -195,5 +199,31 @@ void main() {
 
     expect(result.status, MisfitImportStatus.review);
     expect(result.reason, 'Result may describe a partial workout');
+  });
+
+  test('skips treadmill runs without the required distance', () {
+    final skipped = parser.classifyCandidate(
+      programmingText:
+          'Build Run - 4th Gear\n'
+          'AMRAP 6:00 x 3\n'
+          'Run for Meters @ 4th Gear',
+      resultText:
+          'Rd 1 - 10:00 pace\n'
+          'Rd 2 - 8:35 pace\n'
+          'Rd 3 - 8:00 pace\n'
+          'No idea on meters as this was all on a treadmill.',
+    );
+
+    expect(skipped.status, MisfitImportStatus.skip);
+    expect(skipped.reason, 'Required run distance was not recorded');
+
+    final recorded = parser.classifyCandidate(
+      programmingText:
+          'Build Run - 4th Gear\n'
+          'Run for Meters @ 4th Gear',
+      resultText: 'Treadmill displayed 1200 meters.',
+    );
+
+    expect(recorded.status, MisfitImportStatus.ready);
   });
 }

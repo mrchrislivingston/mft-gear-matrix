@@ -222,4 +222,36 @@ void main() {
       throwsFormatException,
     );
   });
+
+  test('uses labeled Echo round values as programmed calories', () {
+    final workout = normalizer.normalize(
+      candidate(
+        type: MisfitWorkoutType.gear,
+        prescription: 'G6',
+        modality: 'echo',
+        programming:
+            'Build Echo - 6th Gear\n'
+            'AMRAP 3:30 x 4\n'
+            'Echo Bike Calories @ 6th Gear\n'
+            'Rest 3:00',
+        result:
+            'Gross - Computer lost info on avg RPMs\n'
+            'Rd1 - 68\n'
+            'Rd2 - 69\n'
+            'Rd3 - 71\n'
+            'Rd4 - 70',
+      ),
+    );
+
+    expect(workout.scoringMetric, WorkoutMetric.calories);
+    expect(workout.executionPlan.workDuration, '3:30');
+    expect(workout.executionPlan.intervalCount, 4);
+    expect(workout.intervals, hasLength(4));
+    expect(workout.intervals.map((interval) => interval.values['calories']), [
+      '68',
+      '69',
+      '71',
+      '70',
+    ]);
+  });
 }

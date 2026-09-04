@@ -28,6 +28,12 @@ class MisfitStructuredIntervalParser {
 
   static final RegExp _twoValuePattern = RegExp(r'(\d+)\s*/\s*(\d+)');
 
+  static final RegExp _labeledRoundOnlyPattern = RegExp(
+    r'^\s*Rd\s*\d+\s*[-:]\s*(\d+)\s*$',
+    caseSensitive: false,
+    multiLine: true,
+  );
+
   static final RegExp _labeledCaloriesRpmPattern = RegExp(
     r'Rd\s*\d+\s*[-:]\s*'
     r'Cals?\s*(\d+)\s*,?\s*'
@@ -118,6 +124,13 @@ class MisfitStructuredIntervalParser {
     }
 
     return _extractCalorieSequence(resultText);
+  }
+
+  List<Map<String, String>> extractLabeledRoundCalories(String resultText) {
+    return _labeledRoundOnlyPattern
+        .allMatches(resultText)
+        .map((match) => {'calories': match.group(1)!})
+        .toList(growable: false);
   }
 
   List<Map<String, String>> _extractThreeMetricMatches(

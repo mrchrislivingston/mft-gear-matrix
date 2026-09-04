@@ -131,6 +131,17 @@ class MisfitWorkoutNormalizer {
       return structured;
     }
 
+    if (candidate.modality == 'echo' &&
+        _scoringMetricFor(candidate) == WorkoutMetric.calories) {
+      final calorieRounds = structuredParser.extractLabeledRoundCalories(
+        resultText,
+      );
+
+      if (calorieRounds.isNotEmpty) {
+        return calorieRounds;
+      }
+    }
+
     final paceDistance = paceDistanceParser.extract(resultText);
     if (paceDistance.isNotEmpty) {
       return paceDistance;

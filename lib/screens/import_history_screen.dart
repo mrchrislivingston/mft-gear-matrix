@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../services/misfit_benchmark_candidate_reader.dart';
 import '../services/misfit_candidate_reader.dart';
 import '../services/misfit_date_resolver.dart';
 import 'import_candidate_review_screen.dart';
@@ -18,6 +19,8 @@ class ImportHistoryScreen extends StatefulWidget {
 class _ImportHistoryScreenState extends State<ImportHistoryScreen> {
   static const MisfitCsvService _csvService = MisfitCsvService();
   static const MisfitCandidateReader _candidateReader = MisfitCandidateReader();
+  static const MisfitBenchmarkCandidateReader _benchmarkCandidateReader =
+      MisfitBenchmarkCandidateReader();
   static const MisfitDateResolver _dateResolver = MisfitDateResolver();
 
   bool _isLoading = false;
@@ -25,6 +28,7 @@ class _ImportHistoryScreenState extends State<ImportHistoryScreen> {
   int? _startYear;
   MisfitCsvDocument? _document;
   MisfitCandidateSummary? _candidateSummary;
+  MisfitBenchmarkCandidateSummary? _benchmarkCandidateSummary;
   String? _errorMessage;
 
   Future<void> _selectCsv() async {
@@ -71,6 +75,10 @@ class _ImportHistoryScreenState extends State<ImportHistoryScreen> {
         document,
         startYear: startYear,
       );
+      final benchmarkCandidateSummary = _benchmarkCandidateReader.read(
+        document,
+        startYear: startYear,
+      );
 
       if (!mounted) {
         return;
@@ -82,6 +90,7 @@ class _ImportHistoryScreenState extends State<ImportHistoryScreen> {
         _startYear = startYear;
         _document = document;
         _candidateSummary = candidateSummary;
+        _benchmarkCandidateSummary = benchmarkCandidateSummary;
       });
     } catch (error) {
       if (!mounted) {
@@ -94,95 +103,26 @@ class _ImportHistoryScreenState extends State<ImportHistoryScreen> {
         _startYear = null;
         _document = null;
         _candidateSummary = null;
+        _benchmarkCandidateSummary = null;
         _errorMessage = 'Unable to read that CSV file: $error';
       });
     }
   }
 
-  Future<int?> _requestStartYear(String fileName) async {
-    final suggestedYear = _dateResolver.suggestedStartYear(fileName);
-    final controller = TextEditingController(
-      text: suggestedYear?.toString() ?? '',
-    );
-    String? validationMessage;
-
-    final result = await showDialog<int>(
+  Future<int?> _requestStartYear(String fileName) {
+    return showDialog<int>(
       context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Confirm worksheet year'),
-              content: SizedBox(
-                width: 380,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Enter the calendar year containing W1D1. '
-                      'Dates after December will automatically roll '
-                      'into the following year.',
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: controller,
-                      autofocus: true,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'W1D1 starting year',
-                        hintText: '2025',
-                        errorText: validationMessage,
-                      ),
-                      onSubmitted: (_) {
-                        final year = int.tryParse(controller.text.trim());
-                        if (year == null || year < 2000 || year > 2100) {
-                          setDialogState(() {
-                            validationMessage =
-                                'Enter a four-digit year from 2000 to 2100.';
-                          });
-                          return;
-                        }
-                        Navigator.pop(dialogContext, year);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    final year = int.tryParse(controller.text.trim());
-                    if (year == null || year < 2000 || year > 2100) {
-                      setDialogState(() {
-                        validationMessage =
-                            'Enter a four-digit year from 2000 to 2100.';
-                      });
-                      return;
-                    }
-                    Navigator.pop(dialogContext, year);
-                  },
-                  child: const Text('Continue'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      builder: (_) => _StartYearDialog(
+        suggestedYear: _dateResolver.suggestedStartYear(fileName),
+      ),
     );
-
-    controller.dispose();
-    return result;
   }
 
   @override
   Widget build(BuildContext context) {
     final document = _document;
     final candidateSummary = _candidateSummary;
+    final benchmarkCandidateSummary = _benchmarkCandidateSummary;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Import Misfit History')),
@@ -258,9 +198,28 @@ class _ImportHistoryScreenState extends State<ImportHistoryScreen> {
                     Text('Needs review: ${candidateSummary.review}'),
                     Text('Deferred: ${candidateSummary.deferred}'),
                     Text('Skipped: ${candidateSummary.skipped}'),
+                    if (benchmarkCandidateSummary != null) ...[
+                      const Divider(height: 32),
+                      Text(
+                        'Benchmark candidates',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 12),
+                      Text('Found: ${benchmarkCandidateSummary.total}'),
+                      Text(
+                        'Results found: '
+                        '${benchmarkCandidateSummary.selected}',
+                      ),
+                      Text(
+                        'Needs review: '
+                        '${benchmarkCandidateSummary.needsReview}',
+                      ),
+                      Text('No result: ${benchmarkCandidateSummary.missing}'),
+                    ],
                     const SizedBox(height: 12),
                     const Text(
-                      'Preview only — no workout data has been imported.',
+                      'Preview only — no workout or benchmark data '
+                      'has been imported.',
                     ),
                     const SizedBox(height: 16),
                     SizedBox(
@@ -297,6 +256,87 @@ class _ImportHistoryScreenState extends State<ImportHistoryScreen> {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _StartYearDialog extends StatefulWidget {
+  final int? suggestedYear;
+
+  const _StartYearDialog({required this.suggestedYear});
+
+  @override
+  State<_StartYearDialog> createState() => _StartYearDialogState();
+}
+
+class _StartYearDialogState extends State<_StartYearDialog> {
+  late final TextEditingController _controller;
+  String? _validationMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: widget.suggestedYear?.toString() ?? '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final year = int.tryParse(_controller.text.trim());
+
+    if (year == null || year < 2000 || year > 2100) {
+      setState(() {
+        _validationMessage = 'Enter a four-digit year from 2000 to 2100.';
+      });
+      return;
+    }
+
+    Navigator.pop(context, year);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Confirm worksheet year'),
+      content: SizedBox(
+        width: 380,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Enter the calendar year containing W1D1. '
+              'Dates after December will automatically roll '
+              'into the following year.',
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'W1D1 starting year',
+                hintText: '2025',
+                errorText: _validationMessage,
+              ),
+              onSubmitted: (_) => _submit(),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(onPressed: _submit, child: const Text('Continue')),
+      ],
     );
   }
 }

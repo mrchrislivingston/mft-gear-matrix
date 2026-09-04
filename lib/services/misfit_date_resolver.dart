@@ -91,9 +91,7 @@ class MisfitDateResolver {
           continue;
         }
 
-        final possibleStart = anchor.subtract(
-          Duration(days: record.offsetDays),
-        );
+        final possibleStart = _addCalendarDays(anchor, -record.offsetDays);
 
         if (possibleStart.year == startYear) {
           programStart = possibleStart;
@@ -122,7 +120,7 @@ class MisfitDateResolver {
     final resolvedDates = <String, MisfitResolvedDate>{};
 
     for (final record in records) {
-      final date = programStart.add(Duration(days: record.offsetDays));
+      final date = _addCalendarDays(programStart, record.offsetDays);
       final explicitDate = record.explicitDate;
       var status = explicitDate == null
           ? MisfitDateStatus.inferred
@@ -131,8 +129,14 @@ class MisfitDateResolver {
       if (explicitDate != null &&
           (date.month != explicitDate.month || date.day != explicitDate.day)) {
         if (!_isOneDayConflict(date, explicitDate)) {
+          final expectedDate = _isoDate(date);
+          final headerDate =
+              '${explicitDate.month.toString().padLeft(2, '0')}/'
+              '${explicitDate.day.toString().padLeft(2, '0')}';
+
           throw FormatException(
-            '${record.programDay} date conflicts with the program calendar',
+            '${record.programDay} date conflicts with the program calendar: '
+            'expected $expectedDate, header contains $headerDate',
           );
         }
 
@@ -205,12 +209,27 @@ class MisfitDateResolver {
         continue;
       }
 
-      if (candidate.difference(programDate).inDays.abs() == 1) {
+      final candidateUtc = DateTime.utc(
+        candidate.year,
+        candidate.month,
+        candidate.day,
+      );
+      final programDateUtc = DateTime.utc(
+        programDate.year,
+        programDate.month,
+        programDate.day,
+      );
+
+      if (candidateUtc.difference(programDateUtc).inDays.abs() == 1) {
         return true;
       }
     }
 
     return false;
+  }
+
+  DateTime _addCalendarDays(DateTime date, int days) {
+    return DateTime(date.year, date.month, date.day + days);
   }
 
   DateTime? _validatedDate(int year, int month, int day) {

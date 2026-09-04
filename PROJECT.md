@@ -716,6 +716,47 @@ such as mixed prescriptions and benchmark workouts.
   Bumper Cables, Pennies, Speed Not Volume, 75 Continental Drive,
   King Larry I, Chuckles 1&2, Hurt and Injured, and Fairy Dust.
 
+### Qtrs Prep 2026 Historical Import Checkpoint
+
+- Added support for worksheets that store the calendar date in column A
+  and the program-day identifier in column B. Qtrs Prep resolves all 35
+  Matrix candidate dates from W1D1 on 2026-02-16 through W8D4 on
+  2026-04-09.
+
+- Date arithmetic now uses calendar-day construction rather than elapsed
+  durations, preventing daylight-saving transitions from shifting inferred
+  dates by one day. Date-conflict errors now display both the expected
+  calendar date and the date contained in the worksheet header.
+
+- The Qtrs Prep worksheet produces 35 Matrix candidates: 10 READY,
+  0 REVIEW, 1 deferred mixed-modality workout, and 24 skipped workouts.
+  All 10 READY workouts normalize successfully.
+
+- Added explicit parsing for calorie-scored Echo Bike results recorded as
+  bare labeled rounds. The W3D1 G6 Echo workout imported four calorie
+  intervals: 68, 69, 71, and 70.
+
+- Results indicating that illness prevented the workout are classified as
+  skipped. Run-for-meters workouts explicitly completed on a treadmill
+  without recorded distance are also skipped.
+
+- Ported all 34 maintained benchmark registry entries and aliases into
+  Dart. The in-app CSV preview now reports benchmark discovery counts
+  alongside Matrix candidates. Qtrs Prep contains no registered benchmark
+  occurrences, confirmed independently by scanning every CSV cell.
+
+- Imported all 10 supported Qtrs Prep Matrix workouts through the app.
+  The database now contains 106 Matrix workouts. The intentionally
+  deferred mixed-modality workout was not imported.
+
+- Flutter tests pass 117/117 and the Python historical-import suite passes
+  31/31. The eight existing analyzer findings remain unchanged.
+
+- Benchmark discovery is now available in the app preview. Benchmark
+  normalization, detailed review, duplicate detection, and atomic import
+  still need to be connected to the shared final-approval workflow before
+  processing a sheet that contains benchmark attempts.
+
 # Next Priorities**
 
 **## Historical Import**

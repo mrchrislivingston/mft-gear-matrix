@@ -48,6 +48,7 @@ class MisfitWorkoutParser {
   static final RegExp _skipResultPattern = RegExp(
     r"\b(skip(?:ped|ping)?|didn['’]?t do|did not do|"
     r"not completed|missed|rest day|sick|illness|"
+    r"stomach bug took me out|"
     r"work emergency|woke up with a cold|"
     r"going to take the weekend|not today satan|"
     r"instead of (?:zone|z)\s*[12]|called it a day|"
@@ -235,6 +236,23 @@ class MisfitWorkoutParser {
       return const MisfitClassification(
         status: MisfitImportStatus.skip,
         reason: 'Result indicates workout was not completed',
+      );
+    }
+
+    final requiresMeasuredRunDistance = RegExp(
+      r'\brun for meters?\b',
+      caseSensitive: false,
+    ).hasMatch(programmingText);
+    final lacksTreadmillDistance = RegExp(
+      r'\bno idea (?:on|of|for) (?:the )?meters?\b.*\btreadmill\b',
+      caseSensitive: false,
+      dotAll: true,
+    ).hasMatch(normalizedResult);
+
+    if (requiresMeasuredRunDistance && lacksTreadmillDistance) {
+      return const MisfitClassification(
+        status: MisfitImportStatus.skip,
+        reason: 'Required run distance was not recorded',
       );
     }
 

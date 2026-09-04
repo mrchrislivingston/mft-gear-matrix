@@ -82,4 +82,36 @@ Result,Just rowed for 50 min.
     expect(candidate.date, isEmpty);
     expect(candidate.dateStatus, MisfitDateStatus.unresolved);
   });
+
+  test('supports dates and program days in adjacent columns', () {
+    const source = '''
+Mon - 2/16,W1D1,Zone 2 Row
+Notes / Results,,50:00 in Z2
+Mon - 4/6/2026,W8D1,Zone 2 C2 Bike
+Notes / Results,,45:00 in Z2
+''';
+
+    final document = csvService.decodeBytes(
+      Uint8List.fromList(utf8.encode(source)),
+    );
+
+    final summary = reader.read(document, startYear: 2026);
+
+    expect(summary.candidates, hasLength(2));
+
+    final weekOne = summary.candidates.singleWhere(
+      (candidate) => candidate.programDay == 'W1D1',
+    );
+    final weekEight = summary.candidates.singleWhere(
+      (candidate) => candidate.programDay == 'W8D1',
+    );
+
+    expect(weekOne.date, '2026-02-16');
+    expect(weekOne.dateStatus, MisfitDateStatus.exact);
+    expect(weekOne.sourceColumn, 3);
+
+    expect(weekEight.date, '2026-04-06');
+    expect(weekEight.dateStatus, MisfitDateStatus.exact);
+    expect(weekEight.sourceColumn, 3);
+  });
 }

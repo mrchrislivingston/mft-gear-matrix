@@ -92,7 +92,7 @@ class MisfitCandidateReader {
         : dateResolver.resolve(
             headers: document.rows
                 .where((row) => row.isNotEmpty)
-                .map((row) => parser.normalizeText(row.first)),
+                .map(_dateHeader),
             startYear: startYear,
           );
 
@@ -105,7 +105,7 @@ class MisfitCandidateReader {
         continue;
       }
 
-      final dateHeader = parser.normalizeText(programmingRow.first);
+      final dateHeader = _dateHeader(programmingRow);
 
       if (!_hasSupportedHeader(dateHeader)) {
         continue;
@@ -280,6 +280,23 @@ class MisfitCandidateReader {
     }
 
     return expanded;
+  }
+
+  String _dateHeader(List<String> row) {
+    final firstCell = parser.normalizeText(_cell(row, 0));
+
+    if (row.length < 2) {
+      return firstCell;
+    }
+
+    final secondCell = parser.normalizeText(_cell(row, 1));
+
+    if (!_weekDayPattern.hasMatch(firstCell) &&
+        _weekDayPattern.hasMatch(secondCell)) {
+      return '$firstCell $secondCell'.trim();
+    }
+
+    return firstCell;
   }
 
   String? _resolveAmbiguousErgModality({

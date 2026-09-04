@@ -93,4 +93,20 @@ void main() {
       throwsFormatException,
     );
   });
+
+  test('uses calendar days across daylight-saving changes', () {
+    final resolution = resolver.resolve(
+      headers: const [
+        'Mon - 4/6/2026 W8D1',
+        'Mon - 3/2/2026 W3D1',
+        'Mon - 2/16 W1D1',
+      ],
+      startYear: 2026,
+    );
+
+    expect(resolution.programStartDate, '2026-02-16');
+    expect(resolution.dateFor('W1D1')?.date, '2026-02-16');
+    expect(resolution.dateFor('W3D1')?.date, '2026-03-02');
+    expect(resolution.dateFor('W8D1')?.date, '2026-04-06');
+  });
 }
