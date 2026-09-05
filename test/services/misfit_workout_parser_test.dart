@@ -226,4 +226,18 @@ void main() {
 
     expect(recorded.status, MisfitImportStatus.ready);
   });
+
+  test('ignores repeated active-rest instructions', () {
+    const instructions =
+        'You may choose which rest day is your full rest and which '
+        'is your active rest. The flush is meant to be done on your '
+        'full rest day, and the Zone 2 Bike on your active rest day.';
+
+    expect(parser.isRelevantWorkout(instructions), isFalse);
+    expect(parser.isRelevantWorkout('Zone 2 C2 Bike'), isTrue);
+    expect(
+      parser.isRelevantWorkout('Zone 2 - Bike\n45:00-90:00 Row @ Zone 2'),
+      isTrue,
+    );
+  });
 }

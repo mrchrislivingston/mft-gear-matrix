@@ -752,26 +752,58 @@ such as mixed prescriptions and benchmark workouts.
 - Flutter tests pass 117/117 and the Python historical-import suite passes
   31/31. The eight existing analyzer findings remain unchanged.
 
-- Benchmark discovery is now available in the app preview. Benchmark
-  normalization, detailed review, duplicate detection, and atomic import
-  still need to be connected to the shared final-approval workflow before
-  processing a sheet that contains benchmark attempts.
+### Phase 0 2026 Historical Import Checkpoint
+
+- Corrected the Phase 0 W1D7 source date to 2026-08-02 and resolved all
+  relevant Matrix and benchmark dates from W1D1 on 2026-07-27 through
+  W5D6 on 2026-08-29.
+
+- Narrowed Matrix discovery so repeated active-rest instructions that
+  merely mention a Zone 2 Bike are not treated as workout prescriptions.
+  Phase 0 produces 14 genuine Matrix candidates: 2 READY and 12 skipped
+  because no result was recorded.
+
+- Added complete in-app benchmark normalization for the Phase 0 result
+  formats. The worksheet contains 21 registered benchmark occurrences:
+  15 selected results, 0 review items, 3 intentionally excluded results,
+  and 3 occurrences with no result.
+
+- Confirmed special scoring rules for Phase 0: Kill-O-Watt uses the
+  lowest interval watts, Kill-O-Meter uses the slowest interval time,
+  M.A.T.T. uses average watts for the detected machine, and rounds-plus-
+  reps results retain their canonical score formats.
+
+- Added a combined Matrix and Benchmarks review screen with independent
+  filters, parsing summaries, detailed source/result inspection,
+  selection controls, and duplicate reporting for both record types.
+
+- Added benchmark duplicate detection and a shared SQLite transaction
+  that rechecks and imports selected Matrix workouts and benchmark
+  attempts atomically. Download suffixes such as `(1)` are removed from
+  the canonical source-workbook name.
+
+- Imported 2 Matrix workouts and 15 benchmark attempts from Phase 0
+  through the app. The database now contains 108 Matrix workouts and
+  32 benchmark attempts. Verification found no records stored with the
+  downloaded `(1)` filename suffix.
+
+- Historical workbook import is now current through Phase 0 2026.
 
 # Next Priorities**
 
 **## Historical Import**
 
-- Add reusable benchmark discovery, normalization, review, duplicate
-  detection, and import to the existing in-app CSV workflow.
-- Process the Phase 0/1 2026 workbooks using the maintained benchmark
-  names and aliases, adding confirmed benchmark descriptions and
-  scoring criteria as they are discovered.
-- Add newly discovered benchmark definitions and attempts through the
-  Benchmark import path rather than Matrix prescriptions.
+- Use the combined in-app workflow for future coaching sheets as they
+  become available.
+
+- Maintain the benchmark registry and add new aliases, descriptions,
+  scoring rules, and result formats when new benchmarks appear.
+
 - Extend safe candidate expansion to additional mixed-Gear,
   mixed-Power, and mixed-modality result formats as they are reviewed.
+
 - Keep all historical-import components covered by the automatically
-  discovered regression suite.
+  discovered regression suites.
 
 **## History Improvements**
 

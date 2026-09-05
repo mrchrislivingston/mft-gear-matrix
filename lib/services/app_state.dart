@@ -8,6 +8,7 @@ import '../data/default_matrix.dart';
 import '../models/benchmark.dart';
 import '../models/gear.dart';
 import '../models/gear_target.dart';
+import '../models/benchmark_attempt.dart';
 import '../models/log_entry.dart';
 import '../models/modality.dart';
 import '../models/target_history.dart';
@@ -386,6 +387,28 @@ class AppState {
     }
 
     return mergedTargets;
+  }
+
+  Future<HistoricalImportResult> importHistoricalRecordsAtomically({
+    required List<LogEntry> workouts,
+    required List<BenchmarkAttempt> benchmarkAttempts,
+  }) async {
+    if (kIsWeb) {
+      throw UnsupportedError('Historical CSV import is not supported on web.');
+    }
+
+    final result = await DatabaseService.instance
+        .insertHistoricalImportAtomically(
+          workouts: workouts,
+          benchmarkAttempts: benchmarkAttempts,
+        );
+
+    final sqliteWorkouts = await DatabaseService.instance.getWorkouts();
+    logs
+      ..clear()
+      ..addAll(sqliteWorkouts);
+
+    return result;
   }
 
   Future<int> importLogsAtomically(List<LogEntry> importedLogs) async {

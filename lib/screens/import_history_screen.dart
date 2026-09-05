@@ -2,10 +2,20 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../services/misfit_benchmark_candidate_reader.dart';
+import '../services/misfit_benchmark_normalizer.dart';
 import '../services/misfit_candidate_reader.dart';
 import '../services/misfit_date_resolver.dart';
 import 'import_candidate_review_screen.dart';
 import '../services/misfit_csv_service.dart';
+
+String _canonicalSourceWorkbookName(String fileName) {
+  final withoutExtension = fileName.replaceFirst(
+    RegExp(r'\.csv$', caseSensitive: false),
+    '',
+  );
+
+  return withoutExtension.replaceFirst(RegExp(r' \(\d+\)$'), '');
+}
 
 class ImportHistoryScreen extends StatefulWidget {
   const ImportHistoryScreen({super.key});
@@ -21,6 +31,8 @@ class _ImportHistoryScreenState extends State<ImportHistoryScreen> {
   static const MisfitCandidateReader _candidateReader = MisfitCandidateReader();
   static const MisfitBenchmarkCandidateReader _benchmarkCandidateReader =
       MisfitBenchmarkCandidateReader();
+  static const MisfitBenchmarkNormalizer _benchmarkNormalizer =
+      MisfitBenchmarkNormalizer();
   static const MisfitDateResolver _dateResolver = MisfitDateResolver();
 
   bool _isLoading = false;
@@ -29,6 +41,7 @@ class _ImportHistoryScreenState extends State<ImportHistoryScreen> {
   MisfitCsvDocument? _document;
   MisfitCandidateSummary? _candidateSummary;
   MisfitBenchmarkCandidateSummary? _benchmarkCandidateSummary;
+  MisfitBenchmarkNormalizationSummary? _benchmarkNormalizationSummary;
   String? _errorMessage;
 
   Future<void> _selectCsv() async {
@@ -79,6 +92,11 @@ class _ImportHistoryScreenState extends State<ImportHistoryScreen> {
         document,
         startYear: startYear,
       );
+      final sourceWorkbook = _canonicalSourceWorkbookName(file.name);
+      final benchmarkNormalizationSummary = _benchmarkNormalizer.normalizeAll(
+        benchmarkCandidateSummary,
+        sourceWorkbook: sourceWorkbook,
+      );
 
       if (!mounted) {
         return;
@@ -91,6 +109,7 @@ class _ImportHistoryScreenState extends State<ImportHistoryScreen> {
         _document = document;
         _candidateSummary = candidateSummary;
         _benchmarkCandidateSummary = benchmarkCandidateSummary;
+        _benchmarkNormalizationSummary = benchmarkNormalizationSummary;
       });
     } catch (error) {
       if (!mounted) {
@@ -104,6 +123,7 @@ class _ImportHistoryScreenState extends State<ImportHistoryScreen> {
         _document = null;
         _candidateSummary = null;
         _benchmarkCandidateSummary = null;
+        _benchmarkNormalizationSummary = null;
         _errorMessage = 'Unable to read that CSV file: $error';
       });
     }
@@ -123,6 +143,8 @@ class _ImportHistoryScreenState extends State<ImportHistoryScreen> {
     final document = _document;
     final candidateSummary = _candidateSummary;
     final benchmarkCandidateSummary = _benchmarkCandidateSummary;
+    final benchmarkNormalizationSummary = _benchmarkNormalizationSummary;
+    final sourceWorkbook = _canonicalSourceWorkbookName(_fileName ?? '');
 
     return Scaffold(
       appBar: AppBar(title: const Text('Import Misfit History')),
@@ -210,10 +232,22 @@ class _ImportHistoryScreenState extends State<ImportHistoryScreen> {
                         'Results found: '
                         '${benchmarkCandidateSummary.selected}',
                       ),
+                      if (benchmarkNormalizationSummary != null) ...[
+                        Text(
+                          'Results parsed: '
+                          '${benchmarkNormalizationSummary.successful}'
+                          '/${benchmarkCandidateSummary.selected}',
+                        ),
+                        Text(
+                          'Parse failed: '
+                          '${benchmarkNormalizationSummary.failed}',
+                        ),
+                      ],
                       Text(
                         'Needs review: '
                         '${benchmarkCandidateSummary.needsReview}',
                       ),
+                      Text('Excluded: ${benchmarkCandidateSummary.excluded}'),
                       Text('No result: ${benchmarkCandidateSummary.missing}'),
                     ],
                     const SizedBox(height: 12),
@@ -225,7 +259,9 @@ class _ImportHistoryScreenState extends State<ImportHistoryScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: candidateSummary.total == 0
+                        onPressed:
+                            candidateSummary.total == 0 &&
+                                (benchmarkCandidateSummary?.total ?? 0) == 0
                             ? null
                             : () {
                                 Navigator.push(
@@ -233,14 +269,9 @@ class _ImportHistoryScreenState extends State<ImportHistoryScreen> {
                                   MaterialPageRoute(
                                     builder: (_) => ImportCandidateReviewScreen(
                                       summary: candidateSummary,
-                                      sourceWorkbook: (_fileName ?? '')
-                                          .replaceFirst(
-                                            RegExp(
-                                              r'\.csv$',
-                                              caseSensitive: false,
-                                            ),
-                                            '',
-                                          ),
+                                      benchmarkSummary:
+                                          benchmarkCandidateSummary,
+                                      sourceWorkbook: sourceWorkbook,
                                     ),
                                   ),
                                 );

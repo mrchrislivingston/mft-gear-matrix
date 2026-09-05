@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mft_gear_matrix/screens/import_candidate_review_screen.dart';
+import 'package:mft_gear_matrix/services/misfit_benchmark_candidate_reader.dart';
+import 'package:mft_gear_matrix/services/misfit_date_resolver.dart';
 import 'package:mft_gear_matrix/services/misfit_candidate_reader.dart';
 import 'package:mft_gear_matrix/services/misfit_workout_parser.dart';
 
@@ -179,5 +181,53 @@ void main() {
 
     expect(find.text('Selected for import: 1'), findsOneWidget);
     expect(tester.widget<Checkbox>(checkbox).value, isTrue);
+  });
+
+  testWidgets('shows Matrix and benchmark selections in one review', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    const matrixSummary = MisfitCandidateSummary(candidates: []);
+    const benchmarkSummary = MisfitBenchmarkCandidateSummary(
+      candidates: [
+        MisfitBenchmarkCandidate(
+          sourceRow: 4,
+          sourceColumn: 7,
+          resultSourceRow: 5,
+          dateHeader: 'Tues - W1D2 July 28',
+          programDay: 'W1D2',
+          date: '2026-07-28',
+          dateStatus: MisfitDateStatus.exact,
+          benchmarkKey: 'pennies',
+          benchmarkName: 'Pennies',
+          modality: 'run',
+          programmingText: '"Pennies"',
+          resultText: '16:56 - Scaled to 185 and 4 RMU.',
+          resultStatus: MisfitBenchmarkResultStatus.selected,
+          resultReason: 'Single nonempty result row',
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ImportCandidateReviewScreen(
+          summary: matrixSummary,
+          benchmarkSummary: benchmarkSummary,
+        ),
+      ),
+    );
+
+    expect(find.text('Selected for import: 1'), findsOneWidget);
+    expect(find.text('Matrix: 0 • Benchmarks: 1'), findsOneWidget);
+    expect(find.text('Pennies'), findsOneWidget);
+
+    await tester.tap(find.text('Pennies'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Score: 16:56'), findsOneWidget);
+    expect(find.text('Benchmark ID: pennies'), findsOneWidget);
   });
 }

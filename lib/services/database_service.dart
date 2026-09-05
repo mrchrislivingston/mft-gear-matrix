@@ -10,6 +10,18 @@ import '../models/workout_metric.dart';
 import '../models/benchmark.dart';
 import '../models/benchmark_attempt.dart';
 
+class HistoricalImportResult {
+  final int workoutsImported;
+  final int benchmarkAttemptsImported;
+
+  const HistoricalImportResult({
+    required this.workoutsImported,
+    required this.benchmarkAttemptsImported,
+  });
+
+  int get totalImported => workoutsImported + benchmarkAttemptsImported;
+}
+
 class DatabaseService {
   DatabaseService._();
 
@@ -208,10 +220,23 @@ class DatabaseService {
   }
 
   Future<int> insertWorkoutsAtomically(List<LogEntry> workouts) async {
+    final result = await insertHistoricalImportAtomically(
+      workouts: workouts,
+      benchmarkAttempts: const [],
+    );
+
+    return result.workoutsImported;
+  }
+
+  Future<HistoricalImportResult> insertHistoricalImportAtomically({
+    required List<LogEntry> workouts,
+    required List<BenchmarkAttempt> benchmarkAttempts,
+  }) async {
     final db = await database;
 
     return db.transaction((transaction) async {
-      var imported = 0;
+      var workoutsImported = 0;
+      var benchmarkAttemptsImported = 0;
 
       for (final workout in workouts) {
         final duplicate = await _workoutExists(
@@ -230,10 +255,38 @@ class DatabaseService {
         }
 
         await _insertWorkout(transaction, workout);
-        imported++;
+        workoutsImported++;
       }
 
-      return imported;
+      for (final attempt in benchmarkAttempts) {
+        final duplicate = await _benchmarkAttemptExists(
+          transaction,
+          benchmarkId: attempt.benchmarkId,
+          date: attempt.date.toIso8601String().substring(0, 10),
+          sourceWorkbook: attempt.sourceWorkbook,
+          programDay: attempt.programDay,
+        );
+
+        if (duplicate) {
+          continue;
+        }
+
+        await transaction.insert('benchmark_attempts', {
+          'benchmark_id': attempt.benchmarkId,
+          'attempt_date': attempt.date.toIso8601String(),
+          'score': attempt.score,
+          'source_workbook': attempt.sourceWorkbook,
+          'program_day': attempt.programDay,
+          'details': attempt.details,
+          'notes': attempt.notes,
+        });
+        benchmarkAttemptsImported++;
+      }
+
+      return HistoricalImportResult(
+        workoutsImported: workoutsImported,
+        benchmarkAttemptsImported: benchmarkAttemptsImported,
+      );
     });
   }
 
@@ -494,6 +547,46 @@ class DatabaseService {
 
     await insertBenchmarkAttempt(attempt);
     return true;
+  }
+
+  Future<bool> benchmarkAttemptExists({
+    required String benchmarkId,
+    required String date,
+    required String sourceWorkbook,
+    required String programDay,
+  }) async {
+    final db = await database;
+
+    return _benchmarkAttemptExists(
+      db,
+      benchmarkId: benchmarkId,
+      date: date,
+      sourceWorkbook: sourceWorkbook,
+      programDay: programDay,
+    );
+  }
+
+  Future<bool> _benchmarkAttemptExists(
+    DatabaseExecutor executor, {
+    required String benchmarkId,
+    required String date,
+    required String sourceWorkbook,
+    required String programDay,
+  }) async {
+    final rows = await executor.query(
+      'benchmark_attempts',
+      columns: ['id'],
+      where: '''
+        benchmark_id = ?
+        AND substr(attempt_date, 1, 10) = ?
+        AND source_workbook = ?
+        AND program_day = ?
+      ''',
+      whereArgs: [benchmarkId, date, sourceWorkbook, programDay],
+      limit: 1,
+    );
+
+    return rows.isNotEmpty;
   }
 
   Future<Map<String, int>> getBenchmarkAttemptCounts() async {

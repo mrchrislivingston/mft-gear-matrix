@@ -85,4 +85,55 @@ void main() {
     expect(summary.candidates.single.benchmarkKey, 'spiders_on_mars');
     expect(summary.candidates.single.date, '2026-04-06');
   });
+
+  test('excludes known non-results and modified attempts', () {
+    const document = MisfitCsvDocument(
+      rows: [
+        ['Mon - W1D1 July 27', '', 'Fairy Dust'],
+        ['NOTES / RESULTS', '', 'Skipped Gym'],
+        ['Tues - W1D2 July 28', '', 'Enzo Gorlomi'],
+        [
+          'NOTES / RESULTS',
+          '',
+          'Replaced the walking lunges with GHDs.\n17:27',
+        ],
+        ['Wed - W1D3 July 29', '', 'Speed, Not Volume'],
+        ['NOTES / RESULTS', '', 'You better get into the 6th Rd'],
+      ],
+    );
+
+    final summary = reader.read(document, startYear: 2026);
+
+    expect(summary.total, 3);
+    expect(summary.selected, 0);
+    expect(summary.excluded, 3);
+    expect(summary.candidates.map((candidate) => candidate.resultReason), [
+      'Result indicates benchmark was not completed',
+      'Recorded workout was modified',
+      'No completed benchmark score was recorded',
+    ]);
+  });
+
+  test('keeps a written Speed Not Volume score selected', () {
+    const document = MisfitCsvDocument(
+      rows: [
+        ['Sat - W1D6 August 1', '', 'Speed, Not Volume'],
+        [
+          'NOTES / RESULTS',
+          '',
+          'Went about 70% effort and still got 5 rds 11 reps.',
+        ],
+      ],
+    );
+
+    final summary = reader.read(document, startYear: 2026);
+
+    expect(summary.total, 1);
+    expect(summary.selected, 1);
+    expect(summary.excluded, 0);
+    expect(
+      summary.candidates.single.resultStatus,
+      MisfitBenchmarkResultStatus.selected,
+    );
+  });
 }

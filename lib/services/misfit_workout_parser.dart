@@ -216,7 +216,22 @@ class MisfitWorkoutParser {
   }
 
   bool isRelevantWorkout(String programmingText) {
-    return detectWorkoutType(programmingText) != MisfitWorkoutType.unknown;
+    final normalized = normalizeText(programmingText);
+
+    final isRestDayInstruction =
+        normalized.toLowerCase().startsWith(
+          'you may choose which rest day is your full rest',
+        ) &&
+        RegExp(
+          r'\bzone\s*2\s+bike\b',
+          caseSensitive: false,
+        ).hasMatch(normalized);
+
+    if (isRestDayInstruction) {
+      return false;
+    }
+
+    return detectWorkoutType(normalized) != MisfitWorkoutType.unknown;
   }
 
   MisfitClassification classifyCandidate({

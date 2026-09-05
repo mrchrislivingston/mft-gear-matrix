@@ -3,7 +3,7 @@ import 'misfit_csv_service.dart';
 import 'misfit_date_resolver.dart';
 import 'misfit_workout_parser.dart';
 
-enum MisfitBenchmarkResultStatus { selected, needsReview, missing }
+enum MisfitBenchmarkResultStatus { selected, needsReview, excluded, missing }
 
 class MisfitBenchmarkCandidate {
   final int sourceRow;
@@ -57,6 +57,13 @@ class MisfitBenchmarkCandidateSummary {
       .where(
         (candidate) =>
             candidate.resultStatus == MisfitBenchmarkResultStatus.needsReview,
+      )
+      .length;
+
+  int get excluded => candidates
+      .where(
+        (candidate) =>
+            candidate.resultStatus == MisfitBenchmarkResultStatus.excluded,
       )
       .length;
 
@@ -156,13 +163,17 @@ class MisfitBenchmarkCandidateReader {
             () => <String>{},
           );
 
-          final selection = _selectBenchmarkResult(
+          final rawSelection = _selectBenchmarkResult(
             rows,
             programmingRowIndex: rowIndex,
             programmingColumnIndex: columnIndex,
             benchmarkKey: benchmark.key,
             programDay: programDay,
             previousResults: knownResults,
+          );
+          final selection = _classifySelectedResult(
+            benchmark.key,
+            rawSelection,
           );
 
           if (selection.text.isNotEmpty) {
@@ -194,6 +205,58 @@ class MisfitBenchmarkCandidateReader {
     return MisfitBenchmarkCandidateSummary(
       candidates: List.unmodifiable(candidates),
     );
+  }
+
+  _ResultSelection _classifySelectedResult(
+    String benchmarkKey,
+    _ResultSelection selection,
+  ) {
+    if (selection.status != MisfitBenchmarkResultStatus.selected) {
+      return selection;
+    }
+
+    final result = selection.text;
+
+    if (RegExp(
+      r"\bskip(?:ped|ping)?\s+(?:the\s+)?gym\b",
+      caseSensitive: false,
+    ).hasMatch(result)) {
+      return _ResultSelection.excluded(
+        result,
+        selection.rowNumber,
+        'Result indicates benchmark was not completed',
+      );
+    }
+
+    if (benchmarkKey == 'enzo_gorlomi' &&
+        RegExp(
+          r'\breplaced\b.+\bwith\b',
+          caseSensitive: false,
+          dotAll: true,
+        ).hasMatch(result)) {
+      return _ResultSelection.excluded(
+        result,
+        selection.rowNumber,
+        'Recorded workout was modified',
+      );
+    }
+
+    if (benchmarkKey == 'speed_not_volume' &&
+        !RegExp(
+          r'\b(?:'
+          r'\d+\s*(?:rds?|rounds?)?\s*\+\s*\d+|'
+          r'\d+\s*(?:rds?|rounds?)\s+\d+\s*reps?'
+          r')\b',
+          caseSensitive: false,
+        ).hasMatch(result)) {
+      return _ResultSelection.excluded(
+        result,
+        selection.rowNumber,
+        'No completed benchmark score was recorded',
+      );
+    }
+
+    return selection;
   }
 
   _ResultSelection _selectBenchmarkResult(
@@ -512,6 +575,14 @@ class _ResultSelection {
         text: '',
         rowNumber: 0,
         status: MisfitBenchmarkResultStatus.needsReview,
+        reason: reason,
+      );
+
+  const _ResultSelection.excluded(String text, int rowNumber, String reason)
+    : this(
+        text: text,
+        rowNumber: rowNumber,
+        status: MisfitBenchmarkResultStatus.excluded,
         reason: reason,
       );
 
