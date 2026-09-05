@@ -805,6 +805,82 @@ such as mixed prescriptions and benchmark workouts.
 - Keep all historical-import components covered by the automatically
   discovered regression suites.
 
+### 2026 Focus-Sheet Tracking Audit
+
+The `Gears + Benchmarks 2026` focus sheet was audited after completing
+the historical workbook imports. The following work is intentionally
+deferred until capacity is available.
+
+- Resolve conflicts between the focus sheet and imported/source data:
+
+  - Chuckles 1 & 2 is 10:51 in the focus sheet but 20:51 in the
+    imported Phase 0 workbook.
+
+  - 75 Continental Drive is dated 2026-08-02 in the focus sheet but
+    2026-08-03/W2D1 in the imported Phase 0 workbook.
+
+  - Cleo on 2025-09-27 is 32:39 in the focus sheet but appears as
+    32:29 in the existing imported attempt.
+
+  - Confirm whether the live Run G2 and G3 targets or the focus-sheet
+    values are authoritative.
+
+- Complete Zone and Gear target coverage:
+
+  - Populate the 30 missing Row, Ski, BikeErg, and Echo Gear targets.
+
+  - Populate the five recorded Z1/Z2 modality targets.
+
+  - Decide whether Zone prescriptions should use the sheet's
+    45:00-90:00 duration instead of the app's current 30:00-90:00.
+
+  - Add or model the age-based Zone heart-rate ranges from the sheet.
+
+  - Reconcile Run G2: app 8:45-9:00 versus sheet 9:00-9:15.
+
+  - Reconcile Run G3: app latest 7:30-7:45 versus sheet 8:30-8:45.
+
+  - Reconcile Row G4: app 1:53-1:53 versus sheet 1:52-1:54.
+
+- Complete benchmark coverage:
+
+  - Add `"The" Cube Test`.
+
+  - Split the generic Kill-O-Watt history into separate Ski, Row, and
+    Echo Bike benchmark definitions.
+
+  - Add `"I'm the Yaptain Now"` and its 10:23 result from 2026-08-08.
+
+  - Add the Power Output Echo Bike result of 00:49 from 2026-09-01.
+
+  - Add the Run Cube Test result of 290 calories from 2026-09-05.
+
+  - Configure the remaining benchmark definitions whose score type is
+    currently `unconfigured` so PRs and trends can be calculated
+    consistently.
+
+- Add Weightlifting PR tracking:
+
+  - Model the 14 lift definitions contained in the focus sheet.
+
+  - Import and retain the 32 dated weightlifting results.
+
+  - Provide weight-based scoring, PR identification, history, and
+    correction workflows.
+
+- Add Skill Chipper tracking:
+
+  - Model the focus sheet's Wall Walk, HSPU, Toes to Bar, Chest to Bar,
+    Bar Muscle Up, Ring Muscle Up, and Rope Climb tests.
+
+  - Import the six direct completed Skill Chipper results.
+
+  - Decide how the 100 GHD Sit Ups entry that references Enzo Gorlomi
+    should be represented.
+
+- Reconcile the completed work against the focus sheet and database
+  before beginning dashboard and analytics work.
+
 **## History Improvements**
 
 \- Better workout history dashboard \- Workout counts \- Latest
