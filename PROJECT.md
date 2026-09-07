@@ -789,9 +789,58 @@ such as mixed prescriptions and benchmark workouts.
 
 - Historical workbook import is now current through Phase 0 2026.
 
-# Next Priorities**
+### Garmin Calendar and Verified Data Rebuild Checkpoint
 
-**## Historical Import**
+- Added an in-app `FITR → Garmin Calendar` workflow for macOS. The app
+  retrieves a requested FITR week, previews recognized workouts, allows
+  individual selection, and creates and schedules only approved workouts
+  in Garmin.
+
+- The Garmin bridge supports Zone 2, single-Gear, Power, and reviewed
+  mixed-machine Gear workouts. It assigns appropriate Garmin sport types,
+  avoids duplicate creation and scheduling, and passes current in-app Run
+  Gear pace targets to Garmin as pace-zone targets.
+
+- FITR credentials and the Garmin login session remain outside the
+  repository. The macOS sandbox is currently disabled so the development
+  app can launch the local Python bridge and use its external credentials
+  and Garmin session.
+
+- Added Python coverage for FITR classification, mixed-machine workouts,
+  Garmin workout construction, sport types, scheduling idempotence, and
+  Run pace targets.
+
+- Added `tool/audit_historical_inputs.dart` to audit every current CSV
+  export through the same Dart discovery and normalization services used
+  by the app without writing to SQLite.
+
+- Re-audited and imported ten fresh Google Sheets exports. Added safe
+  normalization for constant treadmill pace, numbered kilometer/pace
+  intervals, Zone duration derived from distance and average pace, Rule 8,
+  and Bike Mount Doom. Instruction-only, target-only, uncompleted, and
+  intentionally non-importable result text is excluded.
+
+- The active database was rebuilt from empty and verified with 129 Matrix
+  workouts and 32 benchmark attempts. This consists of 127 READY Matrix
+  workouts plus two deliberately approved partial workouts. Every
+  per-workbook count matches the audit, SQLite integrity is `ok`, and
+  there are no blank/test sources or duplicate workout or benchmark keys.
+
+- Restored only three independently verified target-history rows: G5
+  BikeErg at 1:47-1:49 effective 2026-06-27, G6 BikeErg at 1:44-1:46
+  effective 2026-07-11, and G3 Run at 8:30-8:45 effective 2026-09-06.
+
+- Default prescriptions no longer fabricate target-history rows with
+  `DateTime.now()`, and the obsolete native SharedPreferences-to-SQLite
+  target migration has been removed. Native target history now comes
+  exclusively from SQLite.
+
+- Current verification passes 142 Flutter tests, 12 Garmin bridge Python
+  tests, and 31 historical-import Python tests.
+
+# Next Priorities
+
+## Historical Import
 
 - Use the combined in-app workflow for future coaching sheets as they
   become available.
@@ -822,12 +871,11 @@ deferred until capacity is available.
   - Cleo on 2025-09-27 is 32:39 in the focus sheet but appears as
     32:29 in the existing imported attempt.
 
-  - Confirm whether the live Run G2 and G3 targets or the focus-sheet
-    values are authoritative.
+  - Confirm whether the live Run G2 target or the focus-sheet value is authoritative.
 
 - Complete Zone and Gear target coverage:
 
-  - Populate the 30 missing Row, Ski, BikeErg, and Echo Gear targets.
+  - Populate the remaining 28 missing Row, Ski, BikeErg, and Echo Gear targets.
 
   - Populate the five recorded Z1/Z2 modality targets.
 
@@ -837,8 +885,6 @@ deferred until capacity is available.
   - Add or model the age-based Zone heart-rate ranges from the sheet.
 
   - Reconcile Run G2: app 8:45-9:00 versus sheet 9:00-9:15.
-
-  - Reconcile Run G3: app latest 7:30-7:45 versus sheet 8:30-8:45.
 
   - Reconcile Row G4: app 1:53-1:53 versus sheet 1:52-1:54.
 
@@ -881,24 +927,37 @@ deferred until capacity is available.
 - Reconcile the completed work against the focus sheet and database
   before beginning dashboard and analytics work.
 
-**## History Improvements**
+## Garmin Calendar
+
+- Replace the development machine's external Python environment with a
+  packaged or explicitly configured runtime before distributing the app.
+
+- Add an in-app credential and session setup flow rather than relying on
+  an external FITR credentials file and an existing Garmin session.
+
+- Revisit macOS sandboxing and entitlements before production distribution.
+
+- Extend classification only when new FITR workout formats are encountered,
+  keeping preview, explicit approval, and idempotent scheduling intact.
+
+## History Improvements
 
 \- Better workout history dashboard \- Workout counts \- Latest
 workout summary \- Trend indicators
 
-**## Training Analytics**
+## Training Analytics
 
 \- Interval fade detection \- Consistency analysis \- Target
 recommendations for Gear prescriptions \- Historical performance trends
 
-**## Quality of Life**
+## Quality of Life
 
 \- Better summary insights \- Personal best indicators \- Workout
 search \- Filters
 
 **------------------------------------------------------------------------**
 
-**# Future Roadmap**
+# Future Roadmap
 
 \- Training analytics \- Trend graphs \- Performance dashboards \-
 Benchmark tracking \- Weightlifting PRs \- Search \- Export \-
@@ -906,12 +965,7 @@ Backup \- Optional cloud sync \- Coach Mode \- AI coaching insights
 
 **------------------------------------------------------------------------**
 
-**## Future Cleanup**
-
-\- Remove the temporary SharedPreferences → SQLite target migration
-after the first production release. At that point, all existing native
-users will have migrated and the migration code can be safely deleted,
-simplifying AppState.
+## Future Cleanup
 
 \- Revisit the Gear History **Execution** score. It currently
 measures interval consistency using coefficient of variation, not
@@ -920,13 +974,16 @@ percentage of prescribed target achieved. Decide whether to rename it
 during analytics/UI polish.
 **------------------------------------------------------------------------**
 
-**# Development Notes**
+# Development Notes
 
-The project intentionally remains in a \*\*development/testing
-environment\*\*.
+The project remains in a development/testing environment.
 
-Development should continue using placeholder/test workout data until
-the application is considered feature complete.
+The active local macOS database now contains verified historical data
+reconstructed from the current coaching-sheet exports. Application
+databases, credentials, Garmin sessions, current CSV inputs, and archived
+CSV inputs remain outside version control.
 
-Historical spreadsheet data and historical gear progression will be
-imported as a dedicated migration step after MVP completion.
+Synthetic and placeholder records should be confined to automated tests.
+Future historical records should be imported through the audited in-app
+workflow with preview, explicit approval, duplicate checking, and
+post-import database validation.

@@ -58,4 +58,16 @@ Total - 4813
   test('does not parse pace-only sequences', () {
     expect(parser.extract('1:50.4/1:50.0/1:50.8/1:50.4'), isEmpty);
   });
+
+  test('parses numbered kilometer distance and pace rows', () {
+    const text =
+        '9:00-9:15\n'
+        '1 - 2.3k/9:05 pace\n'
+        '2 - 2.32k/9:02 pace';
+
+    expect(parser.extract(text), [
+      {'primaryMetric': '9:05', 'distance': '2300'},
+      {'primaryMetric': '9:02', 'distance': '2320'},
+    ]);
+  });
 }

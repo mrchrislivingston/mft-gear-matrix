@@ -27,3 +27,9 @@ tools/historical_import/review/
 tools/historical_import/normalized/
 tools/historical_import/import/
 tools/historical_import/archive/
+
+tools/historical_import/input_archive/
+
+# Garmin calendar credentials and sessions
+tools/garmin_calendar/fitr_credentials.txt
+tools/garmin_calendar/.garminconnect/

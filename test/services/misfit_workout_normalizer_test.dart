@@ -254,4 +254,80 @@ void main() {
       '70',
     ]);
   });
+
+  test('repeats a constant treadmill pace across planned intervals', () {
+    final workout = normalizer.normalize(
+      candidate(
+        type: MisfitWorkoutType.gear,
+        prescription: 'G4',
+        modality: 'run',
+        programming:
+            'Build Run - 4th Gear\n'
+            'AMRAP 6:00 x 3\n'
+            'Run for Meters @ 4th Gear\n'
+            'Rest 2:30',
+        result:
+            'Had to run on a stupid treadmill today. '
+            'Just set it at 7:47 pace for the run intervals and kept up.',
+      ),
+    );
+
+    expect(workout.executionPlan.intervalCount, 3);
+    expect(workout.intervals, hasLength(3));
+    expect(
+      workout.intervals.map((interval) => interval.values['primaryMetric']),
+      ['7:47', '7:47', '7:47'],
+    );
+  });
+
+  test('normalizes numbered kilometer and run pace intervals', () {
+    final workout = normalizer.normalize(
+      candidate(
+        type: MisfitWorkoutType.gear,
+        prescription: 'G2',
+        modality: 'run',
+        programming:
+            'Aerobic Run - 2nd Gear\n'
+            'AMRAP 13:00 x 2\n'
+            'Run for Meters @ 2nd Gear\n'
+            'Rest 1:15',
+        result:
+            '9:00-9:15\n'
+            '1 - 2.3k/9:05 pace\n'
+            '2 - 2.32k/9:02 pace',
+      ),
+    );
+
+    expect(workout.intervals, hasLength(2));
+    expect(workout.intervals[0].values, {
+      'primaryMetric': '9:05',
+      'distance': '2300',
+    });
+    expect(workout.intervals[1].values, {
+      'primaryMetric': '9:02',
+      'distance': '2320',
+    });
+  });
+
+  test('derives Zone duration from kilometer distance and pace', () {
+    final workout = normalizer.normalize(
+      candidate(
+        type: MisfitWorkoutType.zone,
+        prescription: 'Z2',
+        modality: 'bikeErg',
+        programming: 'Zone 2 C2 Bike',
+        result:
+            '20.7 KM\n'
+            'Avg HR - 127\n'
+            'Avg Pace - 2:10',
+      ),
+    );
+
+    expect(workout.duration, '00:44:51');
+    expect(workout.intervals.single.values, {
+      'heartRate': '127',
+      'primaryMetric': '2:10',
+      'distance': '20.7',
+    });
+  });
 }

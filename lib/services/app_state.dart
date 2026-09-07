@@ -109,23 +109,21 @@ class AppState {
   }
 
   Future<void> loadGears() async {
-    final prefs = await SharedPreferences.getInstance();
-    final rawGears = prefs.getStringList(_targetsKey);
-
     final defaultGears = buildDefaultMatrix();
 
     if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      final rawGears = prefs.getStringList(_targetsKey);
+
       if (rawGears == null || rawGears.isEmpty) {
         gears
           ..clear()
           ..addAll(defaultGears);
-
         return;
       }
 
       final savedGears = rawGears.map((rawGear) {
         final json = jsonDecode(rawGear) as Map<String, dynamic>;
-
         return Gear.fromJson(json);
       }).toList();
 
@@ -138,59 +136,20 @@ class AppState {
           return defaultGear;
         }
 
-        final savedGear = savedGears[savedIndex];
-
-        final mergedTargets = _mergeTargets(
-          defaultTargets: defaultGear.targets,
-          savedTargets: savedGear.targets,
+        return defaultGear.copyWith(
+          targets: _mergeTargets(
+            defaultTargets: defaultGear.targets,
+            savedTargets: savedGears[savedIndex].targets,
+          ),
         );
-
-        return defaultGear.copyWith(targets: mergedTargets);
       }).toList();
 
       gears
         ..clear()
         ..addAll(mergedGears);
-
       debugPrint('Gear target read source: shared_preferences');
-
       return;
     }
-
-    final migrationGears = <Gear>[];
-
-    if (rawGears == null || rawGears.isEmpty) {
-      migrationGears.addAll(defaultGears);
-    } else {
-      final savedGears = rawGears.map((rawGear) {
-        final json = jsonDecode(rawGear) as Map<String, dynamic>;
-
-        return Gear.fromJson(json);
-      }).toList();
-
-      migrationGears.addAll(
-        defaultGears.map((defaultGear) {
-          final savedIndex = savedGears.indexWhere(
-            (gear) => gear.number == defaultGear.number,
-          );
-
-          if (savedIndex == -1) {
-            return defaultGear;
-          }
-
-          final savedGear = savedGears[savedIndex];
-
-          final mergedTargets = _mergeTargets(
-            defaultTargets: defaultGear.targets,
-            savedTargets: savedGear.targets,
-          );
-
-          return defaultGear.copyWith(targets: mergedTargets);
-        }),
-      );
-    }
-
-    await _migratePrescriptionTargetsToSqlite(migrationGears);
 
     final sqliteGears = <Gear>[];
 
@@ -198,42 +157,40 @@ class AppState {
       final savedTargets = await DatabaseService.instance
           .getTargetsForPrescription(defaultGear.id);
 
-      final mergedTargets = _mergeTargets(
-        defaultTargets: defaultGear.targets,
-        savedTargets: savedTargets,
+      sqliteGears.add(
+        defaultGear.copyWith(
+          targets: _mergeTargets(
+            defaultTargets: defaultGear.targets,
+            savedTargets: savedTargets,
+          ),
+        ),
       );
-
-      sqliteGears.add(defaultGear.copyWith(targets: mergedTargets));
     }
 
     gears
       ..clear()
       ..addAll(sqliteGears);
-
     debugPrint('Gear target read source: SQLite');
   }
 
   Future<void> loadNonGearPrescriptions() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    final rawPrescriptions = prefs.getStringList(_prescriptionTargetsKey);
-
     final defaults = buildDefaultPrescriptions()
         .where((prescription) => prescription is! Gear)
         .toList();
 
     if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      final rawPrescriptions = prefs.getStringList(_prescriptionTargetsKey);
+
       if (rawPrescriptions == null || rawPrescriptions.isEmpty) {
         nonGearPrescriptions
           ..clear()
           ..addAll(defaults);
-
         return;
       }
 
       final savedPrescriptions = rawPrescriptions.map((rawPrescription) {
         final json = jsonDecode(rawPrescription) as Map<String, dynamic>;
-
         return Prescription.fromJson(json);
       }).toList();
 
@@ -246,59 +203,20 @@ class AppState {
           return defaultPrescription;
         }
 
-        final savedPrescription = savedPrescriptions[savedIndex];
-
-        final mergedTargets = _mergeTargets(
-          defaultTargets: defaultPrescription.targets,
-          savedTargets: savedPrescription.targets,
+        return defaultPrescription.copyWith(
+          targets: _mergeTargets(
+            defaultTargets: defaultPrescription.targets,
+            savedTargets: savedPrescriptions[savedIndex].targets,
+          ),
         );
-
-        return defaultPrescription.copyWith(targets: mergedTargets);
       }).toList();
 
       nonGearPrescriptions
         ..clear()
         ..addAll(mergedPrescriptions);
-
       debugPrint('Non-Gear target read source: shared_preferences');
-
       return;
     }
-
-    final migrationPrescriptions = <Prescription>[];
-
-    if (rawPrescriptions == null || rawPrescriptions.isEmpty) {
-      migrationPrescriptions.addAll(defaults);
-    } else {
-      final savedPrescriptions = rawPrescriptions.map((rawPrescription) {
-        final json = jsonDecode(rawPrescription) as Map<String, dynamic>;
-
-        return Prescription.fromJson(json);
-      }).toList();
-
-      migrationPrescriptions.addAll(
-        defaults.map((defaultPrescription) {
-          final savedIndex = savedPrescriptions.indexWhere(
-            (prescription) => prescription.id == defaultPrescription.id,
-          );
-
-          if (savedIndex == -1) {
-            return defaultPrescription;
-          }
-
-          final savedPrescription = savedPrescriptions[savedIndex];
-
-          final mergedTargets = _mergeTargets(
-            defaultTargets: defaultPrescription.targets,
-            savedTargets: savedPrescription.targets,
-          );
-
-          return defaultPrescription.copyWith(targets: mergedTargets);
-        }),
-      );
-    }
-
-    await _migratePrescriptionTargetsToSqlite(migrationPrescriptions);
 
     final sqlitePrescriptions = <Prescription>[];
 
@@ -306,54 +224,20 @@ class AppState {
       final savedTargets = await DatabaseService.instance
           .getTargetsForPrescription(defaultPrescription.id);
 
-      final mergedTargets = _mergeTargets(
-        defaultTargets: defaultPrescription.targets,
-        savedTargets: savedTargets,
-      );
-
       sqlitePrescriptions.add(
-        defaultPrescription.copyWith(targets: mergedTargets),
+        defaultPrescription.copyWith(
+          targets: _mergeTargets(
+            defaultTargets: defaultPrescription.targets,
+            savedTargets: savedTargets,
+          ),
+        ),
       );
     }
 
     nonGearPrescriptions
       ..clear()
       ..addAll(sqlitePrescriptions);
-
     debugPrint('Non-Gear target read source: SQLite');
-  }
-
-  Future<void> _migratePrescriptionTargetsToSqlite(
-    Iterable<Prescription> prescriptions,
-  ) async {
-    if (kIsWeb) {
-      return;
-    }
-
-    var insertedCount = 0;
-
-    for (final prescription in prescriptions) {
-      for (final target in prescription.targets) {
-        for (final historyItem in target.history) {
-          final inserted = await DatabaseService.instance
-              .insertTargetHistoryIfAbsent(
-                prescriptionId: prescription.id,
-                modality: target.modality,
-                metric: target.metric,
-                target: historyItem,
-              );
-
-          if (inserted) {
-            insertedCount++;
-          }
-        }
-      }
-    }
-
-    debugPrint(
-      'Target migration to SQLite: '
-      '$insertedCount new history records',
-    );
   }
 
   List<GearTarget> _mergeTargets({

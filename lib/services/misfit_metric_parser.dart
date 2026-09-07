@@ -66,6 +66,19 @@ class MisfitMetricParser {
     caseSensitive: false,
   );
 
+  static final RegExp _kilometerPaceDurationPattern = RegExp(
+    r'(?<!\d)(\d+(?:\.\d+)?)\s*KM\b'
+    r'[\s\S]*?\b(?:avg|average)\s+pace\s*[-:]?\s*'
+    r'(\d+):(\d{2})\b',
+    caseSensitive: false,
+  );
+
+  static final RegExp _constantTreadmillPacePattern = RegExp(
+    r'\bset it at\s+(\d{1,2}:\d{2}(?:\.\d+)?)'
+    r'\s+pace\b',
+    caseSensitive: false,
+  );
+
   static final RegExp _actualRunPattern = RegExp(
     r'Actual\s*-\s*'
     r'(\d+:\d+)'
@@ -112,6 +125,25 @@ class MisfitMetricParser {
       int.parse(lineStartMatch.group(1)!),
       int.parse(lineStartMatch.group(2)!),
     );
+  }
+
+  String extractDurationFromKilometersAndPace(String resultText) {
+    final match = _kilometerPaceDurationPattern.firstMatch(resultText);
+    if (match == null) {
+      return '';
+    }
+
+    final kilometers = double.parse(match.group(1)!);
+    final paceSeconds =
+        int.parse(match.group(2)!) * 60 + int.parse(match.group(3)!);
+    final totalSeconds = (kilometers * paceSeconds).round();
+
+    return _formatClockDuration(totalSeconds ~/ 60, totalSeconds % 60);
+  }
+
+  String extractConstantTreadmillPace(String resultText) {
+    final match = _constantTreadmillPacePattern.firstMatch(resultText);
+    return match?.group(1) ?? '';
   }
 
   Map<String, String> extractAverageWatts(String resultText) {

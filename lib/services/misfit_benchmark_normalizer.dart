@@ -87,8 +87,8 @@ class MisfitBenchmarkNormalizer {
   );
 
   static final RegExp _mountDoomPattern = RegExp(
-    r'\bthrough\s+(\d+)\s+of\s+(?:the\s+)?'
-    r'round\s+of\s+(\d+)\b',
+    r'\b(?:through|hit)\s+(\d+)(?:\s+cals?)?\s+'
+    r'(?:of|on)\s+(?:the\s+)?round\s+of\s+(\d+)\b',
     caseSensitive: false,
   );
 
@@ -159,7 +159,7 @@ class MisfitBenchmarkNormalizer {
           'Cube Steaked result does not contain a total score',
         ),
       ),
-      'row_mount_doom' => _normalizeMountDoom(candidate),
+      'row_mount_doom' || 'bike_mount_doom' => _normalizeMountDoom(candidate),
       'row_cube_test' ||
       'c2_bike_cube_test' ||
       'ski_cube_test' ||
@@ -169,7 +169,8 @@ class MisfitBenchmarkNormalizer {
       'pennies' ||
       'continental_drive_75' ||
       'chuckles_1_2' ||
-      'bumper_cables' => _normalizeTime(candidate),
+      'bumper_cables' ||
+      'rule_8' => _normalizeTime(candidate),
       'hurt_and_injured' ||
       'cupcake_lungs' ||
       'might_not' ||

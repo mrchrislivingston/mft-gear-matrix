@@ -50,9 +50,30 @@ class MisfitWorkoutParser {
     r"not completed|missed|rest day|sick|illness|"
     r"stomach bug took me out|"
     r"work emergency|woke up with a cold|"
+    r"moved (?:this|it) to tomorrow|"
+    r"didn['’]?t (?:run|row|ski|bike|ride|work ?out)|"
     r"going to take the weekend|not today satan|"
     r"instead of (?:zone|z)\s*[12]|called it a day|"
     r"will do (?:a )?(?:zone|z)\s*[12].*later)\b",
+    caseSensitive: false,
+    dotAll: true,
+  );
+
+  static final RegExp _instructionOnlyResultPattern = RegExp(
+    r'^\s*equipment modifications?\b',
+    caseSensitive: false,
+  );
+
+  static final RegExp _targetOnlyResultPattern = RegExp(
+    r'^\s*\d+:\d{2}\s*[-–]\s*\d+:\d{2}\s*$',
+    caseSensitive: false,
+  );
+
+  static final RegExp _nonImportableResultPattern = RegExp(
+    r'\b(?:zone\s*1\s+yard\s+work|'
+    r'too\s+much\s+drama\s+today|'
+    r'tell\s+your\s+parents\s+you\s+love\s+them)\b|'
+    r'^\s*rd1\b.*\bbbjo\b.*\brd2\b.*\bbbjo\b',
     caseSensitive: false,
     dotAll: true,
   );
@@ -244,6 +265,27 @@ class MisfitWorkoutParser {
       return const MisfitClassification(
         status: MisfitImportStatus.skip,
         reason: 'No result recorded',
+      );
+    }
+
+    if (_instructionOnlyResultPattern.hasMatch(normalizedResult)) {
+      return const MisfitClassification(
+        status: MisfitImportStatus.skip,
+        reason: 'Result contains instructions, not a recorded result',
+      );
+    }
+
+    if (_targetOnlyResultPattern.hasMatch(normalizedResult)) {
+      return const MisfitClassification(
+        status: MisfitImportStatus.skip,
+        reason: 'Result contains a target range, not workout results',
+      );
+    }
+
+    if (_nonImportableResultPattern.hasMatch(normalizedResult)) {
+      return const MisfitClassification(
+        status: MisfitImportStatus.skip,
+        reason: 'Result does not contain importable Matrix performance data',
       );
     }
 

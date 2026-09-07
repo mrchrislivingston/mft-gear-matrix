@@ -2,7 +2,6 @@ import '../models/gear.dart';
 import '../models/gear_target.dart';
 import '../models/metric.dart';
 import '../models/modality.dart';
-import '../models/target_history.dart';
 import '../models/training_stimulus.dart';
 
 /// Complete list of workout prescriptions.
@@ -16,14 +15,14 @@ List<Prescription> buildDefaultPrescriptions() {
     _buildZonePrescription(id: 'Z1', name: 'Zone 1'),
     _buildZonePrescription(id: 'Z2', name: 'Zone 2'),
 
-    _buildGear(1, '15:00', '1:00', 2, '9:15', '9:30'),
-    _buildGear(2, '8:00', '1:15', 3, '8:45', '9:00'),
-    _buildGear(3, '6:00', '1:30', 4, '8:00', '8:15'),
-    _buildGear(4, '4:00', '2:00', 5, '7:45', '8:00'),
-    _buildGear(5, '3:30', '2:30', 5, '7:30', '7:45'),
-    _buildGear(6, '3:00', '3:00', 5, '7:15', '7:30'),
-    _buildGear(7, '2:30', '3:15', 5, '7:00', '7:15'),
-    _buildGear(8, '2:00', '3:30', 5, '6:45', '7:00'),
+    _buildGear(1, '15:00', '1:00', 2),
+    _buildGear(2, '8:00', '1:15', 3),
+    _buildGear(3, '6:00', '1:30', 4),
+    _buildGear(4, '4:00', '2:00', 5),
+    _buildGear(5, '3:30', '2:30', 5),
+    _buildGear(6, '3:00', '3:00', 5),
+    _buildGear(7, '2:30', '3:15', 5),
+    _buildGear(8, '2:00', '3:30', 5),
 
     _buildPowerPrescription(
       id: 'P4',
@@ -134,36 +133,13 @@ Prescription _buildPowerPrescription({
   );
 }
 
-Gear _buildGear(
-  int number,
-  String work,
-  String rest,
-  int intervals,
-  String lowTarget,
-  String highTarget,
-) {
+Gear _buildGear(int number, String work, String rest, int intervals) {
   return Gear(
     number: number,
     work: work,
     rest: rest,
     intervals: intervals,
-    targets: [
-      GearTarget(
-        modality: Modality.run,
-        metric: Metric.minPerMile,
-        history: [
-          TargetHistory(
-            lowTarget: lowTarget,
-            highTarget: highTarget,
-            effectiveDate: DateTime.now(),
-          ),
-        ],
-      ),
-      const GearTarget(modality: Modality.row, metric: Metric.minPer500m),
-      const GearTarget(modality: Modality.ski, metric: Metric.minPer500m),
-      const GearTarget(modality: Modality.bikeErg, metric: Metric.minPer1000m),
-      const GearTarget(modality: Modality.echo, metric: Metric.rpm),
-    ],
+    targets: _emptyTargets(),
   );
 }
 

@@ -10,6 +10,14 @@ class MisfitPaceDistanceIntervalParser {
     caseSensitive: false,
   );
 
+  static final RegExp _numberedKilometerPacePattern = RegExp(
+    r'^\s*\d+\s*-\s*'
+    r'(\d+(?:\.\d+)?)\s*k(?:m)?\s*/\s*'
+    r'(\d{1,2}:\d{2}(?:\.\d+)?)\s*pace\b',
+    caseSensitive: false,
+    multiLine: true,
+  );
+
   static final RegExp _distancePaceDashPattern = RegExp(
     r'\b(?:Rd\s*)?\d+\s*-\s*'
     r'(\d+(?:\.\d+)?)\s*m\s*-\s*'
@@ -52,10 +60,21 @@ class MisfitPaceDistanceIntervalParser {
         )
         .join('\n');
 
-    var intervals = _extractDistanceFirst(
-      _distancePaceTablePattern,
-      intervalText,
-    );
+    var intervals = _numberedKilometerPacePattern
+        .allMatches(intervalText)
+        .map((match) {
+          return {
+            'primaryMetric': _normalizePace(match.group(2)!),
+            'distance': _normalizeDistance(match.group(1)!, 'KM'),
+          };
+        })
+        .toList(growable: false);
+
+    if (intervals.isNotEmpty) {
+      return intervals;
+    }
+
+    intervals = _extractDistanceFirst(_distancePaceTablePattern, intervalText);
 
     if (intervals.isNotEmpty) {
       return intervals;

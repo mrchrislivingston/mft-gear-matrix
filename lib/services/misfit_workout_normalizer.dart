@@ -113,6 +113,12 @@ class MisfitWorkoutNormalizer {
     }
 
     if (duration.isEmpty) {
+      duration = metricParser.extractDurationFromKilometersAndPace(
+        candidate.resultText,
+      );
+    }
+
+    if (duration.isEmpty) {
       throw const FormatException(
         'Zone workout duration could not be extracted',
       );
@@ -151,6 +157,16 @@ class MisfitWorkoutNormalizer {
     if (paces.isNotEmpty) {
       return [
         for (final pace in paces) {'primaryMetric': pace},
+      ];
+    }
+
+    final constantPace = metricParser.extractConstantTreadmillPace(resultText);
+    if (constantPace.isNotEmpty) {
+      final executionPlan =
+          candidate.executionPlan ?? _defaultExecutionPlan(candidate);
+      return [
+        for (var index = 0; index < executionPlan.intervalCount; index++)
+          {'primaryMetric': constantPace},
       ];
     }
 
