@@ -90,11 +90,148 @@ def parse_run_pace_targets(values):
             )
 
         targets[prescription] = {
+            "metric": "minPerMile",
             "low": low,
             "high": high,
         }
 
     return targets
+
+
+def normalize_target_modality(value):
+    normalized = value.strip().lower()
+
+    if "run" in normalized:
+        return "run"
+
+    if "echo" in normalized:
+        return "echo"
+
+    if "c2 bike" in normalized or normalized in {
+        "bike",
+        "bikeerg",
+        "bike erg",
+    }:
+        return "bikeErg"
+
+    if "row" in normalized:
+        return "row"
+
+    if "ski" in normalized:
+        return "ski"
+
+    raise ValueError(f"Unsupported target modality: {value}")
+
+
+def parse_gear_targets(values):
+    targets = {}
+
+    for value in values:
+        if "=" not in value or "," not in value:
+            raise ValueError(
+                "Gear targets must use "
+                "PRESCRIPTION:MODALITY:METRIC=LOW,HIGH"
+            )
+
+        identity, target_range = value.split("=", 1)
+        identity_parts = identity.split(":")
+        low, high = target_range.split(",", 1)
+
+        if len(identity_parts) != 3:
+            raise ValueError(
+                "Gear targets must use "
+                "PRESCRIPTION:MODALITY:METRIC=LOW,HIGH"
+            )
+
+        prescription, modality, metric = (
+            part.strip() for part in identity_parts
+        )
+        prescription = prescription.upper()
+        modality = normalize_target_modality(modality)
+        low = low.strip()
+        high = high.strip()
+
+        expected_metrics = {
+            "run": "minPerMile",
+            "row": "minPer500m",
+            "ski": "minPer500m",
+            "bikeErg": "minPer1000m",
+            "echo": "rpm",
+        }
+
+        if not re.fullmatch(r"G[1-8]", prescription):
+            raise ValueError(
+                f"Invalid Gear prescription: {prescription}"
+            )
+
+        if metric != expected_metrics[modality]:
+            raise ValueError(
+                f"Invalid metric {metric} for {modality}"
+            )
+
+        if not low or not high:
+            raise ValueError("Gear target bounds cannot be blank")
+
+        targets[(prescription, modality)] = {
+            "metric": metric,
+            "low": low,
+            "high": high,
+        }
+
+    return targets
+
+
+def apply_targets_to_candidate(
+    result,
+    run_pace_targets,
+    gear_targets,
+):
+    if result["type"] == "GEAR":
+        prescription = result["prescription"]
+        modality = normalize_target_modality(
+            result.get("modality", "")
+        )
+
+        target = gear_targets.get((prescription, modality))
+
+        if (
+            target is None
+            and modality == "run"
+            and prescription in run_pace_targets
+        ):
+            target = run_pace_targets[prescription]
+
+        if target:
+            result["gear_target"] = dict(target)
+
+            if modality == "run":
+                result["pace_low"] = target["low"]
+                result["pace_high"] = target["high"]
+
+        return
+
+    if result["type"] != "MIXED_GEAR":
+        return
+
+    prescription = result["prescription"]
+    applied = {}
+
+    for step in result.get("steps", []):
+        if step.get("kind") != "work":
+            continue
+
+        modality = normalize_target_modality(
+            step.get("modality", "")
+        )
+        target = gear_targets.get((prescription, modality))
+
+        if target:
+            step["gear_target"] = dict(target)
+            applied[modality] = dict(target)
+
+    if applied:
+        result["gear_targets"] = applied
+
 
 def build_workout(candidate):
     workout_type = candidate["type"]
@@ -124,6 +261,7 @@ def preview_week(
     cookie,
     athlete_id,
     run_pace_targets=None,
+    gear_targets=None,
 ):
     sunday = monday + timedelta(days=6)
     calendar_url = (
@@ -204,18 +342,11 @@ def preview_week(
                     )
                     continue
 
-                if (
-                    result["type"] == "GEAR"
-                    and result.get("modality", "").lower()
-                    == "run"
-                ):
-                    target = (run_pace_targets or {}).get(
-                        result["prescription"]
-                    )
-
-                    if target:
-                        result["pace_low"] = target["low"]
-                        result["pace_high"] = target["high"]
+                apply_targets_to_candidate(
+                    result,
+                    run_pace_targets or {},
+                    gear_targets or {},
+                )
 
                 workout = build_workout(result)
 
@@ -367,6 +498,16 @@ def parse_args():
         ),
     )
     parser.add_argument(
+        "--gear-target",
+        action="append",
+        default=[],
+        help=(
+            "Current non-Run Gear target as "
+            "PRESCRIPTION:MODALITY:METRIC=LOW,HIGH; "
+            "may be repeated."
+        ),
+    )
+    parser.add_argument(
         "--selected-id",
         action="append",
         default=[],
@@ -392,6 +533,8 @@ def main():
     run_pace_targets = parse_run_pace_targets(
         args.run_pace_target
     )
+    gear_targets = parse_gear_targets(args.gear_target)
+
     preview = preview_week(
         monday,
         args.age,
@@ -399,6 +542,7 @@ def main():
         cookie,
         athlete_id,
         run_pace_targets=run_pace_targets,
+        gear_targets=gear_targets,
     )
 
     if args.action == "preview":

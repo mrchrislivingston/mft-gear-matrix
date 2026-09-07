@@ -75,6 +75,22 @@ void main() {
       runPaceTargets: const {
         'G3': GarminRunPaceTarget(low: '8:30', high: '8:45'),
       },
+      gearTargets: const [
+        GarminGearTarget(
+          prescription: 'G1',
+          modality: 'echo',
+          metric: 'rpm',
+          low: '63',
+          high: '63',
+        ),
+        GarminGearTarget(
+          prescription: 'G4',
+          modality: 'ski',
+          metric: 'minPer500m',
+          low: '1:58',
+          high: '1:58',
+        ),
+      ],
     );
 
     expect(preview.candidates, hasLength(1));
@@ -91,6 +107,10 @@ void main() {
       credentialsFile.path,
       '--run-pace-target',
       'G3=8:30,8:45',
+      '--gear-target',
+      'G1:echo:rpm=63,63',
+      '--gear-target',
+      'G4:ski:minPer500m=1:58,1:58',
     ]);
   });
 

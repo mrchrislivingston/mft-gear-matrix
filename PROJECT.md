@@ -798,8 +798,10 @@ such as mixed prescriptions and benchmark workouts.
 
 - The Garmin bridge supports Zone 2, single-Gear, Power, and reviewed
   mixed-machine Gear workouts. It assigns appropriate Garmin sport types,
-  avoids duplicate creation and scheduling, and passes current in-app Run
-  Gear pace targets to Garmin as pace-zone targets.
+  avoids duplicate creation and scheduling, and passes current in-app Gear
+  targets to Garmin. Run, Row, and C2 Bike use native interval targets;
+  Ski and Echo targets appear in workout descriptions without triggering
+  target alerts.
 
 - FITR credentials and the Garmin login session remain outside the
   repository. The macOS sandbox is currently disabled so the development

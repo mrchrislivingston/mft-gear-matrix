@@ -20,6 +20,22 @@ class GarminRunPaceTarget {
   const GarminRunPaceTarget({required this.low, required this.high});
 }
 
+class GarminGearTarget {
+  final String prescription;
+  final String modality;
+  final String metric;
+  final String low;
+  final String high;
+
+  const GarminGearTarget({
+    required this.prescription,
+    required this.modality,
+    required this.metric,
+    required this.low,
+    required this.high,
+  });
+}
+
 class GarminCalendarCandidate {
   final String id;
   final String date;
@@ -222,6 +238,7 @@ class GarminCalendarService {
     required DateTime monday,
     required int age,
     Map<String, GarminRunPaceTarget> runPaceTargets = const {},
+    List<GarminGearTarget> gearTargets = const [],
   }) async {
     final json = await _run([
       'preview',
@@ -232,6 +249,7 @@ class GarminCalendarService {
       '--credentials-file',
       credentialsPath,
       ..._runPaceTargetArguments(runPaceTargets),
+      ..._gearTargetArguments(gearTargets),
     ]);
 
     return GarminCalendarPreview.fromJson(json);
@@ -242,6 +260,7 @@ class GarminCalendarService {
     required int age,
     required Set<String> selectedIds,
     Map<String, GarminRunPaceTarget> runPaceTargets = const {},
+    List<GarminGearTarget> gearTargets = const [],
   }) async {
     if (selectedIds.isEmpty) {
       throw const GarminCalendarException(
@@ -258,11 +277,38 @@ class GarminCalendarService {
       '--credentials-file',
       credentialsPath,
       ..._runPaceTargetArguments(runPaceTargets),
+      ..._gearTargetArguments(gearTargets),
       for (final id in selectedIds) ...['--selected-id', id],
     ];
 
     final json = await _run(arguments);
     return GarminCalendarCommitResult.fromJson(json);
+  }
+
+  List<String> _gearTargetArguments(List<GarminGearTarget> targets) {
+    final entries = [...targets]
+      ..sort((left, right) {
+        final prescriptionComparison = left.prescription.compareTo(
+          right.prescription,
+        );
+
+        if (prescriptionComparison != 0) {
+          return prescriptionComparison;
+        }
+
+        return left.modality.compareTo(right.modality);
+      });
+
+    return [
+      for (final target in entries) ...[
+        '--gear-target',
+        '${target.prescription}:'
+            '${target.modality}:'
+            '${target.metric}='
+            '${target.low},'
+            '${target.high}',
+      ],
+    ];
   }
 
   List<String> _runPaceTargetArguments(

@@ -161,24 +161,24 @@ def build_z2_workout(candidate, age):
 
 
 
-def pace_to_meters_per_second(pace):
+def pace_to_speed(pace, distance_meters):
     parts = pace.strip().split(":")
 
     if len(parts) != 2:
-        raise ValueError(
-            f"Invalid minutes-per-mile pace: {pace}"
-        )
+        raise ValueError(f"Invalid pace: {pace}")
 
     minutes = int(parts[0])
     seconds = float(parts[1])
     total_seconds = minutes * 60 + seconds
 
     if total_seconds <= 0:
-        raise ValueError(
-            f"Invalid minutes-per-mile pace: {pace}"
-        )
+        raise ValueError(f"Invalid pace: {pace}")
 
-    return 1609.344 / total_seconds
+    return distance_meters / total_seconds
+
+
+def pace_to_meters_per_second(pace):
+    return pace_to_speed(pace, 1609.344)
 
 
 def apply_run_pace_target(step, low_pace, high_pace):
@@ -195,6 +195,71 @@ def apply_run_pace_target(step, low_pace, high_pace):
     step["targetValueTwo"] = min(speeds)
     return step
 
+
+def format_gear_target(target):
+    low = target["low"]
+    high = target["high"]
+    value = low if low == high else f"{low}-{high}"
+
+    units = {
+        "minPerMile": "min/mile",
+        "minPer500m": "min/500m",
+        "minPer1000m": "min/1000m",
+        "rpm": "RPM",
+    }
+
+    return f"Target {value} {units[target['metric']]}"
+
+
+def modality_uses_structured_target(modality):
+    normalized = modality.lower()
+
+    return (
+        "run" in normalized
+        or "row" in normalized
+        or "bike" in normalized
+    ) and "echo" not in normalized
+
+
+def apply_gear_target(
+    step,
+    target,
+    enforce=True,
+):
+    metric = target["metric"]
+    low = target["low"]
+    high = target["high"]
+
+    step["description"] = format_gear_target(target)
+
+    if not enforce:
+        return step
+
+    if metric == "minPerMile":
+        apply_run_pace_target(step, low, high)
+
+    elif metric in {"minPer500m", "minPer1000m"}:
+        distance = 500 if metric == "minPer500m" else 1000
+        speeds = [
+            pace_to_speed(low, distance),
+            pace_to_speed(high, distance),
+        ]
+
+        step["targetType"] = {
+            "workoutTargetTypeId": 5,
+            "workoutTargetTypeKey": "speed.zone",
+        }
+        step["targetValueOne"] = min(speeds)
+        step["targetValueTwo"] = max(speeds)
+
+    else:
+        raise ValueError(
+            f"Structured target is not supported for metric: {metric}"
+        )
+
+    return step
+
+
 def build_gear_steps(candidate):
     steps = []
     order = 1
@@ -206,7 +271,18 @@ def build_gear_steps(candidate):
             candidate["work_seconds"],
         )
 
-        if (
+        target = candidate.get("gear_target")
+
+        if target:
+            apply_gear_target(
+                work_step,
+                target,
+                enforce=modality_uses_structured_target(
+                    candidate["modality"]
+                ),
+            )
+
+        elif (
             candidate["modality"].lower() == "run"
             and candidate.get("pace_low")
             and candidate.get("pace_high")
@@ -268,10 +344,22 @@ def build_mixed_gear_workout(candidate):
             3 if is_work else 4,
             candidate_step["seconds"],
         )
-        step["description"] = (
-            candidate_step.get("modality")
-            or "Recovery"
-        )
+
+        modality = candidate_step.get("modality") or "Recovery"
+        target = candidate_step.get("gear_target")
+
+        if is_work and target:
+            apply_gear_target(
+                step,
+                target,
+                enforce=modality_uses_structured_target(modality),
+            )
+            step["description"] = (
+                f"{modality} - {format_gear_target(target)}"
+            )
+        else:
+            step["description"] = modality
+
         workout_steps.append(step)
 
     sport_type = {

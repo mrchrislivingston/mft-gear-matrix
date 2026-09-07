@@ -117,6 +117,39 @@ class _GarminCalendarScreenState extends State<GarminCalendarScreen> {
     return targets;
   }
 
+  List<GarminGearTarget> _nonRunGearTargets() {
+    const definitions = <(Modality, Metric)>[
+      (Modality.row, Metric.minPer500m),
+      (Modality.ski, Metric.minPer500m),
+      (Modality.bikeErg, Metric.minPer1000m),
+      (Modality.echo, Metric.rpm),
+    ];
+
+    final targets = <GarminGearTarget>[];
+
+    for (final gear in AppState.instance.gears) {
+      for (final (modality, metric) in definitions) {
+        final current = gear.currentTarget(modality: modality, metric: metric);
+
+        if (current == null) {
+          continue;
+        }
+
+        targets.add(
+          GarminGearTarget(
+            prescription: gear.id,
+            modality: modality.name,
+            metric: metric.name,
+            low: current.lowTarget,
+            high: current.highTarget,
+          ),
+        );
+      }
+    }
+
+    return targets;
+  }
+
   Future<void> _loadPreview() async {
     final age = _age();
 
@@ -139,6 +172,7 @@ class _GarminCalendarScreenState extends State<GarminCalendarScreen> {
         monday: _monday,
         age: age,
         runPaceTargets: _runPaceTargets(),
+        gearTargets: _nonRunGearTargets(),
       );
 
       if (!mounted) {
@@ -220,6 +254,7 @@ class _GarminCalendarScreenState extends State<GarminCalendarScreen> {
         age: age,
         selectedIds: _selectedIds,
         runPaceTargets: _runPaceTargets(),
+        gearTargets: _nonRunGearTargets(),
       );
 
       if (!mounted) {
@@ -523,23 +558,20 @@ class _CandidateCard extends StatelessWidget {
             '${_time(data['work_seconds'])} work • '
             '${_time(data['cooldown_seconds'])} cool-down';
       case 'GEAR':
-        final paceLow = data['pace_low'];
-        final paceHigh = data['pace_high'];
-        final paceText = paceLow is String && paceHigh is String
-            ? ' • Target $paceLow–$paceHigh min/mile'
-            : '';
+        final targetText = _gearTargetText(data['gear_target']);
 
         return '${data['rounds']} × '
             '${_time(data['work_seconds'])} work • '
             '${_time(data['rest_seconds'])} rest'
-            '$paceText';
+            '$targetText';
       case 'POWER':
         return '${data['rounds']} × '
             '${_time(data['work_seconds'])} work • '
             '${_time(data['recovery_seconds'])} recovery';
       case 'MIXED_GEAR':
         return '${data['rounds']} × 4:00 work • '
-            'Ski + C2 Bike progression';
+            'Ski + C2 Bike progression'
+            '${_mixedTargetText(data['gear_targets'])}';
       case 'MATT':
         return '10:00 / 20:00 / 10:00';
       default:
@@ -548,6 +580,50 @@ class _CandidateCard extends StatelessWidget {
           candidate.modality,
         ].where((value) => value.isNotEmpty).join(' • ');
     }
+  }
+
+  String _gearTargetText(dynamic rawTarget) {
+    if (rawTarget is! Map) {
+      return '';
+    }
+
+    final low = rawTarget['low'];
+    final high = rawTarget['high'];
+    final metric = rawTarget['metric'];
+
+    if (low is! String || high is! String || metric is! String) {
+      return '';
+    }
+
+    final value = low == high ? low : '$low–$high';
+    final unit = switch (metric) {
+      'minPerMile' => 'min/mile',
+      'minPer500m' => 'min/500m',
+      'minPer1000m' => 'min/1000m',
+      'rpm' => 'RPM',
+      _ => metric,
+    };
+
+    return ' • Target $value $unit';
+  }
+
+  String _mixedTargetText(dynamic rawTargets) {
+    if (rawTargets is! Map) {
+      return '';
+    }
+
+    final parts = <String>[];
+
+    for (final entry in const [('ski', 'Ski'), ('bikeErg', 'C2 Bike')]) {
+      final target = rawTargets[entry.$1];
+      final formatted = _gearTargetText(target);
+
+      if (formatted.isNotEmpty) {
+        parts.add('${entry.$2}${formatted.substring(2)}');
+      }
+    }
+
+    return parts.isEmpty ? '' : ' • ${parts.join(' • ')}';
   }
 
   String _time(dynamic rawSeconds) {

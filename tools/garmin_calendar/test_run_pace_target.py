@@ -28,6 +28,7 @@ class RunPaceTargetTest(unittest.TestCase):
         self.assertEqual(
             targets["G3"],
             {
+                "metric": "minPerMile",
                 "low": "7:30",
                 "high": "7:45",
             },
