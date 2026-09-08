@@ -1,3 +1,4 @@
+import 'benchmark_category.dart';
 import 'benchmark_score_type.dart';
 
 class Benchmark {
@@ -5,12 +6,14 @@ class Benchmark {
   final String name;
   final String description;
   final BenchmarkScoreType scoreType;
+  final BenchmarkCategory category;
 
   const Benchmark({
     required this.id,
     required this.name,
     required this.description,
     required this.scoreType,
+    required this.category,
   });
 
   Map<String, dynamic> toJson() {
@@ -19,6 +22,7 @@ class Benchmark {
       'name': name,
       'description': description,
       'scoreType': scoreType.name,
+      'category': category.name,
     };
   }
 
@@ -30,6 +34,10 @@ class Benchmark {
       scoreType: BenchmarkScoreType.values.firstWhere(
         (item) => item.storageKey == row['score_type'],
       ),
+      category: BenchmarkCategory.values.firstWhere(
+        (item) => item.storageKey == row['category'],
+        orElse: () => BenchmarkCategory.machineBenchmark,
+      ),
     );
   }
 
@@ -39,6 +47,7 @@ class Benchmark {
       name: json['name'] as String,
       description: json['description'] as String,
       scoreType: BenchmarkScoreType.values.byName(json['scoreType'] as String),
+      category: BenchmarkCategory.values.byName(json['category'] as String),
     );
   }
 }

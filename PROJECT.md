@@ -856,78 +856,75 @@ such as mixed prescriptions and benchmark workouts.
 - Keep all historical-import components covered by the automatically
   discovered regression suites.
 
-### 2026 Focus-Sheet Tracking Audit
+### 2026 Focus-Sheet and Benchmark Checkpoint
 
-The `Gears + Benchmarks 2026` focus sheet was audited after completing
-the historical workbook imports. The following work is intentionally
-deferred until capacity is available.
+- Reconciled the 2025 and 2026 `Gears + Benchmarks` sheets with the
+  freshly rebuilt database and original workout worksheets.
 
-- Resolve conflicts between the focus sheet and imported/source data:
+- Preserved historical Gear targets for progression analysis while
+  updating all 40 current Gear × modality combinations to match the
+  current matrix. SQLite contains 65 target-history rows.
 
-  - Chuckles 1 & 2 is 10:51 in the focus sheet but 20:51 in the
-    imported Phase 0 workbook.
+- Benchmark definitions are divided into five explicit categories:
+  Power Output, Machine Benchmarks, Weightlifting 1RM, Named Metcons,
+  and Skill Chippers.
 
-  - 75 Continental Drive is dated 2026-08-02 in the focus sheet but
-    2026-08-03/W2D1 in the imported Phase 0 workbook.
+- Expanded the catalog from 37 to 66 definitions. The catalog uses the
+  current 2026 Skill Chippers, retains M.A.T.T., Mount Doom, Rule 8,
+  and other definitions unique to the 2025 sheet, and adds separate
+  Ski, Row, C2 Bike, and Echo Bike Kill-O-Watt definitions.
 
-  - Cleo on 2025-09-27 is 32:39 in the focus sheet but appears as
-    32:29 in the existing imported attempt.
+- Added all 14 weightlifting 1RM definitions and imported all 32 dated
+  weightlifting results from the focus sheet.
 
-  - Confirm whether the live Run G2 target or the focus-sheet value is authoritative.
+- Added the six direct completed 2026 Skill Chipper results. The scaled
+  10 Legless Rope Climbs result retains its modification details.
+  The 100 GHD Sit Ups entry remains unconfigured because the located
+  programming explicitly marked it as not for time.
 
-- Complete Zone and Gear target coverage:
+- Added the missing Power Output Echo Bike, Run Cube Test, Yaptain, and
+  Enzo Gorlomi attempts. Enzo is stored as a modified completion on
+  2026-08-25/W5D2. The Enzo substitutions are not counted as a
+  100 GHD Sit Ups result.
 
-  - Populate the remaining 28 missing Row, Ski, BikeErg, and Echo Gear targets.
+- Corrected Chuckles 1 & 2 from 20:51 to the authoritative focus-sheet
+  result of 10:51 while retaining an audit note. Preserved the original
+  source-workbook dates and results for Cleo, Mount Doom, and other
+  conflicts where the program calendar or source result was authoritative.
 
-  - Populate the five recorded Z1/Z2 modality targets.
+- Added score-aware benchmark analysis. Benchmark history now identifies
+  the latest result, previous result, personal best, and directional
+  trend. Time-based scores treat lower as better; weights, watts,
+  calories, reps, and distances treat higher as better; rounds-plus-reps
+  compare rounds before reps.
 
-  - Decide whether Zone prescriptions should use the sheet's
-    45:00-90:00 duration instead of the app's current 30:00-90:00.
+- Added source-backed descriptions for every benchmark. Entries whose
+  canonical prescriptions could not be located are labeled honestly
+  rather than receiving invented programming. Full prescriptions remain
+  unresolved for `"The" Cube Test`, Tour de Misfit, Riverside Time Trial,
+  Runner Mount Doom, and King Larry I. Exact interval/recovery details
+  also remain pending for the Kill-O-Watt family.
 
-  - Add or model the age-based Zone heart-rate ranges from the sheet.
+- Added SQLite schema version 5 with an explicit benchmark category
+  column. The migration preserves all definitions and attempts, and
+  startup upserts keep names, descriptions, score types, and categories
+  synchronized with the catalog.
 
-  - Reconcile Run G2: app 8:45-9:00 versus sheet 9:00-9:15.
+- The active database is verified with 129 Matrix workouts,
+  66 benchmark definitions, 74 benchmark attempts, no orphaned attempts,
+  and successful foreign-key and integrity checks.
 
-  - Reconcile Row G4: app 1:53-1:53 versus sheet 1:52-1:54.
+- Current verification passes 151 Flutter tests. The eight existing
+  analyzer findings remain unchanged and are unrelated to this work.
 
-- Complete benchmark coverage:
+Remaining focus-sheet work:
 
-  - Add `"The" Cube Test`.
+- Build a reproducible target and benchmark focus-sheet import/restore
+  workflow so future database rebuilds do not require manual SQL.
 
-  - Split the generic Kill-O-Watt history into separate Ski, Row, and
-    Echo Bike benchmark definitions.
-
-  - Add `"I'm the Yaptain Now"` and its 10:23 result from 2026-08-08.
-
-  - Add the Power Output Echo Bike result of 00:49 from 2026-09-01.
-
-  - Add the Run Cube Test result of 290 calories from 2026-09-05.
-
-  - Configure the remaining benchmark definitions whose score type is
-    currently `unconfigured` so PRs and trends can be calculated
-    consistently.
-
-- Add Weightlifting PR tracking:
-
-  - Model the 14 lift definitions contained in the focus sheet.
-
-  - Import and retain the 32 dated weightlifting results.
-
-  - Provide weight-based scoring, PR identification, history, and
-    correction workflows.
-
-- Add Skill Chipper tracking:
-
-  - Model the focus sheet's Wall Walk, HSPU, Toes to Bar, Chest to Bar,
-    Bar Muscle Up, Ring Muscle Up, and Rope Climb tests.
-
-  - Import the six direct completed Skill Chipper results.
-
-  - Decide how the 100 GHD Sit Ups entry that references Enzo Gorlomi
-    should be represented.
-
-- Reconcile the completed work against the focus sheet and database
-  before beginning dashboard and analytics work.
+- Locate and add the remaining canonical benchmark prescriptions and
+  complete the exact Kill-O-Watt protocols when authoritative source
+  programming becomes available.
 
 ## Garmin Calendar
 

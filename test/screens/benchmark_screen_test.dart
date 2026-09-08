@@ -11,7 +11,10 @@ void main() {
       MaterialApp(
         home: BenchmarkScreen(
           attemptCountsLoader: () async {
-            return {'matt_echo_bike': 2, 'matt_row': 1};
+            return {
+              'power_output_echo_bike_test': 2,
+              'power_output_row_test': 1,
+            };
           },
         ),
       ),
@@ -19,8 +22,10 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Average Watts • 2 attempts'), findsOneWidget);
-    expect(find.text('Average Watts • 1 attempt'), findsOneWidget);
-    expect(find.text('Total Reps • 0 attempts'), findsOneWidget);
+    expect(find.text('Power Output'), findsOneWidget);
+    expect(find.text('Power Output Echo Bike Test'), findsOneWidget);
+    expect(find.text('For Time • 2 attempts'), findsOneWidget);
+    expect(find.text('Power Output Row Test'), findsOneWidget);
+    expect(find.text('For Time • 1 attempt'), findsOneWidget);
   });
 }

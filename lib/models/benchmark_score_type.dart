@@ -3,6 +3,8 @@ enum BenchmarkScoreType {
   roundsReps,
   totalCalories,
   averageWatts,
+  maxWeight,
+  slowestIntervalTime,
   totalLoad,
   totalReps,
   totalDistance,
@@ -25,6 +27,10 @@ enum BenchmarkScoreType {
         return 'Total Calories';
       case BenchmarkScoreType.averageWatts:
         return 'Average Watts';
+      case BenchmarkScoreType.maxWeight:
+        return 'Max Weight';
+      case BenchmarkScoreType.slowestIntervalTime:
+        return 'Slowest Interval Time';
       case BenchmarkScoreType.totalLoad:
         return 'Total Load';
       case BenchmarkScoreType.totalReps:

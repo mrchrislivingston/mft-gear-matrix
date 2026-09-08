@@ -28,7 +28,7 @@ class DatabaseService {
   static final DatabaseService instance = DatabaseService._();
 
   static const String _databaseName = 'mft_gear_matrix.db';
-  static const int _databaseVersion = 4;
+  static const int _databaseVersion = 5;
 
   Database? _database;
 
@@ -86,6 +86,13 @@ class DatabaseService {
 
         if (oldVersion < 4) {
           await _createBenchmarkTables(database);
+        }
+        if (oldVersion < 5) {
+          await database.execute('''
+            ALTER TABLE benchmarks
+            ADD COLUMN category TEXT NOT NULL
+              DEFAULT 'machineBenchmark'
+          ''');
         }
       },
     );
@@ -182,7 +189,8 @@ class DatabaseService {
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         description TEXT NOT NULL DEFAULT '',
-        score_type TEXT NOT NULL
+        score_type TEXT NOT NULL,
+        category TEXT NOT NULL DEFAULT 'machineBenchmark'
       )
     ''');
 
@@ -482,6 +490,7 @@ class DatabaseService {
       'name': benchmark.name,
       'description': benchmark.description,
       'score_type': benchmark.scoreType.storageKey,
+      'category': benchmark.category.storageKey,
     };
 
     await db.insert(
