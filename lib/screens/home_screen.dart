@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'benchmark_screen.dart';
@@ -52,18 +53,20 @@ class HomeScreen extends StatelessWidget {
               },
             ),
             const SizedBox(height: 10),
-            _HomeButton(
-              label: 'FITR → Garmin Calendar',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const GarminCalendarScreen(),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 10),
+            if (!kIsWeb && defaultTargetPlatform == TargetPlatform.macOS) ...[
+              _HomeButton(
+                label: 'FITR → Garmin Calendar',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const GarminCalendarScreen(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
             _HomeButton(
               label: 'Import Misfit History',
               onTap: () {

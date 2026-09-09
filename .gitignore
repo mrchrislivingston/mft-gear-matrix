@@ -33,3 +33,6 @@ tools/historical_import/input_archive/
 # Garmin calendar credentials and sessions
 tools/garmin_calendar/fitr_credentials.txt
 tools/garmin_calendar/.garminconnect/
+
+# Local Apple signing
+ios/Flutter/Local.xcconfig
