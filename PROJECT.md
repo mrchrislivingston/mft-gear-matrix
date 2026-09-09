@@ -1,22 +1,189 @@
 **# MFT Gear Matrix**
 
+## Product North Star
+
+MFT Gear Matrix is an **athlete-owned training record and
+interoperability layer**.
+
+It is not a workout-programming, coaching, community, leaderboard, or
+program-delivery platform.
+
+> **Your training data belongs to you, regardless of where your
+> programming comes from.**
+
+### Core Problem
+
+Athletes accumulate valuable performance history inside siloed platforms
+such as FITR/Misfit, SugarWOD/Mayhem, HWPO, Garmin, Concept2, and other
+training systems.
+
+When an athlete changes programs, gyms, coaches, devices, or platforms,
+that history becomes fragmented. Benchmark identities change, result
+formats differ, source platforms disappear, and longitudinal analysis
+becomes difficult or impossible.
+
+MFT Gear Matrix sits above those systems. It ingests their data,
+normalizes it into a canonical athlete-owned record, preserves its
+provenance, and maintains historical continuity across platforms.
+
+### Core Product Value
+
+The app should allow an athlete to:
+
+- Import training data from multiple platforms and file formats.
+- Normalize workouts, intervals, targets, benchmarks, and metrics.
+- Preserve the original source and context of every record.
+- Reconcile duplicate, conflicting, or renamed records.
+- Retain a continuous training history when changing programming
+  providers.
+- Analyze performance across programs, platforms, devices, and years.
+- Export the athlete's complete history in portable formats.
+
+### Product Decision Filter
+
+A proposed feature belongs in MFT Gear Matrix when it materially
+improves one or more of the following:
+
+- Data ingestion
+- Data normalization
+- Historical continuity
+- Benchmark identity matching
+- Source provenance and trust
+- Interval and performance analysis
+- Cross-platform comparison
+- Athlete-controlled portability
+
+Features centered on programming delivery, coaching, community,
+leaderboards, or social engagement are outside the product's core scope.
+
+### Questions the Product Must Answer
+
+- How has my 2-kilometer row changed over several years?
+- What was my last G5 run pace, regardless of programming provider?
+- How have my Echo Bike benchmarks changed over time?
+- What were my prescribed targets versus my actual results?
+- What did Garmin actually record?
+- What changed after I switched programs?
+- What are my lifetime PRs and benchmark trends across every source?
+- Where did a record come from, and why should I trust it?
+
+### Strategic Moat
+
+The defensible value of MFT Gear Matrix comes from:
+
+- Source-specific importers and integrations
+- Canonical data normalization
+- Durable source provenance
+- Cross-platform duplicate reconciliation
+- Historical continuity
+- Benchmark identity and alias resolution
+- Interval-level performance analysis
+- Athlete-controlled import and export portability
+
+The moat is not possession of the athlete's data. The moat is the
+ability to make fragmented data portable, trustworthy, and useful.
+
+### Business Direction
+
+The long-term business objective is to make MFT Gear Matrix strategically
+valuable to a larger fitness or training platform, with a potential
+acquisition target around **$1.5 million**.
+
+That value should come from solving athlete-history interoperability and
+portability—not from becoming another programming platform.
+
+Strategic value will depend on:
+
+- Reliable integrations
+- A strong canonical data model
+- High-confidence normalization
+- Demonstrated athlete retention
+- Routine cross-platform ingestion
+- Trustworthy longitudinal analysis
+- Clean intellectual property and privacy practices
+
+### Phased Roadmap
+
+1. **Own the data model**
+
+   Establish the canonical record for workouts, intervals, targets,
+   benchmarks, metrics, source metadata, external identities, and import
+   history.
+
+2. **Make migration and ingestion easy**
+
+   Build source-specific imports and integrations, supported by reliable
+   CSV and manual-entry fallbacks.
+
+3. **Give answers, not merely storage**
+
+   Provide trends, progression, benchmark history, target-versus-result
+   analysis, program-switch effects, and lifetime performance insights.
+
+4. **Create portability as the moat**
+
+   Ensure athletes retain useful historical continuity when they change
+   gyms, coaches, programs, devices, or platforms.
+
+5. **Become strategically valuable**
+
+   Become the athlete-history and interoperability capability that a
+   larger training platform would rather acquire than rebuild.
+
+### Suggested Integration Sequence
+
+1. Garmin
+2. FITR/Misfit
+3. SugarWOD/Mayhem
+4. HWPO and other major programming platforms
+5. Concept2 and other machine-specific sources
+
+### Phase 1 Status
+
+Phase 1 is approximately **75% complete**. The current foundation
+includes:
+
+- A local SQLite canonical schema
+- Workout, interval, metric, target-history, and benchmark models
+- Source-workbook and program-day provenance
+- Historical-import discovery, review, normalization, and validation
+- Ten reconstructed programming phases
+- 129 normalized Matrix workouts
+- 66 categorized benchmark definitions
+- 74 benchmark attempts
+- Complete current Gear target coverage
+- Benchmark descriptions, personal bests, previous results, and trends
+- Proven Garmin workout construction and FIT post-processing
+- 151 Flutter tests
+- 31 historical-import tests
+- 15 Garmin integration tests
+
+The primary remaining Phase 1 work is:
+
+- Make current-day ingestion routine rather than project-based.
+- Ingest completed Garmin and FITR results into the canonical record.
+- Add durable external source identifiers and import-run provenance.
+- Detect duplicates across different platforms and source types.
+- Close remaining source and canonical-prescription gaps.
+- Make record trust and reconciliation visible to the athlete.
+- Improve the single-pane-of-glass history and analysis experience.
+- Build reproducible target and benchmark restore/import workflows.
+
+### Phase 1 Exit Criterion
+
+Phase 1 is complete when, for **30 consecutive days**, MFT Gear Matrix
+is the primary place used to answer normal training-history and
+performance questions without needing FITR, Garmin Connect, or old
+spreadsheets.
+
 **## Vision**
 
-MFT Gear Matrix is a local-first training application built to replace a
-living spreadsheet used for endurance pacing and workout tracking.
+MFT Gear Matrix is a local-first, athlete-owned training record that
+preserves performance history across programming providers, gyms,
+devices, and platforms.
 
-The goal is not simply to log workouts.
-
-The goal is to preserve the evolution of an athlete over years of
-training.
-
-Every workout, every target, every improvement, and every change should
-become permanent history instead of being overwritten.
-
-The application should eventually provide meaningful coaching insights
-that are impossible to see in a spreadsheet while remaining fast,
-simple, and entirely owned by the athlete.
-
+Its purpose is to make fragmented training data portable, trustworthy,
+and useful over the athlete's entire training life.
 **------------------------------------------------------------------------**
 
 **# Project Philosophy**
