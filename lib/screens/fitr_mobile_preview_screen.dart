@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 
 import '../services/fitr_credentials_store.dart';
 import '../services/fitr_mobile_client.dart';
+import '../services/fitr_workout_classifier.dart';
 
 typedef FitrWeekLoader =
     Future<FitrWeekSnapshot> Function(
@@ -36,6 +37,8 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
   late DateTime _monday;
 
   FitrWeekSnapshot? _snapshot;
+  FitrClassifiedWeek? _classifiedWeek;
+  final Set<String> _selectedCandidateIds = {};
   String? _errorMessage;
   bool _isLoading = false;
   bool _showCredentials = false;
@@ -132,6 +135,8 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
     setState(() {
       _monday = DateTime(monday.year, monday.month, monday.day);
       _snapshot = null;
+      _classifiedWeek = null;
+      _selectedCandidateIds.clear();
       _errorMessage = null;
     });
   }
@@ -140,6 +145,8 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
     setState(() {
       _monday = _monday.add(Duration(days: days));
       _snapshot = null;
+      _classifiedWeek = null;
+      _selectedCandidateIds.clear();
       _errorMessage = null;
     });
   }
@@ -166,12 +173,16 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
       _isLoading = true;
       _errorMessage = null;
       _snapshot = null;
+      _classifiedWeek = null;
+      _selectedCandidateIds.clear();
     });
 
     try {
       final credentials = _credentialsFromFields();
       await _credentialsStore.save(credentials);
+
       final snapshot = await _weekLoader(credentials, _monday);
+      final classifiedWeek = classifyFitrWeekSnapshot(snapshot);
 
       if (!mounted) {
         return;
@@ -179,6 +190,10 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
 
       setState(() {
         _snapshot = snapshot;
+        _classifiedWeek = classifiedWeek;
+        _selectedCandidateIds
+          ..clear()
+          ..addAll(classifiedWeek.candidates.map((candidate) => candidate.id));
         _storedCredentialsLoaded = true;
       });
     } catch (error) {
@@ -211,45 +226,11 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
 
     setState(() {
       _snapshot = null;
+      _classifiedWeek = null;
+      _selectedCandidateIds.clear();
       _errorMessage = null;
       _storedCredentialsLoaded = false;
     });
-  }
-
-  List<String> _sectionLabels(FitrWeekDay day) {
-    final rawDay = day.detail['day'];
-
-    if (rawDay is! Map) {
-      return const [];
-    }
-
-    final rawSections = rawDay['sections'];
-
-    if (rawSections is! List) {
-      return const [];
-    }
-
-    final labels = <String>[];
-
-    for (final rawSection in rawSections) {
-      if (rawSection is! Map) {
-        continue;
-      }
-
-      final challenge = rawSection['challenge'];
-      final challengeTitle = challenge is Map
-          ? challenge['title']?.toString()
-          : null;
-
-      final title =
-          rawSection['title']?.toString() ??
-          challengeTitle ??
-          '(untitled section)';
-
-      labels.add(title);
-    }
-
-    return labels;
   }
 
   String _formatDate(DateTime value) {
@@ -262,6 +243,7 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
   @override
   Widget build(BuildContext context) {
     final snapshot = _snapshot;
+    final classifiedWeek = _classifiedWeek;
     final sunday = _monday.add(const Duration(days: 6));
 
     return Scaffold(
@@ -413,25 +395,99 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
               ),
             ),
           ],
-          if (snapshot != null) ...[
+          if (snapshot != null && classifiedWeek != null) ...[
             const SizedBox(height: 20),
             Text(
-              '${snapshot.days.length} programmed '
-              'day${snapshot.days.length == 1 ? '' : 's'} found',
+              '${classifiedWeek.candidates.length} importable '
+              'workout${classifiedWeek.candidates.length == 1 ? '' : 's'}',
               style: Theme.of(context).textTheme.titleLarge,
             ),
+            Text(
+              '${snapshot.days.length} programmed '
+              'day${snapshot.days.length == 1 ? '' : 's'} inspected'
+              ' • ${classifiedWeek.skipped.length} skipped',
+            ),
             const SizedBox(height: 8),
-            for (final day in snapshot.days)
-              Card(
-                child: ListTile(
-                  title: Text('${day.date} • ${day.planTitle}'),
-                  subtitle: Text(
-                    _sectionLabels(day).isEmpty
-                        ? 'No sections'
-                        : _sectionLabels(day).join('\n'),
+            if (classifiedWeek.candidates.isNotEmpty)
+              Row(
+                children: [
+                  TextButton(
+                    key: const Key('fitrSelectAllButton'),
+                    onPressed: () {
+                      setState(() {
+                        _selectedCandidateIds
+                          ..clear()
+                          ..addAll(
+                            classifiedWeek.candidates.map(
+                              (candidate) => candidate.id,
+                            ),
+                          );
+                      });
+                    },
+                    child: const Text('Select all'),
                   ),
+                  TextButton(
+                    key: const Key('fitrClearSelectionButton'),
+                    onPressed: () {
+                      setState(_selectedCandidateIds.clear);
+                    },
+                    child: const Text('Clear'),
+                  ),
+                  const Spacer(),
+                  Text('${_selectedCandidateIds.length} selected'),
+                ],
+              ),
+            for (final candidate in classifiedWeek.candidates)
+              Card(
+                child: CheckboxListTile(
+                  key: Key('fitrCandidate-${candidate.id}'),
+                  value: _selectedCandidateIds.contains(candidate.id),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: Text('${candidate.date} • ${candidate.displayName}'),
+                  subtitle: Text(
+                    '${candidate.type} • ${candidate.planTitle}\n'
+                    '${candidate.sourceTitle}',
+                  ),
+                  isThreeLine: true,
+                  onChanged: (selected) {
+                    setState(() {
+                      if (selected ?? false) {
+                        _selectedCandidateIds.add(candidate.id);
+                      } else {
+                        _selectedCandidateIds.remove(candidate.id);
+                      }
+                    });
+                  },
                 ),
               ),
+            if (classifiedWeek.skipped.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text('Skipped', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 4),
+              for (final skipped in classifiedWeek.skipped)
+                Card(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: ListTile(
+                    leading: const Icon(Icons.info_outline),
+                    title: Text('${skipped.date} • ${skipped.sourceTitle}'),
+                    subtitle: Text('${skipped.reason}\n${skipped.planTitle}'),
+                    isThreeLine: true,
+                  ),
+                ),
+            ],
+            const SizedBox(height: 12),
+            Card(
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  '${_selectedCandidateIds.length} workout'
+                  '${_selectedCandidateIds.length == 1 ? '' : 's'} '
+                  'selected. Garmin creation and scheduling will be '
+                  'added in the next step.',
+                ),
+              ),
+            ),
           ],
         ],
       ),
