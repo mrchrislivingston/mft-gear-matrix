@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import '../services/fitr_credentials_store.dart';
 import '../services/fitr_mobile_client.dart';
 import '../services/fitr_workout_classifier.dart';
+import '../services/garmin_mobile_client.dart';
+import '../services/garmin_session_store.dart';
 
 typedef FitrWeekLoader =
     Future<FitrWeekSnapshot> Function(
@@ -11,14 +13,21 @@ typedef FitrWeekLoader =
       DateTime monday,
     );
 
+typedef GarminConnectionTester =
+    Future<GarminProfile> Function(GarminSession session);
+
 class FitrMobilePreviewScreen extends StatefulWidget {
   final FitrCredentialsStore? credentialsStore;
   final FitrWeekLoader? weekLoader;
+  final GarminSessionStore? garminSessionStore;
+  final GarminConnectionTester? garminConnectionTester;
 
   const FitrMobilePreviewScreen({
     super.key,
     this.credentialsStore,
     this.weekLoader,
+    this.garminSessionStore,
+    this.garminConnectionTester,
   });
 
   @override
@@ -31,9 +40,12 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
   final _tokenController = TextEditingController();
   final _cookieController = TextEditingController();
   final _athleteIdController = TextEditingController();
+  final _garminSessionController = TextEditingController();
 
   late final FitrCredentialsStore _credentialsStore;
   late final FitrWeekLoader _weekLoader;
+  late final GarminSessionStore _garminSessionStore;
+  late final GarminConnectionTester _garminConnectionTester;
   late DateTime _monday;
 
   FitrWeekSnapshot? _snapshot;
@@ -43,6 +55,10 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
   bool _isLoading = false;
   bool _showCredentials = false;
   bool _storedCredentialsLoaded = false;
+  bool _garminSessionLoaded = false;
+  bool _isTestingGarmin = false;
+  String? _garminConnectionName;
+  String? _garminErrorMessage;
 
   @override
   void initState() {
@@ -50,8 +66,13 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
     _credentialsStore =
         widget.credentialsStore ?? FitrCredentialsStore.secure();
     _weekLoader = widget.weekLoader ?? _fetchWeek;
+    _garminSessionStore =
+        widget.garminSessionStore ?? GarminSessionStore.secure();
+    _garminConnectionTester =
+        widget.garminConnectionTester ?? _testGarminConnection;
     _monday = _nextMonday(DateTime.now());
     _loadStoredCredentials();
+    _loadStoredGarminSession();
   }
 
   @override
@@ -59,6 +80,7 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
     _tokenController.dispose();
     _cookieController.dispose();
     _athleteIdController.dispose();
+    _garminSessionController.dispose();
     super.dispose();
   }
 
@@ -104,6 +126,149 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
         _errorMessage = error.toString();
       });
     }
+  }
+
+  Future<GarminProfile> _testGarminConnection(GarminSession session) async {
+    final client = http.Client();
+
+    try {
+      return await GarminMobileClient(
+        session: session,
+        httpClient: client,
+        sessionSaver: _garminSessionStore.save,
+      ).testConnection();
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<void> _loadStoredGarminSession() async {
+    try {
+      final session = await _garminSessionStore.load();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _garminSessionLoaded = session != null;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _garminErrorMessage = error.toString();
+      });
+    }
+  }
+
+  Future<void> _importAndTestGarminSession() async {
+    setState(() {
+      _isTestingGarmin = true;
+      _garminErrorMessage = null;
+      _garminConnectionName = null;
+    });
+
+    try {
+      final session = GarminSession.fromJsonString(
+        _garminSessionController.text.trim(),
+      );
+
+      await _garminSessionStore.save(session);
+
+      GarminProfile profile;
+      try {
+        profile = await _garminConnectionTester(session);
+      } catch (_) {
+        await _garminSessionStore.clear();
+        rethrow;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      _garminSessionController.clear();
+
+      setState(() {
+        _garminSessionLoaded = true;
+        _garminConnectionName = profile.bestName;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _garminSessionLoaded = false;
+        _garminErrorMessage = error.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isTestingGarmin = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _testStoredGarminSession() async {
+    setState(() {
+      _isTestingGarmin = true;
+      _garminErrorMessage = null;
+      _garminConnectionName = null;
+    });
+
+    try {
+      final session = await _garminSessionStore.load();
+
+      if (session == null) {
+        throw const GarminSessionException('No Garmin session is stored.');
+      }
+
+      final profile = await _garminConnectionTester(session);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _garminSessionLoaded = true;
+        _garminConnectionName = profile.bestName;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _garminErrorMessage = error.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isTestingGarmin = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _disconnectGarmin() async {
+    await _garminSessionStore.clear();
+
+    if (!mounted) {
+      return;
+    }
+
+    _garminSessionController.clear();
+
+    setState(() {
+      _garminSessionLoaded = false;
+      _garminConnectionName = null;
+      _garminErrorMessage = null;
+    });
   }
 
   DateTime _nextMonday(DateTime value) {
@@ -328,6 +493,115 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
                         ),
                       ],
                     ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Garmin connection',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'The Garmin OAuth session is stored in the iOS '
+                    'Keychain. Your Garmin password is never stored.',
+                  ),
+                  const SizedBox(height: 12),
+                  if (!_garminSessionLoaded) ...[
+                    TextField(
+                      key: const Key('garminSessionField'),
+                      controller: _garminSessionController,
+                      enabled: !_isTestingGarmin,
+                      obscureText: true,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      decoration: const InputDecoration(
+                        labelText: 'Garmin session JSON',
+                        hintText: 'Paste session from Mac',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      key: const Key('garminImportSessionButton'),
+                      onPressed: _isTestingGarmin
+                          ? null
+                          : _importAndTestGarminSession,
+                      icon: _isTestingGarmin
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.key),
+                      label: Text(
+                        _isTestingGarmin
+                            ? 'Testing Garmin…'
+                            : 'Import and test session',
+                      ),
+                    ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        const Icon(Icons.check_circle, color: Colors.green),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _garminConnectionName == null
+                                ? 'Garmin session loaded'
+                                : 'Connected as '
+                                      '$_garminConnectionName',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        OutlinedButton.icon(
+                          key: const Key('garminTestSessionButton'),
+                          onPressed: _isTestingGarmin
+                              ? null
+                              : _testStoredGarminSession,
+                          icon: _isTestingGarmin
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.verified_user_outlined),
+                          label: const Text('Test connection'),
+                        ),
+                        TextButton(
+                          key: const Key('garminDisconnectButton'),
+                          onPressed: _isTestingGarmin
+                              ? null
+                              : _disconnectGarmin,
+                          child: const Text('Disconnect'),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (_garminErrorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _garminErrorMessage!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
