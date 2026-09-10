@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import '../models/metric.dart';
+import '../models/modality.dart';
+import '../services/app_state.dart';
+import '../services/garmin_workout_builder.dart';
+import 'garmin_payload_preview_screen.dart';
+
 import '../services/fitr_credentials_store.dart';
 import '../services/fitr_mobile_client.dart';
 import '../services/fitr_workout_classifier.dart';
@@ -398,6 +404,63 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
     });
   }
 
+  GarminGearTarget? _currentGearTarget(
+    String prescription,
+    String modalityName,
+  ) {
+    final definition = switch (modalityName.toLowerCase()) {
+      'run' => (Modality.run, Metric.minPerMile),
+      'row' => (Modality.row, Metric.minPer500m),
+      'ski' => (Modality.ski, Metric.minPer500m),
+      'c2 bike' => (Modality.bikeErg, Metric.minPer1000m),
+      'echo bike' => (Modality.echo, Metric.rpm),
+      _ => null,
+    };
+
+    if (definition == null) {
+      return null;
+    }
+
+    for (final gear in AppState.instance.gears) {
+      if (gear.id != prescription) {
+        continue;
+      }
+
+      final current = gear.currentTarget(
+        modality: definition.$1,
+        metric: definition.$2,
+      );
+
+      if (current == null) {
+        return null;
+      }
+
+      return GarminGearTarget(
+        metric: definition.$2.name,
+        low: current.lowTarget,
+        high: current.highTarget,
+      );
+    }
+
+    return null;
+  }
+
+  void _openPayloadPreview(FitrClassifiedWeek classifiedWeek) {
+    final selectedCandidates = classifiedWeek.candidates
+        .where((candidate) => _selectedCandidateIds.contains(candidate.id))
+        .toList(growable: false);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => GarminPayloadPreviewScreen(
+          candidates: selectedCandidates,
+          gearTargetResolver: _currentGearTarget,
+        ),
+      ),
+    );
+  }
+
   String _formatDate(DateTime value) {
     final month = value.month.toString().padLeft(2, '0');
     final day = value.day.toString().padLeft(2, '0');
@@ -749,6 +812,15 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
                   ),
                 ),
             ],
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              key: const Key('fitrPreviewGarminPayloadsButton'),
+              onPressed: _selectedCandidateIds.isEmpty
+                  ? null
+                  : () => _openPayloadPreview(classifiedWeek),
+              icon: const Icon(Icons.preview_outlined),
+              label: const Text('Preview Garmin payloads'),
+            ),
             const SizedBox(height: 12),
             Card(
               color: Theme.of(context).colorScheme.secondaryContainer,
