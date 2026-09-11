@@ -34,6 +34,56 @@ class GarminProfile {
   }
 }
 
+class GarminScheduledWorkout {
+  final int scheduleId;
+  final int workoutId;
+  final String title;
+  final String date;
+  final String? sportTypeKey;
+
+  const GarminScheduledWorkout({
+    required this.scheduleId,
+    required this.workoutId,
+    required this.title,
+    required this.date,
+    required this.sportTypeKey,
+  });
+
+  factory GarminScheduledWorkout.fromCalendarItem(Map<String, dynamic> item) {
+    final scheduleId = _positiveInt(item['id']);
+    final workoutId = _positiveInt(item['workoutId']);
+    final title = item['title']?.toString().trim() ?? '';
+    final date = item['date']?.toString().trim() ?? '';
+
+    if (scheduleId == null ||
+        workoutId == null ||
+        title.isEmpty ||
+        !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(date)) {
+      throw const GarminMobileException(
+        'Garmin returned an invalid scheduled workout.',
+      );
+    }
+
+    return GarminScheduledWorkout(
+      scheduleId: scheduleId,
+      workoutId: workoutId,
+      title: title,
+      date: date,
+      sportTypeKey: item['sportTypeKey']?.toString(),
+    );
+  }
+
+  static int? _positiveInt(dynamic value) {
+    final parsed = value is int ? value : int.tryParse(value?.toString() ?? '');
+
+    if (parsed == null || parsed < 1) {
+      return null;
+    }
+
+    return parsed;
+  }
+}
+
 typedef GarminSessionSaver = Future<void> Function(GarminSession session);
 
 class GarminMobileClient {
@@ -117,6 +167,97 @@ class GarminMobileClient {
     return GarminProfile(
       displayName: profile['displayName']?.toString(),
       fullName: profile['fullName']?.toString(),
+    );
+  }
+
+  Future<List<GarminScheduledWorkout>> getScheduledWorkoutsForMonth({
+    required int year,
+    required int month,
+  }) async {
+    if (year < 2000) {
+      throw const GarminMobileException(
+        'Garmin calendar year must be 2000 or later.',
+      );
+    }
+
+    if (month < 1 || month > 12) {
+      throw const GarminMobileException(
+        'Garmin calendar month must be from 1 through 12.',
+      );
+    }
+
+    final zeroIndexedMonth = month - 1;
+    final path = '/calendar-service/year/$year/month/$zeroIndexedMonth';
+
+    var response = await _get(path);
+
+    if (response.statusCode == 401) {
+      await _refreshSession();
+      response = await _get(path);
+    }
+
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw const GarminMobileException(
+        'Garmin session was rejected. Import a fresh session.',
+      );
+    }
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw GarminMobileException(
+        'Garmin calendar returned HTTP ${response.statusCode}.',
+      );
+    }
+
+    dynamic decoded;
+
+    try {
+      decoded = jsonDecode(response.body);
+    } on FormatException {
+      throw const GarminMobileException(
+        'Garmin calendar returned invalid JSON.',
+      );
+    }
+
+    if (decoded is! Map) {
+      throw const GarminMobileException(
+        'Garmin calendar returned an invalid response.',
+      );
+    }
+
+    final calendar = Map<String, dynamic>.from(decoded);
+    final rawItems = calendar['calendarItems'];
+
+    if (rawItems is! List) {
+      throw const GarminMobileException(
+        'Garmin calendar response is missing calendar items.',
+      );
+    }
+
+    final workouts = <GarminScheduledWorkout>[];
+
+    for (final rawItem in rawItems) {
+      if (rawItem is! Map) {
+        throw const GarminMobileException(
+          'Garmin calendar contains an invalid item.',
+        );
+      }
+
+      final item = Map<String, dynamic>.from(rawItem);
+
+      if (item['itemType']?.toString() != 'workout') {
+        continue;
+      }
+
+      workouts.add(GarminScheduledWorkout.fromCalendarItem(item));
+    }
+
+    return List.unmodifiable(workouts);
+  }
+
+  Future<http.Response> _get(String path) {
+    return httpClient.get(
+      Uri.parse('$apiBaseUrl$path'),
+      headers: _apiHeaders(_session.accessToken),
     );
   }
 

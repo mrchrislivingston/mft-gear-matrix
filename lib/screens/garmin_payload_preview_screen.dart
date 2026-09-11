@@ -4,18 +4,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../services/fitr_workout_classifier.dart';
+import '../services/garmin_mobile_client.dart';
 import '../services/garmin_workout_builder.dart';
+
+typedef GarminCalendarLoader =
+    Future<List<GarminScheduledWorkout>> Function(Iterable<DateTime> dates);
 
 class GarminPayloadPreviewScreen extends StatefulWidget {
   final List<FitrWorkoutCandidate> candidates;
   final GarminGearTargetResolver? gearTargetResolver;
   final GarminWorkoutBuilder builder;
+  final GarminCalendarLoader? calendarLoader;
 
   const GarminPayloadPreviewScreen({
     super.key,
     required this.candidates,
     this.gearTargetResolver,
     this.builder = const GarminWorkoutBuilder(),
+    this.calendarLoader,
   });
 
   @override
@@ -29,7 +35,11 @@ class _GarminPayloadPreviewScreenState
   final _ageController = TextEditingController();
 
   List<_BuiltPayload> _payloads = const [];
+  List<GarminScheduledWorkout> _scheduledWorkouts = const [];
   String? _errorMessage;
+  String? _calendarErrorMessage;
+  bool _isCheckingCalendar = false;
+  bool _calendarChecked = false;
 
   @override
   void dispose() {
@@ -71,6 +81,9 @@ class _GarminPayloadPreviewScreenState
       setState(() {
         _payloads = payloads;
         _errorMessage = null;
+        _scheduledWorkouts = const [];
+        _calendarErrorMessage = null;
+        _calendarChecked = false;
       });
     } catch (error) {
       setState(() {
@@ -78,6 +91,75 @@ class _GarminPayloadPreviewScreenState
         _errorMessage = error.toString();
       });
     }
+  }
+
+  Future<void> _checkGarminCalendar() async {
+    final loader = widget.calendarLoader;
+
+    if (loader == null) {
+      return;
+    }
+
+    setState(() {
+      _isCheckingCalendar = true;
+      _calendarErrorMessage = null;
+      _calendarChecked = false;
+    });
+
+    try {
+      final dates = widget.candidates.map(
+        (candidate) => DateTime.parse(candidate.date),
+      );
+      final workouts = await loader(dates);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _scheduledWorkouts = workouts;
+        _calendarChecked = true;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _scheduledWorkouts = const [];
+        _calendarErrorMessage = error.toString();
+        _calendarChecked = false;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCheckingCalendar = false;
+        });
+      }
+    }
+  }
+
+  String _calendarStatus(_BuiltPayload built) {
+    final matches = _scheduledWorkouts
+        .where((workout) => workout.date == built.candidate.date)
+        .toList(growable: false);
+
+    if (matches.isEmpty) {
+      return 'Garmin calendar: clear';
+    }
+
+    final payloadName = built.payload['workoutName']?.toString().trim() ?? '';
+
+    final exactMatches = matches
+        .where((workout) => workout.title.trim() == payloadName)
+        .toList(growable: false);
+
+    if (exactMatches.isNotEmpty) {
+      return 'Already scheduled on Garmin';
+    }
+
+    final titles = matches.map((workout) => workout.title).join(', ');
+    return 'Garmin date conflict: $titles';
   }
 
   List<Map<String, dynamic>> _steps(Map<String, dynamic> payload) {
@@ -359,6 +441,33 @@ class _GarminPayloadPreviewScreenState
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
+              if (widget.calendarLoader != null) ...[
+                OutlinedButton.icon(
+                  key: const Key('garminCheckCalendarButton'),
+                  onPressed: _isCheckingCalendar ? null : _checkGarminCalendar,
+                  icon: _isCheckingCalendar
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.calendar_month_outlined),
+                  label: Text(
+                    _isCheckingCalendar
+                        ? 'Checking Garmin calendar…'
+                        : 'Check Garmin calendar',
+                  ),
+                ),
+                if (_calendarErrorMessage != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _calendarErrorMessage!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+              ],
               for (final built in _payloads)
                 Card(
                   child: ExpansionTile(
@@ -369,7 +478,8 @@ class _GarminPayloadPreviewScreenState
                     ),
                     subtitle: Text(
                       '${built.candidate.type} • '
-                      '${_stepCount(built.payload)} Garmin steps',
+                      '${_stepCount(built.payload)} Garmin steps'
+                      '${_calendarChecked ? '\n${_calendarStatus(built)}' : ''}',
                     ),
                     childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     children: [_payloadDetails(built)],

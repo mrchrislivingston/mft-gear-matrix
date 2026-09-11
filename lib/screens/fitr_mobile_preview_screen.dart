@@ -404,6 +404,50 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
     });
   }
 
+  Future<List<GarminScheduledWorkout>> _inspectGarminDates(
+    Iterable<DateTime> dates,
+  ) async {
+    final session = await _garminSessionStore.load();
+
+    if (session == null) {
+      throw const GarminMobileException(
+        'Connect Garmin before checking its calendar.',
+      );
+    }
+
+    final months = <String, (int, int)>{};
+
+    for (final date in dates) {
+      final key = '${date.year}-${date.month}';
+      months[key] = (date.year, date.month);
+    }
+
+    final client = http.Client();
+
+    try {
+      final garmin = GarminMobileClient(
+        session: session,
+        httpClient: client,
+        sessionSaver: _garminSessionStore.save,
+      );
+
+      final workouts = <GarminScheduledWorkout>[];
+
+      for (final month in months.values) {
+        workouts.addAll(
+          await garmin.getScheduledWorkoutsForMonth(
+            year: month.$1,
+            month: month.$2,
+          ),
+        );
+      }
+
+      return List.unmodifiable(workouts);
+    } finally {
+      client.close();
+    }
+  }
+
   GarminGearTarget? _currentGearTarget(
     String prescription,
     String modalityName,
@@ -456,6 +500,7 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
         builder: (_) => GarminPayloadPreviewScreen(
           candidates: selectedCandidates,
           gearTargetResolver: _currentGearTarget,
+          calendarLoader: _inspectGarminDates,
         ),
       ),
     );

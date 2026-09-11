@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mft_gear_matrix/screens/garmin_payload_preview_screen.dart';
 import 'package:mft_gear_matrix/services/fitr_workout_classifier.dart';
+import 'package:mft_gear_matrix/services/garmin_mobile_client.dart';
 
 FitrWorkoutCandidate zone2Candidate() {
   return const FitrWorkoutCandidate(
@@ -81,11 +82,52 @@ void main() {
     await tester.tap(find.byKey(const Key('garminPayloadAgeField')));
     await tester.pump();
 
+    final ageField = tester.widget<EditableText>(find.byType(EditableText));
+
+    expect(ageField.focusNode.hasFocus, isTrue);
     expect(find.byKey(const Key('garminHideKeyboardButton')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('garminHideKeyboardButton')));
     await tester.pump();
 
-    expect(FocusManager.instance.primaryFocus?.hasFocus ?? false, isFalse);
+    expect(ageField.focusNode.hasFocus, isFalse);
+  });
+
+  testWidgets('shows an exact existing Garmin schedule match', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 1800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GarminPayloadPreviewScreen(
+          candidates: [zone2Candidate()],
+          calendarLoader: (dates) async {
+            expect(dates.single, DateTime(2026, 9, 10));
+
+            return const [
+              GarminScheduledWorkout(
+                scheduleId: 1770727450,
+                workoutId: 1691105243,
+                title: 'Z2 C2 Bike - 2026-09-10',
+                date: '2026-09-10',
+                sportTypeKey: 'cycling',
+              ),
+            ];
+          },
+        ),
+      ),
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('garminPayloadAgeField')),
+      '50',
+    );
+    await tester.tap(find.byKey(const Key('garminBuildPayloadPreviewButton')));
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('garminCheckCalendarButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Already scheduled on Garmin'), findsOneWidget);
   });
 }

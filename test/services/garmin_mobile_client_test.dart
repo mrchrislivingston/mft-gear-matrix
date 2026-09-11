@@ -120,4 +120,100 @@ void main() {
       ),
     );
   });
+
+  test('reads and filters scheduled Garmin workouts for a month', () async {
+    final client = GarminMobileClient(
+      session: originalSession,
+      httpClient: MockClient((request) async {
+        expect(request.method, 'GET');
+        expect(
+          request.url.toString(),
+          'https://connectapi.garmin.com/'
+          'calendar-service/year/2026/month/8',
+        );
+        expect(request.headers['authorization'], 'Bearer old-access-token');
+
+        return http.Response(
+          jsonEncode({
+            'year': 2026,
+            'month': 8,
+            'calendarItems': [
+              {
+                'id': 10,
+                'itemType': 'activity',
+                'title': 'Morning Run',
+                'date': '2026-09-07',
+                'workoutId': null,
+              },
+              {
+                'id': 1770727338,
+                'itemType': 'workout',
+                'title': 'Z2 Row - 2026-09-07',
+                'date': '2026-09-07',
+                'workoutId': 1691105102,
+                'sportTypeKey': 'cardio_training',
+              },
+              {
+                'id': 11,
+                'itemType': 'weight',
+                'title': null,
+                'date': '2026-09-07',
+                'workoutId': null,
+              },
+            ],
+          }),
+          200,
+        );
+      }),
+    );
+
+    final workouts = await client.getScheduledWorkoutsForMonth(
+      year: 2026,
+      month: 9,
+    );
+
+    expect(workouts, hasLength(1));
+    expect(workouts.single.scheduleId, 1770727338);
+    expect(workouts.single.workoutId, 1691105102);
+    expect(workouts.single.title, 'Z2 Row - 2026-09-07');
+    expect(workouts.single.date, '2026-09-07');
+    expect(workouts.single.sportTypeKey, 'cardio_training');
+  });
+
+  test('calendar inspection refreshes once after a rejected token', () async {
+    var calendarRequests = 0;
+
+    final client = GarminMobileClient(
+      session: originalSession,
+      httpClient: MockClient((request) async {
+        if (request.url.host == 'diauth.garmin.com') {
+          return http.Response(
+            jsonEncode({
+              'access_token': 'new-access-token',
+              'refresh_token': 'new-refresh-token',
+            }),
+            200,
+          );
+        }
+
+        calendarRequests++;
+
+        if (calendarRequests == 1) {
+          return http.Response('', 401);
+        }
+
+        expect(request.headers['authorization'], 'Bearer new-access-token');
+
+        return http.Response(jsonEncode({'calendarItems': []}), 200);
+      }),
+    );
+
+    final workouts = await client.getScheduledWorkoutsForMonth(
+      year: 2026,
+      month: 9,
+    );
+
+    expect(workouts, isEmpty);
+    expect(calendarRequests, 2);
+  });
 }
