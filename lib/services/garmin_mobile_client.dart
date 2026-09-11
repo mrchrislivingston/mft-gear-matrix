@@ -84,6 +84,16 @@ class GarminScheduledWorkout {
   }
 }
 
+class GarminUploadedWorkout {
+  final int workoutId;
+  final String workoutName;
+
+  const GarminUploadedWorkout({
+    required this.workoutId,
+    required this.workoutName,
+  });
+}
+
 typedef GarminSessionSaver = Future<void> Function(GarminSession session);
 
 class GarminMobileClient {
@@ -170,6 +180,100 @@ class GarminMobileClient {
     );
   }
 
+  Future<GarminUploadedWorkout> uploadWorkout(
+    Map<String, dynamic> payload,
+  ) async {
+    final workoutName = payload['workoutName']?.toString().trim() ?? '';
+    final segments = payload['workoutSegments'];
+
+    if (workoutName.isEmpty || segments is! List || segments.isEmpty) {
+      throw const GarminMobileException(
+        'Garmin workout payload is incomplete.',
+      );
+    }
+
+    var response = await _post('/workout-service/workout', payload);
+
+    if (response.statusCode == 401) {
+      await _refreshSession();
+      response = await _post('/workout-service/workout', payload);
+    }
+
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw const GarminMobileException(
+        'Garmin session was rejected. Import a fresh session.',
+      );
+    }
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw GarminMobileException(
+        'Garmin workout upload returned HTTP ${response.statusCode}.',
+      );
+    }
+
+    final decoded = _decodeResponseObject(
+      response,
+      invalidMessage: 'Garmin workout upload returned invalid JSON.',
+    );
+
+    final workoutId = _positiveInt(decoded['workoutId']);
+
+    if (workoutId == null) {
+      throw const GarminMobileException(
+        'Garmin workout upload did not return a workout ID.',
+      );
+    }
+
+    final returnedName = decoded['workoutName']?.toString().trim() ?? '';
+
+    return GarminUploadedWorkout(
+      workoutId: workoutId,
+      workoutName: returnedName.isEmpty ? workoutName : returnedName,
+    );
+  }
+
+  Future<Map<String, dynamic>> scheduleWorkout({
+    required int workoutId,
+    required String date,
+  }) async {
+    if (workoutId < 1) {
+      throw const GarminMobileException('Garmin workout ID must be positive.');
+    }
+
+    if (!_isValidDate(date)) {
+      throw const GarminMobileException(
+        'Garmin workout date must use YYYY-MM-DD.',
+      );
+    }
+
+    final payload = {'date': date};
+    final path = '/workout-service/schedule/$workoutId';
+
+    var response = await _post(path, payload);
+
+    if (response.statusCode == 401) {
+      await _refreshSession();
+      response = await _post(path, payload);
+    }
+
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw const GarminMobileException(
+        'Garmin session was rejected. Import a fresh session.',
+      );
+    }
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw GarminMobileException(
+        'Garmin workout scheduling returned HTTP ${response.statusCode}.',
+      );
+    }
+
+    return _decodeResponseObject(
+      response,
+      invalidMessage: 'Garmin workout scheduling returned invalid JSON.',
+    );
+  }
+
   Future<List<GarminScheduledWorkout>> getScheduledWorkoutsForMonth({
     required int year,
     required int month,
@@ -252,6 +356,64 @@ class GarminMobileClient {
     }
 
     return List.unmodifiable(workouts);
+  }
+
+  Future<http.Response> _post(String path, Map<String, dynamic> payload) {
+    return httpClient.post(
+      Uri.parse('$apiBaseUrl$path'),
+      headers: {
+        ..._apiHeaders(_session.accessToken),
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(payload),
+    );
+  }
+
+  Map<String, dynamic> _decodeResponseObject(
+    http.Response response, {
+    required String invalidMessage,
+  }) {
+    dynamic decoded;
+
+    try {
+      decoded = jsonDecode(response.body);
+    } on FormatException {
+      throw GarminMobileException(invalidMessage);
+    }
+
+    if (decoded is! Map) {
+      throw GarminMobileException(invalidMessage);
+    }
+
+    return Map<String, dynamic>.from(decoded);
+  }
+
+  int? _positiveInt(dynamic value) {
+    final parsed = value is int ? value : int.tryParse(value?.toString() ?? '');
+
+    if (parsed == null || parsed < 1) {
+      return null;
+    }
+
+    return parsed;
+  }
+
+  bool _isValidDate(String value) {
+    final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(value);
+
+    if (match == null) {
+      return false;
+    }
+
+    final year = int.parse(match.group(1)!);
+    final month = int.parse(match.group(2)!);
+    final day = int.parse(match.group(3)!);
+    final parsed = DateTime.tryParse(value);
+
+    return parsed != null &&
+        parsed.year == year &&
+        parsed.month == month &&
+        parsed.day == day;
   }
 
   Future<http.Response> _get(String path) {

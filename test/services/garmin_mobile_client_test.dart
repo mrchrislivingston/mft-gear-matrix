@@ -216,4 +216,157 @@ void main() {
     expect(workouts, isEmpty);
     expect(calendarRequests, 2);
   });
+
+  test('uploads a Garmin workout and validates its returned ID', () async {
+    final payload = <String, dynamic>{
+      'workoutName': 'G3 Run - 2026-09-16',
+      'workoutSegments': [
+        {
+          'segmentOrder': 1,
+          'workoutSteps': [
+            {'stepOrder': 1},
+          ],
+        },
+      ],
+    };
+
+    final client = GarminMobileClient(
+      session: originalSession,
+      httpClient: MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(
+          request.url.toString(),
+          'https://connectapi.garmin.com/workout-service/workout',
+        );
+        expect(request.headers['authorization'], 'Bearer old-access-token');
+        expect(request.headers['content-type'], contains('application/json'));
+        expect(jsonDecode(request.body), payload);
+
+        return http.Response(
+          jsonEncode({
+            'workoutId': 1692000001,
+            'workoutName': 'G3 Run - 2026-09-16',
+          }),
+          200,
+        );
+      }),
+    );
+
+    final uploaded = await client.uploadWorkout(payload);
+
+    expect(uploaded.workoutId, 1692000001);
+    expect(uploaded.workoutName, 'G3 Run - 2026-09-16');
+  });
+
+  test('rejects a successful upload response without a workout ID', () async {
+    final client = GarminMobileClient(
+      session: originalSession,
+      httpClient: MockClient((request) async {
+        return http.Response(jsonEncode({'workoutName': 'Missing ID'}), 200);
+      }),
+    );
+
+    expect(
+      () => client.uploadWorkout({
+        'workoutName': 'Missing ID',
+        'workoutSegments': [
+          {
+            'workoutSteps': [
+              {'stepOrder': 1},
+            ],
+          },
+        ],
+      }),
+      throwsA(
+        isA<GarminMobileException>().having(
+          (error) => error.message,
+          'message',
+          contains('did not return a workout ID'),
+        ),
+      ),
+    );
+  });
+
+  test('schedules an uploaded workout on an exact date', () async {
+    final client = GarminMobileClient(
+      session: originalSession,
+      httpClient: MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(
+          request.url.toString(),
+          'https://connectapi.garmin.com/'
+          'workout-service/schedule/1692000001',
+        );
+        expect(request.headers['authorization'], 'Bearer old-access-token');
+        expect(jsonDecode(request.body), {'date': '2026-09-16'});
+
+        return http.Response(
+          jsonEncode({
+            'id': 1772000001,
+            'workoutId': 1692000001,
+            'date': '2026-09-16',
+          }),
+          200,
+        );
+      }),
+    );
+
+    final response = await client.scheduleWorkout(
+      workoutId: 1692000001,
+      date: '2026-09-16',
+    );
+
+    expect(response['id'], 1772000001);
+    expect(response['workoutId'], 1692000001);
+    expect(response['date'], '2026-09-16');
+  });
+
+  test('rejects an impossible schedule date before making a request', () async {
+    var requests = 0;
+
+    final client = GarminMobileClient(
+      session: originalSession,
+      httpClient: MockClient((request) async {
+        requests++;
+        return http.Response('{}', 200);
+      }),
+    );
+
+    expect(
+      () => client.scheduleWorkout(workoutId: 1692000001, date: '2026-02-30'),
+      throwsA(isA<GarminMobileException>()),
+    );
+    expect(requests, 0);
+  });
+
+  test('write errors never expose Garmin response content', () async {
+    final client = GarminMobileClient(
+      session: originalSession,
+      httpClient: MockClient((request) async {
+        return http.Response('private Garmin response', 500);
+      }),
+    );
+
+    expect(
+      () => client.uploadWorkout({
+        'workoutName': 'Safe Error Test',
+        'workoutSegments': [
+          {
+            'workoutSteps': [
+              {'stepOrder': 1},
+            ],
+          },
+        ],
+      }),
+      throwsA(
+        isA<GarminMobileException>()
+            .having((error) => error.message, 'message', contains('HTTP 500'))
+            .having(
+              (error) => error.message,
+              'message',
+              isNot(contains('private Garmin response')),
+            ),
+      ),
+    );
+  });
 }
