@@ -274,6 +274,32 @@ class GarminMobileClient {
     );
   }
 
+  Future<void> deleteWorkout(int workoutId) async {
+    if (workoutId < 1) {
+      throw const GarminMobileException('Garmin workout ID must be positive.');
+    }
+
+    final path = '/workout-service/workout/$workoutId';
+    var response = await _delete(path);
+
+    if (response.statusCode == 401) {
+      await _refreshSession();
+      response = await _delete(path);
+    }
+
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw const GarminMobileException(
+        'Garmin session was rejected. Import a fresh session.',
+      );
+    }
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw GarminMobileException(
+        'Garmin workout cleanup returned HTTP ${response.statusCode}.',
+      );
+    }
+  }
+
   Future<List<GarminScheduledWorkout>> getScheduledWorkoutsForMonth({
     required int year,
     required int month,
@@ -414,6 +440,13 @@ class GarminMobileClient {
         parsed.year == year &&
         parsed.month == month &&
         parsed.day == day;
+  }
+
+  Future<http.Response> _delete(String path) {
+    return httpClient.delete(
+      Uri.parse('$apiBaseUrl$path'),
+      headers: _apiHeaders(_session.accessToken),
+    );
   }
 
   Future<http.Response> _get(String path) {

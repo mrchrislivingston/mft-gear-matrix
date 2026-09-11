@@ -369,4 +369,23 @@ void main() {
       ),
     );
   });
+
+  test('deletes only a specifically identified uploaded workout', () async {
+    final client = GarminMobileClient(
+      session: originalSession,
+      httpClient: MockClient((request) async {
+        expect(request.method, 'DELETE');
+        expect(
+          request.url.toString(),
+          'https://connectapi.garmin.com/'
+          'workout-service/workout/1692000001',
+        );
+        expect(request.headers['authorization'], 'Bearer old-access-token');
+
+        return http.Response('', 204);
+      }),
+    );
+
+    await client.deleteWorkout(1692000001);
+  });
 }
