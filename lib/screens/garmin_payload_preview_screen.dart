@@ -6,6 +6,11 @@ import 'package:flutter/services.dart';
 import '../services/fitr_workout_classifier.dart';
 import '../services/garmin_mobile_client.dart';
 import '../services/garmin_workout_builder.dart';
+import '../services/garmin_workout_import_service.dart';
+import 'garmin_import_review_screen.dart';
+
+typedef GarminImportPlanner =
+    Future<GarminImportPlan> Function(List<GarminImportWorkout> workouts);
 
 typedef GarminCalendarLoader =
     Future<List<GarminScheduledWorkout>> Function(Iterable<DateTime> dates);
@@ -15,6 +20,8 @@ class GarminPayloadPreviewScreen extends StatefulWidget {
   final GarminGearTargetResolver? gearTargetResolver;
   final GarminWorkoutBuilder builder;
   final GarminCalendarLoader? calendarLoader;
+  final GarminImportPlanner? importPlanner;
+  final GarminImportCommitter? importCommitter;
 
   const GarminPayloadPreviewScreen({
     super.key,
@@ -22,6 +29,8 @@ class GarminPayloadPreviewScreen extends StatefulWidget {
     this.gearTargetResolver,
     this.builder = const GarminWorkoutBuilder(),
     this.calendarLoader,
+    this.importPlanner,
+    this.importCommitter,
   });
 
   @override
@@ -40,6 +49,8 @@ class _GarminPayloadPreviewScreenState
   String? _calendarErrorMessage;
   bool _isCheckingCalendar = false;
   bool _calendarChecked = false;
+  bool _isPreparingImport = false;
+  String? _importErrorMessage;
 
   @override
   void dispose() {
@@ -90,6 +101,60 @@ class _GarminPayloadPreviewScreenState
         _payloads = const [];
         _errorMessage = error.toString();
       });
+    }
+  }
+
+  Future<void> _prepareImport() async {
+    final planner = widget.importPlanner;
+    final committer = widget.importCommitter;
+
+    if (planner == null || committer == null || !_calendarChecked) {
+      return;
+    }
+
+    setState(() {
+      _isPreparingImport = true;
+      _importErrorMessage = null;
+    });
+
+    try {
+      final workouts = _payloads
+          .map((built) {
+            return GarminImportWorkout(
+              candidateId: built.candidate.id,
+              date: built.candidate.date,
+              payload: built.payload,
+            );
+          })
+          .toList(growable: false);
+
+      final plan = await planner(workouts);
+
+      if (!mounted) {
+        return;
+      }
+
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              GarminImportReviewScreen(plan: plan, committer: committer),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _importErrorMessage = error.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPreparingImport = false;
+        });
+      }
     }
   }
 
@@ -461,6 +526,36 @@ class _GarminPayloadPreviewScreenState
                   const SizedBox(height: 8),
                   Text(
                     _calendarErrorMessage!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+              ],
+              if (widget.importPlanner != null &&
+                  widget.importCommitter != null) ...[
+                FilledButton.icon(
+                  key: const Key('garminReviewImportButton'),
+                  onPressed: !_calendarChecked || _isPreparingImport
+                      ? null
+                      : _prepareImport,
+                  icon: _isPreparingImport
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.fact_check_outlined),
+                  label: Text(
+                    _isPreparingImport
+                        ? 'Preparing import…'
+                        : 'Review Garmin import',
+                  ),
+                ),
+                if (_importErrorMessage != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _importErrorMessage!,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.error,
                     ),

@@ -5,6 +5,7 @@ import '../models/metric.dart';
 import '../models/modality.dart';
 import '../services/app_state.dart';
 import '../services/garmin_workout_builder.dart';
+import '../services/garmin_workout_import_service.dart';
 import 'garmin_payload_preview_screen.dart';
 
 import '../services/fitr_credentials_store.dart';
@@ -404,6 +405,44 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
     });
   }
 
+  Future<T> _withGarminImportService<T>(
+    Future<T> Function(GarminWorkoutImportService service) action,
+  ) async {
+    final session = await _garminSessionStore.load();
+
+    if (session == null) {
+      throw const GarminMobileException(
+        'Connect Garmin before importing workouts.',
+      );
+    }
+
+    final client = http.Client();
+
+    try {
+      final garmin = GarminMobileClient(
+        session: session,
+        httpClient: client,
+        sessionSaver: _garminSessionStore.save,
+      );
+
+      return await action(GarminWorkoutImportService.forClient(garmin));
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<GarminImportPlan> _preflightGarminImport(
+    List<GarminImportWorkout> workouts,
+  ) {
+    return _withGarminImportService((service) => service.preflight(workouts));
+  }
+
+  Future<List<GarminImportResult>> _commitGarminImport(GarminImportPlan plan) {
+    return _withGarminImportService(
+      (service) => service.commit(plan, confirmed: true),
+    );
+  }
+
   Future<List<GarminScheduledWorkout>> _inspectGarminDates(
     Iterable<DateTime> dates,
   ) async {
@@ -501,6 +540,8 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
           candidates: selectedCandidates,
           gearTargetResolver: _currentGearTarget,
           calendarLoader: _inspectGarminDates,
+          importPlanner: _preflightGarminImport,
+          importCommitter: _commitGarminImport,
         ),
       ),
     );
