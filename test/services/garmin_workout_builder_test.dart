@@ -205,6 +205,111 @@ void main() {
     expect(workout['estimatedDurationInSecs'], 510);
   });
 
+  test('rejects C2 Bike Gear without an athlete target', () {
+    expect(
+      () => builder.buildCandidate(
+        candidate(
+          type: 'GEAR',
+          prescription: 'G1',
+          modality: 'C2 Bike',
+          values: {'rounds': 2, 'work_seconds': 900, 'rest_seconds': 60},
+        ),
+        age: 50,
+      ),
+      throwsA(
+        isA<GarminWorkoutBuilderException>().having(
+          (error) => error.message,
+          'message',
+          contains('G1 C2 Bike requires a current athlete target'),
+        ),
+      ),
+    );
+  });
+
+  test('rejects description-only Gear without an athlete target', () {
+    expect(
+      () => builder.buildCandidate(
+        candidate(
+          type: 'GEAR',
+          prescription: 'G1',
+          modality: 'Echo Bike',
+          values: {'rounds': 2, 'work_seconds': 900, 'rest_seconds': 60},
+        ),
+        age: 50,
+      ),
+      throwsA(
+        isA<GarminWorkoutBuilderException>().having(
+          (error) => error.message,
+          'message',
+          contains('G1 Echo Bike requires a current athlete target'),
+        ),
+      ),
+    );
+  });
+
+  test('accepts an explicit FITR Run pace when no saved target exists', () {
+    final workout = builder.buildCandidate(
+      candidate(
+        type: 'GEAR',
+        prescription: 'G3',
+        modality: 'Run',
+        values: {
+          'rounds': 3,
+          'work_seconds': 480,
+          'rest_seconds': 90,
+          'pace_low': '8:30',
+          'pace_high': '8:45',
+        },
+      ),
+      age: 50,
+    );
+
+    final firstStep = workoutSteps(workout).first;
+
+    expect(firstStep['targetType'], {
+      'workoutTargetTypeId': 6,
+      'workoutTargetTypeKey': 'pace.zone',
+    });
+  });
+
+  test('rejects a mixed Gear workout when one modality target is missing', () {
+    expect(
+      () => builder.buildCandidate(
+        candidate(
+          type: 'MIXED_GEAR',
+          prescription: 'G4',
+          modality: 'Ski + C2 Bike',
+          values: {
+            'steps': [
+              {'kind': 'work', 'modality': 'Ski', 'seconds': 180},
+              {'kind': 'work', 'modality': 'C2 Bike', 'seconds': 180},
+              {'kind': 'recovery', 'seconds': 150},
+            ],
+          },
+        ),
+        age: 50,
+        gearTargetResolver: (_, modality) {
+          if (modality == 'Ski') {
+            return const GarminGearTarget(
+              metric: 'minPer500m',
+              low: '1:58',
+              high: '1:58',
+            );
+          }
+
+          return null;
+        },
+      ),
+      throwsA(
+        isA<GarminWorkoutBuilderException>().having(
+          (error) => error.message,
+          'message',
+          contains('G4 C2 Bike requires a current athlete target'),
+        ),
+      ),
+    );
+  });
+
   test('builds Power work and recovery intervals', () {
     final workout = builder.buildCandidate(
       candidate(

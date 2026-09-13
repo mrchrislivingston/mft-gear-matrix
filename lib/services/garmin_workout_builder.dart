@@ -312,6 +312,22 @@ class GarminWorkoutBuilder {
     final rounds = _requiredInt(classification, 'rounds');
     final workSeconds = _requiredInt(classification, 'work_seconds');
     final restSeconds = _requiredInt(classification, 'rest_seconds');
+    final paceLow = classification['pace_low']?.toString();
+    final paceHigh = classification['pace_high']?.toString();
+    final hasInlineRunPace =
+        candidate.modality.toLowerCase() == 'run' &&
+        paceLow != null &&
+        paceLow.isNotEmpty &&
+        paceHigh != null &&
+        paceHigh.isNotEmpty;
+
+    if (gearTarget == null && !hasInlineRunPace) {
+      throw GarminWorkoutBuilderException(
+        '${candidate.prescription} ${candidate.modality} requires a current '
+        'athlete target. Restore or enter the target before building Garmin '
+        'workouts.',
+      );
+    }
 
     final steps = <GarminJson>[];
     var order = 1;
@@ -325,17 +341,8 @@ class GarminWorkoutBuilder {
           gearTarget,
           enforce: modalityUsesStructuredTarget(candidate.modality),
         );
-      } else {
-        final paceLow = classification['pace_low']?.toString();
-        final paceHigh = classification['pace_high']?.toString();
-
-        if (candidate.modality.toLowerCase() == 'run' &&
-            paceLow != null &&
-            paceLow.isNotEmpty &&
-            paceHigh != null &&
-            paceHigh.isNotEmpty) {
-          applyRunPaceTarget(workStep, paceLow, paceHigh);
-        }
+      } else if (hasInlineRunPace) {
+        applyRunPaceTarget(workStep, paceLow, paceHigh);
       }
 
       steps.add(workStep);
@@ -404,6 +411,14 @@ class GarminWorkoutBuilder {
       final target = isWork
           ? gearTargetResolver?.call(candidate.prescription, modality)
           : null;
+
+      if (isWork && target == null) {
+        throw GarminWorkoutBuilderException(
+          '${candidate.prescription} $modality requires a current athlete '
+          'target. Restore or enter the target before building Garmin '
+          'workouts.',
+        );
+      }
 
       if (target != null) {
         applyGearTarget(
