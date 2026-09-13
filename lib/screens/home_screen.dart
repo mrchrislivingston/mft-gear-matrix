@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'benchmark_screen.dart';
+import 'database_restore_screen.dart';
 import 'fitr_mobile_preview_screen.dart';
 import 'garmin_calendar_screen.dart';
 import 'history_screen.dart';
@@ -76,6 +77,30 @@ class HomeScreen extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (_) => const FitrMobilePreviewScreen(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+              _HomeButton(
+                label: 'Restore Database',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const DatabaseRestoreScreen(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+              _HomeButton(
+                label: 'Restore Database',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const DatabaseRestoreScreen(),
                     ),
                   );
                 },
