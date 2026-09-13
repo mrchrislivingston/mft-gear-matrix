@@ -45,13 +45,16 @@ class DatabaseService {
     return openedDatabase;
   }
 
-  Future<Database> _openDatabase() async {
+  Future<String> get databasePath async {
     final databaseDirectory = await getDatabasesPath();
+    return join(databaseDirectory, _databaseName);
+  }
 
-    final databasePath = join(databaseDirectory, _databaseName);
+  Future<Database> _openDatabase() async {
+    final path = await databasePath;
 
     return openDatabase(
-      databasePath,
+      path,
       version: _databaseVersion,
       onConfigure: (database) async {
         await database.execute('PRAGMA foreign_keys = ON');
