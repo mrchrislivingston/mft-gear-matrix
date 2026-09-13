@@ -154,7 +154,10 @@ includes:
 - Complete current Gear target coverage
 - Benchmark descriptions, personal bests, previous results, and trends
 - Proven Garmin workout construction and FIT post-processing
-- 151 Flutter tests
+- Proven private-iPhone FITR to Garmin preview, conflict checking, and
+  guarded workout scheduling
+- Validated version-5 SQLite backup and restore with automatic rollback
+- 210 Flutter tests
 - 31 historical-import tests
 - 15 Garmin integration tests
 
@@ -167,7 +170,7 @@ The primary remaining Phase 1 work is:
 - Close remaining source and canonical-prescription gaps.
 - Make record trust and reconciliation visible to the athlete.
 - Improve the single-pane-of-glass history and analysis experience.
-- Build reproducible target and benchmark restore/import workflows.
+- Add in-app database export and record-level multi-device reconciliation.
 
 ### Phase 1 Exit Criterion
 
@@ -1007,7 +1010,74 @@ such as mixed prescriptions and benchmark workouts.
 - Current verification passes 142 Flutter tests, 12 Garmin bridge Python
   tests, and 31 historical-import Python tests.
 
+### Mobile FITR to Garmin and Database Portability Checkpoint
+
+- Established a privately signed iPhone release build and confirmed that
+  the app launches independently after disconnecting from Flutter tooling.
+
+- Added phone-native FITR week retrieval and Dart classification for Zone 2,
+  Gear, mixed Gear, Power, and M.A.T.T. candidates.
+
+- FITR credentials and Garmin OAuth session data are stored in the iOS
+  Keychain. Garmin access-token refresh and read-only account validation
+  work without storing the Garmin password.
+
+- Added human-readable Garmin payload previews, athlete-age-based Zone 2
+  heart-rate targets, and structured Gear targets for Run, Row, and C2 Bike.
+  Ski and Echo targets remain visible in Garmin step descriptions.
+
+- Added live Garmin calendar conflict checks, exact-duplicate detection, a
+  guarded import review, explicit acknowledgement, and a second confirmation
+  before any workout is written.
+
+- Added phone-native Garmin workout upload and scheduling. The transaction
+  rechecks the calendar immediately before writing and removes a newly
+  uploaded workout definition if scheduling fails.
+
+- Completed the first real end-to-end phone import by creating and scheduling
+  a G1 C2 Bike workout for 2026-09-16. This proved the complete FITR to Garmin
+  write path and exposed that a fresh phone database lacked athlete targets.
+
+- Added a version-5 SQLite restore engine that validates integrity, schema,
+  and required tables before replacement. It backs up the existing phone
+  database, reopens and validates the restored copy, and automatically rolls
+  back if reopening fails.
+
+- Added a guarded iPhone Restore Database screen with a validated record-count
+  preview, acknowledgement checkbox, and final replacement confirmation.
+
+- Restored the canonical Mac database to the iPhone and verified 129 workouts,
+  65 target-history records, 66 benchmark definitions, and 74 benchmark
+  attempts. Workout history, Matrix targets, and the resulting Garmin payload
+  targets were verified on the phone.
+
+- Gear payload construction now fails visibly when an athlete target is
+  missing instead of silently creating an untargeted Garmin workout. Run may
+  use an explicit FITR pace range; all other Gear work requires a saved target.
+
+- The Flutter suite now passes 210 tests. Focused analysis for the database
+  restore and Garmin target-safety changes reports no issues.
+
 # Next Priorities
+
+## Mobile Portability and FITR to Garmin
+
+- Add actionable missing-target recovery directly to the payload screen:
+  Restore Database, Set Target, and a complete list of missing targets.
+
+- Add an in-app database export workflow so an athlete can create a validated
+  portable backup without using command-line SQLite.
+
+- Define durable record identifiers, source identifiers, modification
+  timestamps, and conflict rules before implementing multi-device merge or
+  synchronization.
+
+- Evaluate athlete-controlled iCloud or CloudKit synchronization after backup
+  and restore are proven. Whole-database replacement remains a private-spike
+  portability mechanism, not the final multi-device architecture.
+
+- Continue real-device FITR to Garmin validation with one reviewed workout at
+  a time before enabling routine multi-workout scheduling.
 
 ## Historical Import
 
