@@ -310,6 +310,83 @@ void main() {
     );
   });
 
+  test('builds same-modality mixed Gear Run with per-step targets', () {
+    final workout = builder.buildCandidate(
+      candidate(
+        type: 'MIXED_GEAR',
+        prescription: 'G7-G8',
+        modality: 'Run',
+        values: {
+          'steps': [
+            {
+              'kind': 'work',
+              'prescription': 'G7',
+              'modality': 'Run',
+              'seconds': 150,
+            },
+            {'kind': 'recovery', 'seconds': 195},
+            {
+              'kind': 'work',
+              'prescription': 'G7',
+              'modality': 'Run',
+              'seconds': 150,
+            },
+            {'kind': 'recovery', 'seconds': 195},
+            {
+              'kind': 'work',
+              'prescription': 'G7',
+              'modality': 'Run',
+              'seconds': 150,
+            },
+            {'kind': 'recovery', 'seconds': 210},
+            {
+              'kind': 'work',
+              'prescription': 'G8',
+              'modality': 'Run',
+              'seconds': 120,
+            },
+            {'kind': 'recovery', 'seconds': 210},
+            {
+              'kind': 'work',
+              'prescription': 'G8',
+              'modality': 'Run',
+              'seconds': 120,
+            },
+          ],
+        },
+      ),
+      age: 50,
+      gearTargetResolver: (prescription, modality) {
+        expect(modality, 'Run');
+
+        return switch (prescription) {
+          'G7' => const GarminGearTarget(
+            metric: 'minPerMile',
+            low: '7:00',
+            high: '7:15',
+          ),
+          'G8' => const GarminGearTarget(
+            metric: 'minPerMile',
+            low: '6:45',
+            high: '7:00',
+          ),
+          _ => null,
+        };
+      },
+    );
+
+    final steps = workoutSteps(workout);
+
+    expect(workout['workoutName'], 'G7-G8 Run - 2026-09-10');
+    expect(workout['sportType'], {'sportTypeId': 1, 'sportTypeKey': 'running'});
+    expect(workout['estimatedDurationInSecs'], 1500);
+    expect(steps, hasLength(9));
+    expect(steps[0]['description'], 'G7 Run - Target 7:00-7:15 min/mile');
+    expect(steps[4]['description'], 'G7 Run - Target 7:00-7:15 min/mile');
+    expect(steps[6]['description'], 'G8 Run - Target 6:45-7:00 min/mile');
+    expect(steps[8]['description'], 'G8 Run - Target 6:45-7:00 min/mile');
+  });
+
   test('builds Power work and recovery intervals', () {
     final workout = builder.buildCandidate(
       candidate(

@@ -405,16 +405,22 @@ class GarminWorkoutBuilder {
           candidateStep['modality']?.toString().trim().isNotEmpty == true
           ? candidateStep['modality'].toString()
           : 'Recovery';
+      final rawPrescription = candidateStep['prescription']?.toString().trim();
+      final hasStepPrescription =
+          rawPrescription != null && rawPrescription.isNotEmpty;
+      final prescription = hasStepPrescription
+          ? rawPrescription
+          : candidate.prescription;
 
       final step = timedStep(index + 1, isWork ? 3 : 4, seconds);
 
       final target = isWork
-          ? gearTargetResolver?.call(candidate.prescription, modality)
+          ? gearTargetResolver?.call(prescription, modality)
           : null;
 
       if (isWork && target == null) {
         throw GarminWorkoutBuilderException(
-          '${candidate.prescription} $modality requires a current athlete '
+          '$prescription $modality requires a current athlete '
           'target. Restore or enter the target before building Garmin '
           'workouts.',
         );
@@ -426,7 +432,10 @@ class GarminWorkoutBuilder {
           target,
           enforce: modalityUsesStructuredTarget(modality),
         );
-        step['description'] = '$modality - ${formatGearTarget(target)}';
+        final label = hasStepPrescription
+            ? '$prescription $modality'
+            : modality;
+        step['description'] = '$label - ${formatGearTarget(target)}';
       } else {
         step['description'] = modality;
       }
@@ -434,7 +443,9 @@ class GarminWorkoutBuilder {
       workoutSteps.add(step);
     }
 
-    const sportType = {'sportTypeId': 6, 'sportTypeKey': 'cardio_training'};
+    final GarminJson sportType = candidate.modality.contains('+')
+        ? {'sportTypeId': 6, 'sportTypeKey': 'cardio_training'}
+        : sportTypeForModality(candidate.modality);
 
     return {
       'workoutName':

@@ -88,6 +88,43 @@ P1 Row
     expect(result['cooldown_seconds'], 900);
   });
 
+  test('classifies same-modality G7 to G8 Run workout', () {
+    final result = classifyFitrSection(
+      section('Conditioning 3 (Bitch Work)', '''
+Build Run - 7th / 8th Gear
+
+AMRAP 2:30 x 3
+Run for Meters @ 7th Gear
+Rest 3:15
+
+Rest 3:30 after round 3, Then
+
+AMRAP 2:00 x 2
+Run for Meters @ 8th Gear
+Rest 3:30
+'''),
+    );
+
+    expect(result!['status'], 'CANDIDATE');
+    expect(result['type'], 'MIXED_GEAR');
+    expect(result['prescription'], 'G7-G8');
+    expect(result['modality'], 'Run');
+    expect(result['rounds'], 5);
+
+    final steps = result['steps']! as List<Map<String, Object?>>;
+    expect(steps, [
+      {'kind': 'work', 'prescription': 'G7', 'modality': 'Run', 'seconds': 150},
+      {'kind': 'recovery', 'seconds': 195},
+      {'kind': 'work', 'prescription': 'G7', 'modality': 'Run', 'seconds': 150},
+      {'kind': 'recovery', 'seconds': 195},
+      {'kind': 'work', 'prescription': 'G7', 'modality': 'Run', 'seconds': 150},
+      {'kind': 'recovery', 'seconds': 210},
+      {'kind': 'work', 'prescription': 'G8', 'modality': 'Run', 'seconds': 120},
+      {'kind': 'recovery', 'seconds': 210},
+      {'kind': 'work', 'prescription': 'G8', 'modality': 'Run', 'seconds': 120},
+    ]);
+  });
+
   test('classifies reviewed mixed Ski and C2 Bike Gear work', () {
     final result = classifyFitrSection(
       section('Conditioning 3', '''

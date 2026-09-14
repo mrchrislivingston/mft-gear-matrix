@@ -166,6 +166,84 @@ FitrClassification _skip({
   return {'status': 'SKIP', 'reason': reason, 'source_title': sourceTitle};
 }
 
+FitrClassification? _classifyMixedRunGear(String text, String sourceTitle) {
+  final structure = RegExp(
+    r'AMRAP\s+(\d+:\d{2})\s*[xX]\s*(\d+)'
+    r'.*?Run\s+for\s+Meters\s+@\s+'
+    r'(1st|2nd|3rd|4th|5th|6th|7th|8th)\s+Gear'
+    r'.*?\bRest\s+(\d+:\d{2})'
+    r'.*?\bRest\s+(\d+:\d{2})\s+after\s+round\s+(\d+)\s*,?\s*Then'
+    r'.*?AMRAP\s+(\d+:\d{2})\s*[xX]\s*(\d+)'
+    r'.*?Run\s+for\s+Meters\s+@\s+'
+    r'(1st|2nd|3rd|4th|5th|6th|7th|8th)\s+Gear'
+    r'.*?\bRest\s+(\d+:\d{2})',
+    caseSensitive: false,
+    dotAll: true,
+  ).firstMatch(text);
+
+  if (structure == null) {
+    return null;
+  }
+
+  final firstRounds = int.parse(structure.group(2)!);
+  final transitionAfterRound = int.parse(structure.group(6)!);
+  final secondRounds = int.parse(structure.group(8)!);
+
+  if (transitionAfterRound != firstRounds) {
+    return _skip(
+      reason: 'Mixed Gear transition round does not match first block',
+      sourceTitle: sourceTitle,
+    );
+  }
+
+  final firstGear = _ordinalGears[structure.group(3)!.toLowerCase()]!;
+  final secondGear = _ordinalGears[structure.group(9)!.toLowerCase()]!;
+  final firstWorkSeconds = parseFitrTime(structure.group(1)!);
+  final firstRestSeconds = parseFitrTime(structure.group(4)!);
+  final transitionRestSeconds = parseFitrTime(structure.group(5)!);
+  final secondWorkSeconds = parseFitrTime(structure.group(7)!);
+  final secondRestSeconds = parseFitrTime(structure.group(10)!);
+
+  final steps = <Map<String, Object?>>[];
+
+  for (var round = 0; round < firstRounds; round++) {
+    steps.add({
+      'kind': 'work',
+      'prescription': firstGear,
+      'modality': 'Run',
+      'seconds': firstWorkSeconds,
+    });
+
+    steps.add({
+      'kind': 'recovery',
+      'seconds': round < firstRounds - 1
+          ? firstRestSeconds
+          : transitionRestSeconds,
+    });
+  }
+
+  for (var round = 0; round < secondRounds; round++) {
+    steps.add({
+      'kind': 'work',
+      'prescription': secondGear,
+      'modality': 'Run',
+      'seconds': secondWorkSeconds,
+    });
+
+    if (round < secondRounds - 1) {
+      steps.add({'kind': 'recovery', 'seconds': secondRestSeconds});
+    }
+  }
+
+  return _candidate(
+    type: 'MIXED_GEAR',
+    prescription: '$firstGear-$secondGear',
+    modality: 'Run',
+    sourceTitle: sourceTitle,
+    values: {'rounds': firstRounds + secondRounds, 'steps': steps},
+  );
+}
+
 FitrClassification? _classifyMixedGear(
   String text,
   String gear,
@@ -248,6 +326,12 @@ FitrClassification? _classifyGear(Map<String, dynamic> section) {
   }
 
   final sourceTitle = fitrSectionTitle(section);
+
+  final mixedRun = _classifyMixedRunGear(text, sourceTitle);
+  if (mixedRun != null) {
+    return mixedRun;
+  }
+
   final mixed = _classifyMixedGear(text, gear, sourceTitle);
   if (mixed != null) {
     return mixed;
