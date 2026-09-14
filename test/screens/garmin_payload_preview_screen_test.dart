@@ -129,5 +129,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Already scheduled on Garmin'), findsOneWidget);
+    expect(
+      find.text(
+        'Garmin calendar check completed for 1 workout. '
+        'Review each workout status, then continue.',
+      ),
+      findsOneWidget,
+    );
   });
 }

@@ -570,9 +570,9 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
             child: const Padding(
               padding: EdgeInsets.all(16),
               child: Text(
-                'Private mobile spike: this reads FITR directly from '
-                'the phone. Nothing will be created or scheduled on '
-                'Garmin yet.',
+                'This reads FITR directly from the phone. Workouts are '
+                'built locally and require calendar review plus explicit '
+                'confirmation before Garmin is changed.',
               ),
             ),
           ),

@@ -441,9 +441,9 @@ class _GarminPayloadPreviewScreenState
               child: const Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
-                  'Preview only. These payloads are built locally on this '
-                  'phone. Nothing on Garmin will be created, scheduled, '
-                  'changed, or deleted.',
+                  'Review the locally built workouts, check the Garmin '
+                  'calendar, and continue to the guarded import review. Garmin '
+                  'is not changed until final confirmation.',
                 ),
               ),
             ),
@@ -522,6 +522,21 @@ class _GarminPayloadPreviewScreenState
                         : 'Check Garmin calendar',
                   ),
                 ),
+                if (_calendarChecked) ...[
+                  const SizedBox(height: 8),
+                  Card(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(
+                        'Garmin calendar check completed for '
+                        '${_payloads.length} workout'
+                        '${_payloads.length == 1 ? '' : 's'}. '
+                        'Review each workout status, then continue.',
+                      ),
+                    ),
+                  ),
+                ],
                 if (_calendarErrorMessage != null) ...[
                   const SizedBox(height: 8),
                   Text(
@@ -580,17 +595,6 @@ class _GarminPayloadPreviewScreenState
                     children: [_payloadDetails(built)],
                   ),
                 ),
-              const SizedBox(height: 12),
-              Card(
-                color: Theme.of(context).colorScheme.secondaryContainer,
-                child: const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text(
-                    'Payload construction succeeded. Upload and scheduling '
-                    'remain intentionally disabled.',
-                  ),
-                ),
-              ),
             ],
           ],
         ),
