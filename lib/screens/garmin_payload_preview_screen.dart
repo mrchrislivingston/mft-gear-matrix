@@ -15,6 +15,11 @@ typedef GarminImportPlanner =
 typedef GarminCalendarLoader =
     Future<List<GarminScheduledWorkout>> Function(Iterable<DateTime> dates);
 
+typedef GarminMissingTargetEditor =
+    Future<void> Function(GarminGearTargetRequirement requirement);
+
+typedef GarminDatabaseRestoreLauncher = Future<void> Function();
+
 class GarminPayloadPreviewScreen extends StatefulWidget {
   final List<FitrWorkoutCandidate> candidates;
   final GarminGearTargetResolver? gearTargetResolver;
@@ -22,6 +27,8 @@ class GarminPayloadPreviewScreen extends StatefulWidget {
   final GarminCalendarLoader? calendarLoader;
   final GarminImportPlanner? importPlanner;
   final GarminImportCommitter? importCommitter;
+  final GarminMissingTargetEditor? missingTargetEditor;
+  final GarminDatabaseRestoreLauncher? databaseRestoreLauncher;
 
   const GarminPayloadPreviewScreen({
     super.key,
@@ -31,6 +38,8 @@ class GarminPayloadPreviewScreen extends StatefulWidget {
     this.calendarLoader,
     this.importPlanner,
     this.importCommitter,
+    this.missingTargetEditor,
+    this.databaseRestoreLauncher,
   });
 
   @override
@@ -44,6 +53,7 @@ class _GarminPayloadPreviewScreenState
   final _ageController = TextEditingController();
 
   List<_BuiltPayload> _payloads = const [];
+  List<GarminGearTargetRequirement> _missingTargets = const [];
   List<GarminScheduledWorkout> _scheduledWorkouts = const [];
   String? _errorMessage;
   String? _calendarErrorMessage;
@@ -76,6 +86,33 @@ class _GarminPayloadPreviewScreenState
     }
 
     try {
+      final missingByKey = <String, GarminGearTargetRequirement>{};
+
+      for (final candidate in widget.candidates) {
+        final missing = widget.builder.missingGearTargets(
+          candidate,
+          gearTargetResolver: widget.gearTargetResolver,
+        );
+
+        for (final requirement in missing) {
+          missingByKey[requirement.key] = requirement;
+        }
+      }
+
+      final missingTargets = missingByKey.values.toList(growable: false);
+
+      if (missingTargets.isNotEmpty) {
+        setState(() {
+          _payloads = const [];
+          _missingTargets = missingTargets;
+          _errorMessage = null;
+          _scheduledWorkouts = const [];
+          _calendarErrorMessage = null;
+          _calendarChecked = false;
+        });
+        return;
+      }
+
       final payloads = widget.candidates
           .map((candidate) {
             return _BuiltPayload(
@@ -91,6 +128,7 @@ class _GarminPayloadPreviewScreenState
 
       setState(() {
         _payloads = payloads;
+        _missingTargets = const [];
         _errorMessage = null;
         _scheduledWorkouts = const [];
         _calendarErrorMessage = null;
@@ -99,8 +137,39 @@ class _GarminPayloadPreviewScreenState
     } catch (error) {
       setState(() {
         _payloads = const [];
+        _missingTargets = const [];
         _errorMessage = error.toString();
       });
+    }
+  }
+
+  Future<void> _editMissingTarget(
+    GarminGearTargetRequirement requirement,
+  ) async {
+    final editor = widget.missingTargetEditor;
+
+    if (editor == null) {
+      return;
+    }
+
+    await editor(requirement);
+
+    if (mounted) {
+      _buildPayloads();
+    }
+  }
+
+  Future<void> _restoreDatabase() async {
+    final launcher = widget.databaseRestoreLauncher;
+
+    if (launcher == null) {
+      return;
+    }
+
+    await launcher();
+
+    if (mounted) {
+      _buildPayloads();
     }
   }
 
@@ -484,6 +553,54 @@ class _GarminPayloadPreviewScreenState
               icon: const Icon(Icons.build_outlined),
               label: const Text('Build payload preview'),
             ),
+            if (_missingTargets.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Card(
+                color: Theme.of(context).colorScheme.errorContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Targets required',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'These targets must be added before the Garmin '
+                        'workouts can be built:',
+                      ),
+                      const SizedBox(height: 8),
+                      for (final requirement in _missingTargets)
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(requirement.displayName),
+                          trailing: widget.missingTargetEditor == null
+                              ? null
+                              : TextButton(
+                                  key: Key(
+                                    'garminSetTarget-${requirement.key}',
+                                  ),
+                                  onPressed: () =>
+                                      _editMissingTarget(requirement),
+                                  child: const Text('Set Target'),
+                                ),
+                        ),
+                      if (widget.databaseRestoreLauncher != null) ...[
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          key: const Key('garminRestoreDatabaseButton'),
+                          onPressed: _restoreDatabase,
+                          icon: const Icon(Icons.restore),
+                          label: const Text('Restore Database'),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
             if (_errorMessage != null) ...[
               const SizedBox(height: 12),
               Card(

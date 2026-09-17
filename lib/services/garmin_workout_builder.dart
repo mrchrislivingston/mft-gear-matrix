@@ -25,8 +25,82 @@ class GarminGearTarget {
   });
 }
 
+class GarminGearTargetRequirement {
+  final String prescription;
+  final String modality;
+
+  const GarminGearTargetRequirement({
+    required this.prescription,
+    required this.modality,
+  });
+
+  String get key => '$prescription:$modality';
+
+  String get displayName => '$prescription $modality';
+}
+
 class GarminWorkoutBuilder {
   const GarminWorkoutBuilder();
+
+  List<GarminGearTargetRequirement> missingGearTargets(
+    FitrWorkoutCandidate candidate, {
+    GarminGearTargetResolver? gearTargetResolver,
+  }) {
+    final missingByKey = <String, GarminGearTargetRequirement>{};
+
+    void requireTarget(String prescription, String modality) {
+      if (gearTargetResolver?.call(prescription, modality) != null) {
+        return;
+      }
+
+      final requirement = GarminGearTargetRequirement(
+        prescription: prescription,
+        modality: modality,
+      );
+      missingByKey[requirement.key] = requirement;
+    }
+
+    if (candidate.type == 'GEAR') {
+      final classification = candidate.classification;
+      final paceLow = classification['pace_low']?.toString();
+      final paceHigh = classification['pace_high']?.toString();
+      final hasInlineRunPace =
+          candidate.modality.toLowerCase() == 'run' &&
+          paceLow != null &&
+          paceLow.isNotEmpty &&
+          paceHigh != null &&
+          paceHigh.isNotEmpty;
+
+      if (!hasInlineRunPace) {
+        requireTarget(candidate.prescription, candidate.modality);
+      }
+    } else if (candidate.type == 'MIXED_GEAR') {
+      final rawSteps = candidate.classification['steps'];
+
+      if (rawSteps is List) {
+        for (final rawStep in rawSteps) {
+          if (rawStep is! Map || rawStep['kind'] != 'work') {
+            continue;
+          }
+
+          final modality = rawStep['modality']?.toString().trim() ?? '';
+          if (modality.isEmpty) {
+            continue;
+          }
+
+          final rawPrescription =
+              rawStep['prescription']?.toString().trim() ?? '';
+          final prescription = rawPrescription.isEmpty
+              ? candidate.prescription
+              : rawPrescription;
+
+          requireTarget(prescription, modality);
+        }
+      }
+    }
+
+    return List.unmodifiable(missingByKey.values);
+  }
 
   GarminJson buildCandidate(
     FitrWorkoutCandidate candidate, {

@@ -6,7 +6,9 @@ import '../models/modality.dart';
 import '../services/app_state.dart';
 import '../services/garmin_workout_builder.dart';
 import '../services/garmin_workout_import_service.dart';
+import 'database_restore_screen.dart';
 import 'garmin_payload_preview_screen.dart';
+import 'target_manager_screen.dart';
 
 import '../services/fitr_credentials_store.dart';
 import '../services/fitr_mobile_client.dart';
@@ -528,6 +530,50 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
     return null;
   }
 
+  Future<void> _editMissingGarminTarget(
+    GarminGearTargetRequirement requirement,
+  ) async {
+    final modality = switch (requirement.modality.toLowerCase()) {
+      'run' => Modality.run,
+      'row' => Modality.row,
+      'ski' => Modality.ski,
+      'c2 bike' => Modality.bikeErg,
+      'echo bike' => Modality.echo,
+      _ => null,
+    };
+
+    if (modality == null) {
+      throw StateError('Unsupported target modality: ${requirement.modality}');
+    }
+
+    final matches = AppState.instance.gears.where(
+      (gear) => gear.id == requirement.prescription,
+    );
+
+    if (matches.isEmpty) {
+      throw StateError(
+        'Unknown Gear prescription: ${requirement.prescription}',
+      );
+    }
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TargetManagerScreen(
+          prescription: matches.first,
+          modality: modality,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _restoreGarminDatabase() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const DatabaseRestoreScreen()),
+    );
+  }
+
   void _openPayloadPreview(FitrClassifiedWeek classifiedWeek) {
     final selectedCandidates = classifiedWeek.candidates
         .where((candidate) => _selectedCandidateIds.contains(candidate.id))
@@ -542,6 +588,8 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
           calendarLoader: _inspectGarminDates,
           importPlanner: _preflightGarminImport,
           importCommitter: _commitGarminImport,
+          missingTargetEditor: _editMissingGarminTarget,
+          databaseRestoreLauncher: _restoreGarminDatabase,
         ),
       ),
     );

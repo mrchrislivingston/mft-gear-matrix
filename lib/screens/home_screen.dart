@@ -94,18 +94,6 @@ class HomeScreen extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 10),
-              _HomeButton(
-                label: 'Restore Database',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const DatabaseRestoreScreen(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 10),
             ],
             _HomeButton(
               label: 'Import Misfit History',

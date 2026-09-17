@@ -205,6 +205,90 @@ void main() {
     expect(workout['estimatedDurationInSecs'], 510);
   });
 
+  test('discovers an ordinary missing Gear target', () {
+    final missing = builder.missingGearTargets(
+      candidate(
+        type: 'GEAR',
+        prescription: 'G1',
+        modality: 'C2 Bike',
+        values: {'rounds': 2, 'work_seconds': 900, 'rest_seconds': 60},
+      ),
+    );
+
+    expect(missing, hasLength(1));
+    expect(missing.single.prescription, 'G1');
+    expect(missing.single.modality, 'C2 Bike');
+    expect(missing.single.displayName, 'G1 C2 Bike');
+  });
+
+  test('does not require a saved target when FITR supplies Run pace', () {
+    final missing = builder.missingGearTargets(
+      candidate(
+        type: 'GEAR',
+        prescription: 'G3',
+        modality: 'Run',
+        values: {
+          'rounds': 3,
+          'work_seconds': 480,
+          'rest_seconds': 90,
+          'pace_low': '8:30',
+          'pace_high': '8:45',
+        },
+      ),
+    );
+
+    expect(missing, isEmpty);
+  });
+
+  test('discovers and deduplicates mixed Gear step targets', () {
+    final missing = builder.missingGearTargets(
+      candidate(
+        type: 'MIXED_GEAR',
+        prescription: 'G7-G8',
+        modality: 'Run',
+        values: {
+          'steps': [
+            {
+              'kind': 'work',
+              'prescription': 'G7',
+              'modality': 'Run',
+              'seconds': 150,
+            },
+            {'kind': 'recovery', 'seconds': 195},
+            {
+              'kind': 'work',
+              'prescription': 'G7',
+              'modality': 'Run',
+              'seconds': 150,
+            },
+            {'kind': 'recovery', 'seconds': 210},
+            {
+              'kind': 'work',
+              'prescription': 'G8',
+              'modality': 'Run',
+              'seconds': 120,
+            },
+          ],
+        },
+      ),
+      gearTargetResolver: (prescription, modality) {
+        if (prescription == 'G7' && modality == 'Run') {
+          return const GarminGearTarget(
+            metric: 'minPerMile',
+            low: '7:00',
+            high: '7:15',
+          );
+        }
+
+        return null;
+      },
+    );
+
+    expect(missing, hasLength(1));
+    expect(missing.single.prescription, 'G8');
+    expect(missing.single.modality, 'Run');
+  });
+
   test('rejects C2 Bike Gear without an athlete target', () {
     expect(
       () => builder.buildCandidate(

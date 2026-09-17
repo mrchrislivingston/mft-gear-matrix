@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mft_gear_matrix/screens/garmin_payload_preview_screen.dart';
 import 'package:mft_gear_matrix/services/fitr_workout_classifier.dart';
 import 'package:mft_gear_matrix/services/garmin_mobile_client.dart';
+import 'package:mft_gear_matrix/services/garmin_workout_builder.dart';
 
 FitrWorkoutCandidate zone2Candidate() {
   return const FitrWorkoutCandidate(
@@ -18,6 +19,26 @@ FitrWorkoutCandidate zone2Candidate() {
       'source_title': 'Zone 1 / Zone 2',
       'workout_date': '2026-09-10',
       'work_seconds': 1800,
+    },
+  );
+}
+
+FitrWorkoutCandidate gearCandidate() {
+  return const FitrWorkoutCandidate(
+    id: 'schedule:0:GEAR',
+    date: '2026-09-10',
+    planTitle: 'Test Plan',
+    sourceTitle: 'Conditioning',
+    classification: {
+      'status': 'CANDIDATE',
+      'type': 'GEAR',
+      'prescription': 'G1',
+      'modality': 'C2 Bike',
+      'source_title': 'Conditioning',
+      'workout_date': '2026-09-10',
+      'rounds': 2,
+      'work_seconds': 900,
+      'rest_seconds': 60,
     },
   );
 }
@@ -70,6 +91,105 @@ void main() {
     expect(find.text('Duration: 5:00'), findsWidgets);
     expect(find.text('Heart rate: 100–132 bpm'), findsWidgets);
     expect(find.text('Technical JSON'), findsOneWidget);
+  });
+
+  testWidgets('opens Target Manager recovery and rebuilds payloads', (
+    tester,
+  ) async {
+    var targetAvailable = false;
+    var editedTargets = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GarminPayloadPreviewScreen(
+          candidates: [gearCandidate()],
+          gearTargetResolver: (_, _) {
+            if (!targetAvailable) {
+              return null;
+            }
+
+            return const GarminGearTarget(
+              metric: 'minPer1000m',
+              low: '1:47',
+              high: '1:48',
+            );
+          },
+          missingTargetEditor: (requirement) async {
+            expect(requirement.prescription, 'G1');
+            expect(requirement.modality, 'C2 Bike');
+            editedTargets++;
+            targetAvailable = true;
+          },
+        ),
+      ),
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('garminPayloadAgeField')),
+      '50',
+    );
+    await tester.tap(find.byKey(const Key('garminBuildPayloadPreviewButton')));
+    await tester.pump();
+
+    expect(find.text('Targets required'), findsOneWidget);
+    expect(find.text('G1 C2 Bike'), findsOneWidget);
+    expect(find.text('Built payloads'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('garminSetTarget-G1:C2 Bike')));
+    await tester.pumpAndSettle();
+
+    expect(editedTargets, 1);
+    expect(find.text('Targets required'), findsNothing);
+    expect(find.text('Built payloads'), findsOneWidget);
+  });
+
+  testWidgets('restores the database and retries payload construction', (
+    tester,
+  ) async {
+    var targetAvailable = false;
+    var restores = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GarminPayloadPreviewScreen(
+          candidates: [gearCandidate()],
+          gearTargetResolver: (_, _) {
+            if (!targetAvailable) {
+              return null;
+            }
+
+            return const GarminGearTarget(
+              metric: 'minPer1000m',
+              low: '1:47',
+              high: '1:48',
+            );
+          },
+          databaseRestoreLauncher: () async {
+            restores++;
+            targetAvailable = true;
+          },
+        ),
+      ),
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('garminPayloadAgeField')),
+      '50',
+    );
+    await tester.tap(find.byKey(const Key('garminBuildPayloadPreviewButton')));
+    await tester.pump();
+
+    expect(find.text('Targets required'), findsOneWidget);
+
+    final restoreButton = find.byKey(const Key('garminRestoreDatabaseButton'));
+    await tester.ensureVisible(restoreButton);
+    await tester.pumpAndSettle();
+    await tester.tap(restoreButton);
+    await tester.pumpAndSettle();
+
+    expect(restores, 1);
+    expect(find.text('Targets required'), findsNothing);
+    expect(find.text('Built payloads'), findsOneWidget);
   });
 
   testWidgets('provides an explicit keyboard-dismiss control', (tester) async {
