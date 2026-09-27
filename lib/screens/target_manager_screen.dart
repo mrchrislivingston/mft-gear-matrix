@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../models/gear.dart';
 import '../models/modality.dart';
+import '../models/metric.dart';
 import '../services/app_state.dart';
 
 class TargetManagerScreen extends StatefulWidget {
   final Prescription prescription;
   final Modality modality;
+  final Metric? metric;
 
   const TargetManagerScreen({
     super.key,
     required this.prescription,
     required this.modality,
+    this.metric,
   });
 
   @override
@@ -28,8 +31,9 @@ class _TargetManagerScreenState
   void initState() {
     super.initState();
 
-    final target = widget.prescription.targetForModality(
-      widget.modality,
+    final target = widget.prescription.findTarget(
+      modality: widget.modality,
+      metric: widget.metric ?? widget.modality.defaultMetric,
     );
 
     final currentTarget = target?.currentTarget;
@@ -99,12 +103,13 @@ class _TargetManagerScreenState
 
   @override
   Widget build(BuildContext context) {
-    final target = widget.prescription.targetForModality(
-      widget.modality,
+    final target = widget.prescription.findTarget(
+      modality: widget.modality,
+      metric: widget.metric ?? widget.modality.defaultMetric,
     );
 
     final currentTarget = target?.currentTarget;
-    final metric = target?.metric;
+    final metric = widget.metric ?? target?.metric ?? widget.modality.defaultMetric;
 
     return Scaffold(
       appBar: AppBar(
@@ -131,45 +136,43 @@ class _TargetManagerScreenState
                 ? 'No target currently set'
                 : 'Current target: '
                     '${currentTarget.displayTarget} '
-                    '${metric?.unitLabel ?? ''}',
+                    '${metric.unitLabel}',
           ),
           const SizedBox(height: 12),
           Text(
-            metric == null
-                ? 'Primary metric'
-                : '${metric.displayName} '
+            '${metric.displayName} '
                     '(${metric.unitLabel})',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 24),
           TextField(
             controller: lowTargetController,
-            keyboardType: metric?.usesTimeFormat == true
+            keyboardType: metric.usesTimeFormat == true
                 ? TextInputType.text
                 : const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
             decoration: InputDecoration(
               labelText: 'Low Target',
-              helperText: metric?.usesTimeFormat == true
+              helperText: metric.usesTimeFormat == true
                   ? 'Example: 2:05'
-                  : metric?.unitLabel,
+                  : metric.unitLabel,
               border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: highTargetController,
-            keyboardType: metric?.usesTimeFormat == true
+            keyboardType: metric.usesTimeFormat == true
                 ? TextInputType.text
                 : const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
             decoration: InputDecoration(
               labelText: 'High Target',
-              helperText: metric?.usesTimeFormat == true
+              helperText: metric.usesTimeFormat == true
                   ? 'Example: 2:10'
-                  : metric?.unitLabel,
+                  : metric.unitLabel,
               border: const OutlineInputBorder(),
             ),
           ),
@@ -183,7 +186,7 @@ class _TargetManagerScreenState
                   highTargetController.text.trim();
 
               final usesTimeFormat =
-                  metric?.usesTimeFormat == true;
+                  metric.usesTimeFormat == true;
 
               final lowError = _validateTargetValue(
                 lowTarget,
@@ -211,6 +214,7 @@ class _TargetManagerScreenState
                   .updatePrescriptionTarget(
                 prescriptionId: widget.prescription.id,
                 modality: widget.modality,
+                metric: metric,
                 lowTarget: lowTarget,
                 highTarget: highTarget,
               );

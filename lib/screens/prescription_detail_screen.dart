@@ -47,6 +47,7 @@ class _PrescriptionDetailScreenState
 
   String _powerProtocolTitle(Modality modality) {
     switch (modality) {
+      case Modality.assaultRunner:
       case Modality.run:
       case Modality.echo:
       case Modality.bikeErg:
@@ -225,9 +226,7 @@ class _PrescriptionDetailScreenState
       (item) => item.id == widget.prescription.id,
     );
 
-    final target = currentPrescription.targetForModality(
-      widget.modality,
-    );
+    final targets = currentPrescription.targets.where((target) => target.modality == widget.modality);
 
     final gear = currentPrescription is Gear
         ? currentPrescription
@@ -263,21 +262,27 @@ class _PrescriptionDetailScreenState
             context,
             currentPrescription,
           ),
-          if (currentPrescription.supportsTargets) ...[
+          if (widget.modality == Modality.assaultRunner && currentPrescription.supportsTargets)
+            Padding(
+              padding: const EdgeInsets.only(top: 20),
+              child: Text(currentPrescription.id == 'G3'
+                  ? 'G3 pace and watts are estimates to test. Watt targets are provisional interval averages.'
+                  : 'Watt targets are provisional interval averages.'),
+            ),
+          if (currentPrescription.supportsTargets)
+          for (final target in targets) ...[
             const SizedBox(height: 30),
             Text(
-              '${widget.modality.displayName} Target',
+              '${target.metric.displayName} Target',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 10),
             Text(
-              target?.displayTarget ?? 'No target',
+              target.displayTarget,
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            if (target != null) ...[
-              const SizedBox(height: 4),
-              Text(target.metric.unitLabel),
-            ],
+            const SizedBox(height: 4),
+            Text(target.metric.unitLabel),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () async {
@@ -287,6 +292,7 @@ class _PrescriptionDetailScreenState
                     builder: (_) => TargetManagerScreen(
                       prescription: currentPrescription,
                       modality: widget.modality,
+                      metric: target.metric,
                     ),
                   ),
                 );
@@ -296,7 +302,7 @@ class _PrescriptionDetailScreenState
                 }
               },
               child: Text(
-                target?.hasTarget == true
+                target.hasTarget
                     ? 'Edit Target'
                     : 'Create Target',
               ),
@@ -310,6 +316,7 @@ class _PrescriptionDetailScreenState
                     builder: (_) => TargetHistoryScreen(
                       prescription: currentPrescription,
                       modality: widget.modality,
+                      metric: target.metric,
                     ),
                   ),
                 );

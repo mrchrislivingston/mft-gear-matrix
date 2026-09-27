@@ -18,6 +18,7 @@ class WorkoutDetailScreen extends StatelessWidget {
       case Modality.run:
         return 'mi';
 
+      case Modality.assaultRunner:
       case Modality.row:
       case Modality.ski:
       case Modality.bikeErg:

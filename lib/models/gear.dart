@@ -121,6 +121,8 @@ class Prescription {
   }
 
   GearTarget? targetForModality(Modality modality) {
+    final primary = findTarget(modality: modality, metric: modality.defaultMetric);
+    if (primary != null) return primary;
     for (final target in targets) {
       if (target.modality == modality) {
         return target;
@@ -138,6 +140,10 @@ class Prescription {
   }
 
   String targetDisplayForModality(Modality modality) {
+    if (modality == Modality.assaultRunner) {
+      final available = targets.where((target) => target.modality == modality && target.hasTarget);
+      if (available.isNotEmpty) return available.map((target) => target.displayTargetWithUnit).join(' • ');
+    }
     final target = targetForModality(modality);
 
     if (target == null) {

@@ -160,6 +160,8 @@ class HistoryScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          _buildModalityTile(context, Modality.assaultRunner),
+          const Divider(),
           _buildModalityTile(
             context,
             Modality.run,

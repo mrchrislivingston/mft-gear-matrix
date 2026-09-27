@@ -6,10 +6,13 @@ enum Modality {
   row,
   ski,
   bikeErg,
-  echo;
+  echo,
+  assaultRunner;
 
   String get displayName {
     switch (this) {
+      case Modality.assaultRunner:
+        return 'AssaultRunner';
       case Modality.run:
         return 'Run';
       case Modality.row:
@@ -25,6 +28,7 @@ enum Modality {
 
   Metric get defaultMetric {
     switch (this) {
+      case Modality.assaultRunner:
       case Modality.run:
         return Metric.minPerMile;
       case Modality.row:
@@ -40,6 +44,15 @@ enum Modality {
 
   List<WorkoutMetric> get workoutMetrics {
     switch (this) {
+      case Modality.assaultRunner:
+        return const [
+          WorkoutMetric.distance,
+          WorkoutMetric.primaryMetric,
+          WorkoutMetric.watts,
+          WorkoutMetric.calories,
+          WorkoutMetric.heartRate,
+          WorkoutMetric.rpe,
+        ];
       case Modality.run:
         return const [
           WorkoutMetric.distance,

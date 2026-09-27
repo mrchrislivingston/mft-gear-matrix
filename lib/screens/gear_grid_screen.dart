@@ -16,6 +16,8 @@ class GearGridScreen extends StatelessWidget {
 
   String get title {
     switch (modality) {
+      case Modality.assaultRunner:
+        return 'AssaultRunner';
       case Modality.run:
         return 'Run';
       case Modality.row:

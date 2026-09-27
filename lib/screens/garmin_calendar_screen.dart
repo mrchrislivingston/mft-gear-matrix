@@ -119,6 +119,7 @@ class _GarminCalendarScreenState extends State<GarminCalendarScreen> {
 
   List<GarminGearTarget> _nonRunGearTargets() {
     const definitions = <(Modality, Metric)>[
+      (Modality.assaultRunner, Metric.minPerMile),
       (Modality.row, Metric.minPer500m),
       (Modality.ski, Metric.minPer500m),
       (Modality.bikeErg, Metric.minPer1000m),

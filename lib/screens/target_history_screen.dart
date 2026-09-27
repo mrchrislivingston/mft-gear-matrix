@@ -2,28 +2,31 @@ import 'package:flutter/material.dart';
 
 import '../models/gear.dart';
 import '../models/modality.dart';
+import '../models/metric.dart';
 
 class TargetHistoryScreen extends StatelessWidget {
   final Prescription prescription;
   final Modality modality;
+  final Metric? metric;
 
   const TargetHistoryScreen({
     super.key,
     required this.prescription,
     required this.modality,
+    this.metric,
   });
 
   @override
   Widget build(BuildContext context) {
     final target =
-        prescription.targetForModality(modality);
+        prescription.findTarget(modality: modality, metric: metric ?? modality.defaultMetric);
 
     final history =
         target?.history.reversed.toList() ?? [];
 
     final screenTitle =
         '${modality.displayName} '
-        '${prescription.name} Target History';
+        '${prescription.name} ${(metric ?? modality.defaultMetric).displayName} History';
 
     if (history.isEmpty) {
       return Scaffold(

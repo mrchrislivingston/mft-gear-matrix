@@ -101,6 +101,9 @@ def parse_run_pace_targets(values):
 def normalize_target_modality(value):
     normalized = value.strip().lower()
 
+    if normalized in {"assaultrunner", "assault runner", "ass runner"}:
+        return "assaultRunner"
+
     if "run" in normalized:
         return "run"
 
@@ -153,6 +156,7 @@ def parse_gear_targets(values):
 
         expected_metrics = {
             "run": "minPerMile",
+            "assaultRunner": "minPerMile",
             "row": "minPer500m",
             "ski": "minPer500m",
             "bikeErg": "minPer1000m",
@@ -223,7 +227,7 @@ def apply_targets_to_candidate(
         modality = normalize_target_modality(
             step.get("modality", "")
         )
-        target = gear_targets.get((prescription, modality))
+        target = gear_targets.get((step.get("prescription") or prescription, modality))
 
         if target:
             step["gear_target"] = dict(target)

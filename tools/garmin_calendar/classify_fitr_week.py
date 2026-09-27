@@ -17,7 +17,10 @@ ORDINAL_GEARS = {
     "8th": "G8",
 }
 
+ASSAULT_RUNNER_PATTERN = r"\b(?:assault\s*runner|ass\s+runner)\b"
+
 MODALITY_PATTERNS = [
+    ("AssaultRunner", ASSAULT_RUNNER_PATTERN),
     ("C2 Bike", r"\b(?:c2|bikeerg|bike erg)\s*bike\b|\bc2 bike\b"),
     ("Echo Bike", r"\becho(?: bike)?\b"),
     ("Row", r"\brow(?:ing)?\b"),
@@ -66,7 +69,8 @@ def section_description(section):
 
 
 def section_text(section):
-    return f"{section_title(section)}\n{section_description(section)}"
+    text = f"{section_title(section)}\n{section_description(section)}"
+    return re.sub(ASSAULT_RUNNER_PATTERN, "AssaultRunner", text, flags=re.IGNORECASE)
 
 
 def detect_modality(text):
@@ -241,6 +245,42 @@ def classify_mixed_gear(text, gear, source_title):
     }
 
 
+def classify_mixed_run_gear(text, source_title):
+    match = re.search(
+        r'AMRAP\s+(\d+:\d{2})\s*[xX]\s*(\d+)'
+        r'.*?(?:Run|AssaultRunner)\s+for\s+Meters\s+@\s+'
+        r'(1st|2nd|3rd|4th|5th|6th|7th|8th)\s+Gear'
+        r'.*?\bRest\s+(\d+:\d{2})'
+        r'.*?\bRest\s+(\d+:\d{2})\s+after\s+round\s+(\d+)\s*,?\s*Then'
+        r'.*?AMRAP\s+(\d+:\d{2})\s*[xX]\s*(\d+)'
+        r'.*?(?:Run|AssaultRunner)\s+for\s+Meters\s+@\s+'
+        r'(1st|2nd|3rd|4th|5th|6th|7th|8th)\s+Gear'
+        r'.*?\bRest\s+(\d+:\d{2})', text, re.IGNORECASE | re.DOTALL,
+    )
+    modality = detect_modality(text)
+    if match is None or modality not in {'Run', 'AssaultRunner'}:
+        return None
+    first_rounds, second_rounds = int(match[2]), int(match[8])
+    if int(match[6]) != first_rounds:
+        return {'status': 'SKIP', 'source_title': source_title,
+                'reason': 'Mixed Gear transition round does not match first block'}
+    first_gear, second_gear = ORDINAL_GEARS[match[3].lower()], ORDINAL_GEARS[match[9].lower()]
+    steps = []
+    for index in range(first_rounds):
+        steps.append({'kind': 'work', 'prescription': first_gear,
+                      'modality': modality, 'seconds': parse_time(match[1])})
+        steps.append({'kind': 'recovery', 'seconds': parse_time(match[4] if index < first_rounds - 1 else match[5])})
+    for index in range(second_rounds):
+        steps.append({'kind': 'work', 'prescription': second_gear,
+                      'modality': modality, 'seconds': parse_time(match[7])})
+        if index < second_rounds - 1:
+            steps.append({'kind': 'recovery', 'seconds': parse_time(match[10])})
+    return {'status': 'CANDIDATE', 'type': 'MIXED_GEAR',
+            'prescription': f'{first_gear}-{second_gear}', 'modality': modality,
+            'source_title': source_title, 'rounds': first_rounds + second_rounds,
+            'steps': steps}
+
+
 def classify_gear(section):
     text = section_text(section)
 
@@ -248,6 +288,10 @@ def classify_gear(section):
 
     if not gear:
         return None
+
+    mixed_run = classify_mixed_run_gear(text, section_title(section))
+    if mixed_run:
+        return mixed_run
 
     mixed = classify_mixed_gear(
         text,
@@ -338,7 +382,7 @@ def classify_power(section):
         r"(?:(?:Max\s+)?Calorie\s+)?(Row|Ski)\s+(?:for\s+Calories\s+)?in\s+(:?\d*:\d{2})\s+@\s*(P[1-3])",
         r"(Echo(?:\s+Bike)?|C2\s+Bike)\s+for\s+Calories\s+in\s+(:?\d*:\d{2})\s+@\s*(P[1-3])",
         r"Max\s+Calorie\s+(Echo(?:\s+Bike)?|C2\s+Bike)\s+in\s+(:?\d*:\d{2})\s+@\s*(P[1-3])",
-        r"(Run)\s+.*?in\s+(:?\d*:\d{2})\s+@\s*(P[1-3])",
+        r"(Run|AssaultRunner)\s+.*?in\s+(:?\d*:\d{2})\s+@\s*(P[1-3])",
     ]
 
     work_match = None
@@ -365,6 +409,8 @@ def classify_power(section):
         modality = "Echo Bike"
     elif raw_modality.startswith("c2"):
         modality = "C2 Bike"
+    elif re.fullmatch(ASSAULT_RUNNER_PATTERN, raw_modality, re.IGNORECASE):
+        modality = "AssaultRunner"
     elif raw_modality.startswith("run"):
         modality = "Run"
     else:
@@ -407,7 +453,7 @@ def classify_z2(section):
 
     # Require an explicit modality after "Zone 2 -".
     modality_match = re.search(
-        r"Zone\s*2\s*-\s*(C2 Bike|Echo Bike|Row|Ski|Run)\b",
+        r"Zone\s*2\s*-\s*(C2 Bike|Echo Bike|Row|Ski|Run|AssaultRunner)\b",
         text,
         re.IGNORECASE,
     )
@@ -427,6 +473,7 @@ def classify_z2(section):
         "row": "Row",
         "ski": "Ski",
         "run": "Run",
+        "assaultrunner": "AssaultRunner",
     }
 
     modality = modality_lookup[raw_modality]

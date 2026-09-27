@@ -494,6 +494,7 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
     String modalityName,
   ) {
     final definition = switch (modalityName.toLowerCase()) {
+      'assaultrunner' || 'assault runner' || 'ass runner' => (Modality.assaultRunner, Metric.minPerMile),
       'run' => (Modality.run, Metric.minPerMile),
       'row' => (Modality.row, Metric.minPer500m),
       'ski' => (Modality.ski, Metric.minPer500m),
@@ -534,6 +535,7 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
     GarminGearTargetRequirement requirement,
   ) async {
     final modality = switch (requirement.modality.toLowerCase()) {
+      'assaultrunner' || 'assault runner' || 'ass runner' => Modality.assaultRunner,
       'run' => Modality.run,
       'row' => Modality.row,
       'ski' => Modality.ski,
@@ -919,6 +921,24 @@ class _FitrMobilePreviewScreenState extends State<FitrMobilePreviewScreen> {
                     '${candidate.type} • ${candidate.planTitle}\n'
                     '${candidate.sourceTitle}',
                   ),
+                  secondary: {'Run', 'AssaultRunner'}.contains(candidate.modality)
+                      ? PopupMenuButton<String>(
+                          tooltip: 'Choose running modality',
+                          icon: const Icon(Icons.swap_horiz),
+                          onSelected: (value) => setState(() {
+                            _classifiedWeek = FitrClassifiedWeek(
+                              snapshot: classifiedWeek.snapshot,
+                              candidates: [for (final item in classifiedWeek.candidates)
+                                item.id == candidate.id ? item.withRunningModality(value) : item],
+                              skipped: classifiedWeek.skipped,
+                            );
+                          }),
+                          itemBuilder: (_) => const [
+                            PopupMenuItem(value: 'Run', child: Text('Run')),
+                            PopupMenuItem(value: 'AssaultRunner', child: Text('AssaultRunner')),
+                          ],
+                        )
+                      : null,
                   isThreeLine: true,
                   onChanged: (selected) {
                     setState(() {

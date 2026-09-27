@@ -36,14 +36,21 @@ class MatrixScreen extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: ListView(
           children: [
             const Text(
               'Select Modality',
               style: TextStyle(fontSize: 18),
             ),
             const SizedBox(height: 30),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _openModality(context, Modality.assaultRunner),
+                child: const Text('AssaultRunner'),
+              ),
+            ),
+            const SizedBox(height: 10),
 
             SizedBox(
               width: double.infinity,

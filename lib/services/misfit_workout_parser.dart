@@ -99,6 +99,7 @@ class MisfitWorkoutParser {
   ];
 
   static final Map<String, RegExp> _modalityPatterns = {
+    'assaultRunner': RegExp(r'\b(?:assault\s*runner|ass\s+runner)\b', caseSensitive: false),
     'run': RegExp(r'\b(?:run|running|treadmill)\b', caseSensitive: false),
     'row': RegExp(r'\b(?:row|rowing|rower)\b', caseSensitive: false),
     'ski': RegExp(r'\b(?:ski|skierg|ski erg)\b', caseSensitive: false),
@@ -175,6 +176,10 @@ class MisfitWorkoutParser {
   }) {
     final programmingModalities = detectModalities(programmingText);
 
+    if (programmingModalities.length == 1 && programmingModalities.single == 'run' &&
+        _modalityPatterns['assaultRunner']!.hasMatch(resultText)) {
+      return ['assaultRunner'];
+    }
     if (programmingModalities.isNotEmpty) {
       return programmingModalities;
     }
@@ -381,7 +386,7 @@ class MisfitWorkoutParser {
   List<String> _modalitiesInText(String text) {
     final modalities = <String>[
       for (final entry in _modalityPatterns.entries)
-        if (entry.value.hasMatch(text)) entry.key,
+        if (entry.value.hasMatch(entry.key == 'run' ? text.replaceAll(_modalityPatterns['assaultRunner']!, '') : text)) entry.key,
     ];
 
     if (modalities.contains('echo') && modalities.contains('bikeErg')) {

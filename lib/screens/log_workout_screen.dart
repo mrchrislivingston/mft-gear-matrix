@@ -53,7 +53,8 @@ WorkoutMetric _powerScoringMetric = WorkoutMetric.calories;
       case Modality.bikeErg:
         return true;
 
-      case Modality.run:
+      case Modality.assaultRunner:
+    case Modality.run:
       case Modality.echo:
         return false;
     }
@@ -65,7 +66,8 @@ WorkoutMetric _powerScoringMetric = WorkoutMetric.calories;
     }
 
     switch (widget.modality) {
-      case Modality.run:
+      case Modality.assaultRunner:
+    case Modality.run:
         return WorkoutMetric.distance;
 
       case Modality.echo:
@@ -84,9 +86,11 @@ WorkoutMetric _powerScoringMetric = WorkoutMetric.calories;
     }
 
     switch (widget.modality) {
-      case Modality.run:
+      case Modality.assaultRunner:
+    case Modality.run:
         return [
           WorkoutMetric.distance,
+          if (widget.modality == Modality.assaultRunner) WorkoutMetric.watts,
         ];
 
       case Modality.echo:
@@ -181,9 +185,11 @@ List<WorkoutMetric> get _workoutMetrics {
   }
 
   switch (widget.modality) {
+    case Modality.assaultRunner:
     case Modality.run:
       return [
         WorkoutMetric.distance,
+        if (widget.modality == Modality.assaultRunner) WorkoutMetric.watts,
       ];
 
     case Modality.echo:
@@ -217,6 +223,8 @@ int get _intervalCount {
         switch (widget.modality) {
           case Modality.run:
             return 'Distance (miles)';
+          case Modality.assaultRunner:
+            return 'Distance (meters)';
           case Modality.row:
           case Modality.ski:
           case Modality.bikeErg:
@@ -776,7 +784,7 @@ WorkoutEntrySection(
   targetText: prescription.supportsTargets
     ? 'Target: '
         '${prescription.targetDisplayForModality(widget.modality)}'
-        '${metric == null ? '' : ' ${metric.unitLabel}'}'
+        '${metric == null || widget.modality == Modality.assaultRunner ? '' : ' ${metric.unitLabel}'}'
     : null,
   workoutMetrics: _workoutMetrics,
   intervalControllers: intervalControllers,

@@ -103,6 +103,11 @@ Prescription _buildPowerPrescription({
     name: name,
     stimulus: TrainingStimulus.power,
     protocols: {
+      Modality.assaultRunner: PrescriptionProtocol(
+        every: continuousEvery,
+        rounds: continuousRounds,
+        amrap: continuousAmrap,
+      ),
       Modality.run: PrescriptionProtocol(
         every: continuousEvery,
         rounds: continuousRounds,
@@ -146,6 +151,8 @@ Gear _buildGear(int number, String work, String rest, int intervals) {
 List<GearTarget> _emptyTargets() {
   return const [
     GearTarget(modality: Modality.run, metric: Metric.minPerMile),
+    GearTarget(modality: Modality.assaultRunner, metric: Metric.minPerMile),
+    GearTarget(modality: Modality.assaultRunner, metric: Metric.watts),
     GearTarget(modality: Modality.row, metric: Metric.minPer500m),
     GearTarget(modality: Modality.ski, metric: Metric.minPer500m),
     GearTarget(modality: Modality.bikeErg, metric: Metric.minPer1000m),

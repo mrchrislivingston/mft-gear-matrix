@@ -102,7 +102,7 @@ class MisfitWorkoutNormalizer {
       );
     }
 
-    if (!{'bikeErg', 'run', 'row', 'echo'}.contains(candidate.modality)) {
+    if (!{'bikeErg', 'run', 'assaultRunner', 'row', 'echo'}.contains(candidate.modality)) {
       throw const FormatException('Unsupported Zone modality');
     }
 

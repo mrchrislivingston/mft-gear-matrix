@@ -362,10 +362,11 @@ def build_mixed_gear_workout(candidate):
 
         workout_steps.append(step)
 
-    sport_type = {
-        "sportTypeId": 6,
-        "sportTypeKey": "cardio_training",
-    }
+    sport_type = (
+        {"sportTypeId": 6, "sportTypeKey": "cardio_training"}
+        if "+" in candidate["modality"]
+        else sport_type_for_modality(candidate["modality"])
+    )
 
     return {
         "workoutName": (

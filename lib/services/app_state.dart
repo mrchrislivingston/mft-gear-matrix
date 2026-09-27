@@ -5,12 +5,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/default_benchmarks.dart';
 import '../data/default_matrix.dart';
+import '../data/assault_runner_targets.dart';
+import 'assault_runner_target_import.dart';
 import '../models/benchmark.dart';
 import '../models/gear.dart';
 import '../models/gear_target.dart';
 import '../models/benchmark_attempt.dart';
 import '../models/log_entry.dart';
 import '../models/modality.dart';
+import '../models/metric.dart';
 import '../models/target_history.dart';
 import 'database_service.dart';
 
@@ -109,7 +112,9 @@ class AppState {
   }
 
   Future<void> loadGears() async {
-    final defaultGears = buildDefaultMatrix();
+    final defaultGears = buildDefaultMatrix().map((gear) => gear.copyWith(
+      targets: _mergeTargets(defaultTargets: gear.targets, savedTargets: assaultRunnerTargets(gear.id)),
+    )).toList();
 
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
@@ -151,6 +156,8 @@ class AppState {
       return;
     }
 
+    final imported = await importAssaultRunnerTargets(await DatabaseService.instance.database);
+    if (imported > 0) debugPrint('Imported $imported AssaultRunner pace/watt targets');
     final sqliteGears = <Gear>[];
 
     for (final defaultGear in defaultGears) {
@@ -255,7 +262,8 @@ class AppState {
         return defaultTarget;
       }
 
-      return savedTargets[savedIndex];
+      final saved = savedTargets[savedIndex];
+      return saved.hasTarget ? saved : defaultTarget;
     }).toList();
 
     for (final savedTarget in savedTargets) {
@@ -334,6 +342,7 @@ class AppState {
 
   /// Generic target update used by every prescription type.
   Future<void> updatePrescriptionTarget({
+    Metric? metric,
     required String prescriptionId,
     required Modality modality,
     required String lowTarget,
@@ -347,6 +356,7 @@ class AppState {
       final updatedTargets = await _buildUpdatedTargets(
         prescription: gear,
         modality: modality,
+        metric: metric,
         lowTarget: lowTarget,
         highTarget: highTarget,
       );
@@ -373,6 +383,7 @@ class AppState {
     final updatedTargets = await _buildUpdatedTargets(
       prescription: prescription,
       modality: modality,
+      metric: metric,
       lowTarget: lowTarget,
       highTarget: highTarget,
     );
@@ -387,14 +398,14 @@ class AppState {
   }
 
   Future<List<GearTarget>> _buildUpdatedTargets({
+    Metric? metric,
     required Prescription prescription,
     required Modality modality,
     required String lowTarget,
     required String highTarget,
   }) async {
-    final existingTarget = prescription.targetForModality(modality);
-
-    final metric = existingTarget?.metric ?? modality.defaultMetric;
+    final selectedMetric = metric ?? modality.defaultMetric;
+    final existingTarget = prescription.findTarget(modality: modality, metric: selectedMetric);
 
     final newHistoryItem = TargetHistory(
       lowTarget: lowTarget,
@@ -406,7 +417,7 @@ class AppState {
       await DatabaseService.instance.insertTargetHistory(
         prescriptionId: prescription.id,
         modality: modality,
-        metric: metric,
+        metric: selectedMetric,
         target: newHistoryItem,
       );
     }
@@ -414,7 +425,7 @@ class AppState {
     if (existingTarget == null) {
       final newTarget = GearTarget(
         modality: modality,
-        metric: metric,
+        metric: selectedMetric,
         history: [newHistoryItem],
       );
 

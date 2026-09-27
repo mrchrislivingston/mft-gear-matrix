@@ -13,7 +13,12 @@ const _ordinalGears = {
   '8th': 'G8',
 };
 
+final _assaultRunnerPattern = RegExp(r'\b(?:assault\s*runner|ass\s+runner)\b', caseSensitive: false);
+
+String _canonicalModalityText(String text) => text.replaceAll(_assaultRunnerPattern, 'AssaultRunner');
+
 final _modalityPatterns = <(String, RegExp)>[
+  ('AssaultRunner', _assaultRunnerPattern),
   (
     'C2 Bike',
     RegExp(
@@ -77,8 +82,8 @@ String fitrSectionDescription(Map<String, dynamic> section) {
 }
 
 String fitrSectionText(Map<String, dynamic> section) {
-  return '${fitrSectionTitle(section)}\n'
-      '${fitrSectionDescription(section)}';
+  return _canonicalModalityText('${fitrSectionTitle(section)}\n'
+      '${fitrSectionDescription(section)}');
 }
 
 String? detectFitrModality(String text) {
@@ -169,12 +174,12 @@ FitrClassification _skip({
 FitrClassification? _classifyMixedRunGear(String text, String sourceTitle) {
   final structure = RegExp(
     r'AMRAP\s+(\d+:\d{2})\s*[xX]\s*(\d+)'
-    r'.*?Run\s+for\s+Meters\s+@\s+'
+    r'.*?(?:Run|AssaultRunner)\s+for\s+Meters\s+@\s+'
     r'(1st|2nd|3rd|4th|5th|6th|7th|8th)\s+Gear'
     r'.*?\bRest\s+(\d+:\d{2})'
     r'.*?\bRest\s+(\d+:\d{2})\s+after\s+round\s+(\d+)\s*,?\s*Then'
     r'.*?AMRAP\s+(\d+:\d{2})\s*[xX]\s*(\d+)'
-    r'.*?Run\s+for\s+Meters\s+@\s+'
+    r'.*?(?:Run|AssaultRunner)\s+for\s+Meters\s+@\s+'
     r'(1st|2nd|3rd|4th|5th|6th|7th|8th)\s+Gear'
     r'.*?\bRest\s+(\d+:\d{2})',
     caseSensitive: false,
@@ -185,6 +190,8 @@ FitrClassification? _classifyMixedRunGear(String text, String sourceTitle) {
     return null;
   }
 
+  final modality = detectFitrModality(text);
+  if (modality == null || (modality != 'Run' && modality != 'AssaultRunner')) return null;
   final firstRounds = int.parse(structure.group(2)!);
   final transitionAfterRound = int.parse(structure.group(6)!);
   final secondRounds = int.parse(structure.group(8)!);
@@ -210,7 +217,7 @@ FitrClassification? _classifyMixedRunGear(String text, String sourceTitle) {
     steps.add({
       'kind': 'work',
       'prescription': firstGear,
-      'modality': 'Run',
+      'modality': modality,
       'seconds': firstWorkSeconds,
     });
 
@@ -226,7 +233,7 @@ FitrClassification? _classifyMixedRunGear(String text, String sourceTitle) {
     steps.add({
       'kind': 'work',
       'prescription': secondGear,
-      'modality': 'Run',
+      'modality': modality,
       'seconds': secondWorkSeconds,
     });
 
@@ -238,7 +245,7 @@ FitrClassification? _classifyMixedRunGear(String text, String sourceTitle) {
   return _candidate(
     type: 'MIXED_GEAR',
     prescription: '$firstGear-$secondGear',
-    modality: 'Run',
+    modality: modality,
     sourceTitle: sourceTitle,
     values: {'rounds': firstRounds + secondRounds, 'steps': steps},
   );
@@ -390,6 +397,7 @@ String? _normalizePowerModality(String rawModality) {
   if (lower.startsWith('c2')) {
     return 'C2 Bike';
   }
+  if (_assaultRunnerPattern.hasMatch(lower)) return 'AssaultRunner';
   if (lower.startsWith('run')) {
     return 'Run';
   }
@@ -446,7 +454,7 @@ FitrClassification? _classifyPower(Map<String, dynamic> section) {
       caseSensitive: false,
     ),
     RegExp(
-      r'(Run)\s+.*?in\s+(:?\d*:\d{2})\s+@\s*(P[1-3])',
+      r'(Run|AssaultRunner)\s+.*?in\s+(:?\d*:\d{2})\s+@\s*(P[1-3])',
       caseSensitive: false,
     ),
   ];
@@ -504,7 +512,7 @@ FitrClassification? _classifyZone2(Map<String, dynamic> section) {
 
   final sourceTitle = fitrSectionTitle(section);
   final modalityMatch = RegExp(
-    r'Zone\s*2\s*-\s*(C2 Bike|Echo Bike|Row|Ski|Run)\b',
+    r'Zone\s*2\s*-\s*(C2 Bike|Echo Bike|Row|Ski|Run|AssaultRunner)\b',
     caseSensitive: false,
   ).firstMatch(text);
 
@@ -521,6 +529,7 @@ FitrClassification? _classifyZone2(Map<String, dynamic> section) {
     'row' => 'Row',
     'ski' => 'Ski',
     'run' => 'Run',
+    'assaultrunner' => 'AssaultRunner',
     _ => throw StateError('Unhandled Zone 2 modality'),
   };
 
@@ -592,6 +601,33 @@ class FitrWorkoutCandidate {
 
   String get modality {
     return classification['modality']?.toString() ?? '';
+  }
+
+  FitrWorkoutCandidate withRunningModality(String value) {
+    if (!{'Run', 'AssaultRunner'}.contains(modality) ||
+        !{'Run', 'AssaultRunner'}.contains(value)) {
+      throw ArgumentError('Only Run and AssaultRunner can be exchanged.');
+    }
+    if (modality == value) return this;
+    final updated = Map<String, Object?>.from(classification)
+      ..['modality'] = value
+      ..remove('pace_low')
+      ..remove('pace_high')
+      ..remove('gear_target');
+    final steps = updated['steps'];
+    if (steps is List) {
+      updated['steps'] = [for (final step in steps)
+        if (step is Map && step['kind'] == 'work')
+          (Map<String, Object?>.from(step)
+            ..['modality'] = value
+            ..remove('gear_target'))
+        else step,
+      ];
+    }
+    return FitrWorkoutCandidate(
+      id: id, date: date, planTitle: planTitle, sourceTitle: sourceTitle,
+      classification: updated,
+    );
   }
 
   String get displayName {
