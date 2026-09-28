@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'benchmark_screen.dart';
 import 'database_restore_screen.dart';
+import 'database_export_screen.dart';
 import 'fitr_mobile_preview_screen.dart';
 import 'garmin_calendar_screen.dart';
 import 'history_screen.dart';
@@ -18,8 +19,7 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Chris Livingston')),
       body: Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: ListView(
           children: [
             const Text('Base Phase', style: TextStyle(fontSize: 18)),
             const SizedBox(height: 30),
@@ -92,6 +92,16 @@ class HomeScreen extends StatelessWidget {
                     ),
                   );
                 },
+              ),
+              const SizedBox(height: 10),
+            ],
+            if (!kIsWeb) ...[
+              _HomeButton(
+                label: 'Export Database',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DatabaseExportScreen()),
+                ),
               ),
               const SizedBox(height: 10),
             ],
