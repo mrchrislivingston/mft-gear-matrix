@@ -6,16 +6,18 @@ import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:mft_gear_matrix/services/database_restore_service.dart';
+import 'package:mft_gear_matrix/services/fitr_daily_schema.dart';
 
 Future<Database> createDatabase(
   DatabaseFactory factory,
   String databasePath, {
   required int workouts,
+  int version = 7,
 }) async {
   final database = await factory.openDatabase(
     databasePath,
     options: OpenDatabaseOptions(
-      version: DatabaseRestoreService.supportedSchemaVersion,
+      version: version,
       singleInstance: false,
       onCreate: (database, version) async {
         for (final table in DatabaseRestoreService.requiredTables) {
@@ -25,6 +27,7 @@ Future<Database> createDatabase(
             )
           ''');
         }
+        if (version >= 6) await createDailyTables(database);
       },
     ),
   );
@@ -71,6 +74,10 @@ void main() {
           options: OpenDatabaseOptions(
             version: DatabaseRestoreService.supportedSchemaVersion,
             singleInstance: false,
+            onUpgrade: (db, old, next) async {
+              if (old < 6) await createDailyTables(db);
+              if (old == 6) await upgradeDailyScoring(db);
+            },
           ),
         );
 
@@ -83,7 +90,7 @@ void main() {
     final sourcePath = '${directory.path}/source.db';
     final destinationPath = '${directory.path}/destination.db';
 
-    final source = await createDatabase(factory, sourcePath, workouts: 3);
+    final source = await createDatabase(factory, sourcePath, workouts: 3, version: 5);
     await source.close();
 
     activeDatabase = await createDatabase(
@@ -104,6 +111,8 @@ void main() {
     final result = await service.restoreBytes(bytes);
 
     expect(result.snapshot.workoutCount, 3);
+    expect(result.snapshot.schemaVersion, 7);
+    expect(result.snapshot.programmingDayCount, 0);
     expect(await File(result.backupPath).exists(), isTrue);
 
     final rows = await activeDatabase!.rawQuery(
@@ -212,6 +221,10 @@ void main() {
           options: OpenDatabaseOptions(
             version: DatabaseRestoreService.supportedSchemaVersion,
             singleInstance: false,
+            onUpgrade: (db, old, next) async {
+              if (old < 6) await createDailyTables(db);
+              if (old == 6) await upgradeDailyScoring(db);
+            },
           ),
         );
 

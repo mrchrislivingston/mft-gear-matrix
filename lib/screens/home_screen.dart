@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'benchmark_screen.dart';
+import 'fitr_daily_screen.dart';
+import 'working_max_screen.dart';
 import 'database_restore_screen.dart';
 import 'database_export_screen.dart';
 import 'fitr_mobile_preview_screen.dart';
@@ -23,6 +25,11 @@ class HomeScreen extends StatelessWidget {
           children: [
             const Text('Base Phase', style: TextStyle(fontSize: 18)),
             const SizedBox(height: 30),
+            if (!kIsWeb) ...[
+              _HomeButton(label: 'Training Week', onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const FitrDailyScreen()))),
+              const SizedBox(height: 10),
+            ],
             _HomeButton(
               label: 'Matrix',
               onTap: () {
@@ -43,7 +50,8 @@ class HomeScreen extends StatelessWidget {
               },
             ),
             const SizedBox(height: 10),
-            _HomeButton(label: 'Weightlifting', onTap: () {}),
+            _HomeButton(label: 'Working 1RMs', onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const WorkingMaxScreen()))),
             const SizedBox(height: 10),
             _HomeButton(
               label: 'History',

@@ -38,10 +38,10 @@ void main() {
       databaseLoader: () async => source,
       validator: validator().validateBytes,
       temporaryDirectory: () => Directory('${directory.path}/export').create(),
-      clock: () => DateTime.utc(2026, 9, 28, 4, 20),
+      clock: () => DateTime(2026, 9, 27, 22, 20),
     );
     final snapshot = await service.createSnapshot();
-    expect(snapshot.fileName, 'mft_gear_matrix_2026-09-28T04-20-00.000Z.db');
+    expect(snapshot.fileName, 'MFT_Backup_2026-09-27_10-20-00_PM.db');
     expect(snapshot.summary.workoutCount, 1);
     expect(snapshot.summary.targetCount, 2);
     expect(snapshot.summary.benchmarkCount, 1);

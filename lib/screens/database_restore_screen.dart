@@ -279,6 +279,8 @@ class _DatabaseRestoreScreenState extends State<DatabaseRestoreScreen> {
                     Text('${summary.targetCount} target-history records'),
                     Text('${summary.benchmarkCount} benchmark definitions'),
                     Text('${summary.benchmarkAttemptCount} benchmark attempts'),
+                    Text('${summary.programmingDayCount} programming days'),
+                    Text('${summary.dailyEntryCount} daily entries'),
                     const SizedBox(height: 8),
                     const Text('Integrity check: OK'),
                   ],

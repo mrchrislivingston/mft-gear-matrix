@@ -1,3 +1,4 @@
+import 'fitr_daily_schema.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -28,7 +29,7 @@ class DatabaseService {
   static final DatabaseService instance = DatabaseService._();
 
   static const String _databaseName = 'mft_gear_matrix.db';
-  static const int _databaseVersion = 5;
+  static const int _databaseVersion = 7;
 
   Database? _database;
 
@@ -89,6 +90,12 @@ class DatabaseService {
 
         if (oldVersion < 4) {
           await _createBenchmarkTables(database);
+        }
+        if (oldVersion == 6) {
+          await upgradeDailyScoring(database);
+        }
+        if (oldVersion < 6) {
+          await createDailyTables(database);
         }
         if (oldVersion < 5) {
           await database.execute('''
@@ -184,6 +191,7 @@ class DatabaseService {
     ''');
 
     await _createBenchmarkTables(database);
+    await createDailyTables(database);
   }
 
   Future<void> _createBenchmarkTables(Database database) async {

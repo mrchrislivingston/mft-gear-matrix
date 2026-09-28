@@ -13,6 +13,8 @@ class DatabaseSnapshotSummary {
   final int targetCount;
   final int benchmarkCount;
   final int benchmarkAttemptCount;
+  final int programmingDayCount;
+  final int dailyEntryCount;
 
   const DatabaseSnapshotSummary({
     required this.schemaVersion,
@@ -21,6 +23,8 @@ class DatabaseSnapshotSummary {
     required this.targetCount,
     required this.benchmarkCount,
     required this.benchmarkAttemptCount,
+    this.programmingDayCount = 0,
+    this.dailyEntryCount = 0,
   });
 }
 
@@ -44,7 +48,7 @@ class DatabaseRestoreException implements Exception {
 }
 
 class DatabaseRestoreService {
-  static const int supportedSchemaVersion = 5;
+  static const int supportedSchemaVersion = 7;
 
   static const Set<String> requiredTables = {
     'workouts',
@@ -209,10 +213,10 @@ class DatabaseRestoreService {
     final versionRows = await database.rawQuery('PRAGMA user_version');
     final schemaVersion = Sqflite.firstIntValue(versionRows) ?? 0;
 
-    if (schemaVersion != supportedSchemaVersion) {
+    if (schemaVersion < 5 || schemaVersion > supportedSchemaVersion) {
       throw DatabaseRestoreException(
         'Unsupported database schema version $schemaVersion. '
-        'Expected version $supportedSchemaVersion.',
+        'Expected version 5 through $supportedSchemaVersion.',
       );
     }
 
@@ -228,7 +232,8 @@ class DatabaseRestoreService {
         .map((row) => row['name'] as String)
         .toList(growable: false);
 
-    final missingTables = requiredTables.difference(tables.toSet()).toList()
+    final expectedTables = {...requiredTables, if (schemaVersion >= 6) ...{'fitr_days', 'fitr_pieces'}, if (schemaVersion >= 7) 'working_max_history'};
+    final missingTables = expectedTables.difference(tables.toSet()).toList()
       ..sort();
 
     if (missingTables.isNotEmpty) {
@@ -245,6 +250,10 @@ class DatabaseRestoreService {
       targetCount: await _count(database, 'target_history'),
       benchmarkCount: await _count(database, 'benchmarks'),
       benchmarkAttemptCount: await _count(database, 'benchmark_attempts'),
+      programmingDayCount: schemaVersion >= 6 ? await _count(database, 'fitr_days') : 0,
+      dailyEntryCount: schemaVersion >= 6 ? (Sqflite.firstIntValue(await database.rawQuery(
+        "SELECT COUNT(*) FROM fitr_pieces WHERE result != '' OR notes != '' OR completed = 1"
+        "${schemaVersion >= 7 ? " OR score_entry_json != ''" : ''}")) ?? 0) : 0,
     );
   }
 

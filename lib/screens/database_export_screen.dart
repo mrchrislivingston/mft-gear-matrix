@@ -68,7 +68,7 @@ class _DatabaseExportScreenState extends State<DatabaseExportScreen> {
         children: [
           Text('Back up your athlete record', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 12),
-          const Text('Save a dated backup of all workouts, interval results, target history, benchmarks, and benchmark attempts on this device.'),
+          const Text('Save a dated backup of all workouts, interval results, target history, benchmarks, benchmark attempts, FITR programming, and daily results/notes on this device.'),
           const SizedBox(height: 12),
           const Text('Choose Files or a folder you can find later. Use Restore Database to load this backup. Restoring replaces the destination device’s records; it does not merge them.'),
           const SizedBox(height: 12),
@@ -106,6 +106,8 @@ class _DatabaseExportScreenState extends State<DatabaseExportScreen> {
                 Text('${snapshot.summary.targetCount} target-history records'),
                 Text('${snapshot.summary.benchmarkCount} benchmark definitions'),
                 Text('${snapshot.summary.benchmarkAttemptCount} benchmark attempts'),
+                Text('${snapshot.summary.programmingDayCount} programming days'),
+                Text('${snapshot.summary.dailyEntryCount} daily entries'),
                 const SizedBox(height: 8),
                 const Text('Backup integrity verified.'),
               ]),

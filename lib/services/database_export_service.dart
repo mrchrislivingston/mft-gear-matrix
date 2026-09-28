@@ -45,9 +45,13 @@ class DatabaseExportService {
       await database.execute('VACUUM INTO ?', [destination]);
       final bytes = await File(destination).readAsBytes();
       final summary = await _validator(bytes);
-      final timestamp = _clock().toUtc().toIso8601String().replaceAll(':', '-');
+      final local = _clock().toLocal();
+      String two(int value) => value.toString().padLeft(2, '0');
+      final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
+      final timestamp = '${local.year}-${two(local.month)}-${two(local.day)}_'
+          '${two(hour)}-${two(local.minute)}-${two(local.second)}_${local.hour < 12 ? 'AM' : 'PM'}';
       return DatabaseExportSnapshot(
-        fileName: 'mft_gear_matrix_$timestamp.db',
+        fileName: 'MFT_Backup_$timestamp.db',
         bytes: bytes,
         summary: summary,
       );
