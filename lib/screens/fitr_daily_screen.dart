@@ -6,6 +6,7 @@ import '../services/fitr_score_entry.dart';
 import 'working_max_screen.dart';
 
 import '../services/fitr_daily_service.dart';
+import '../services/fitr_workout_classifier.dart' show detectFitrGear;
 
 class FitrDailyScreen extends StatefulWidget {
   final FitrDailyService? service;
@@ -22,6 +23,10 @@ class _FitrDailyScreenState extends State<FitrDailyScreen> {
   List<DailyPlan> _days = [];
   bool _busy = true;
   bool _dayOnly = false;
+  final Set<String> _collapsedPieces = {};
+  String _priority = 'all';
+  String _workType = 'all';
+  String _completion = 'all';
   String? _error;
   String? _message;
 
@@ -91,6 +96,57 @@ class _FitrDailyScreenState extends State<FitrDailyScreen> {
     return '${names[date.weekday - 1]} ${date.month}/${date.day}';
   }
 
+  bool get _filtered => _priority != 'all' || _workType != 'all' || _completion != 'all';
+
+  bool _matches(DailyPiece piece) {
+    if (_priority != 'all' && piece.priority != _priority) return false;
+    if (_completion == 'completed' && !piece.completed) return false;
+    if (_completion == 'remaining' && piece.completed) return false;
+    final category = sectionCategory(piece.title);
+    return switch (_workType) {
+      'gears' => detectFitrGear('${piece.title}\n${piece.description}') != null,
+      'lifts' => category.startsWith('Lift '),
+      'conditioning' => category.startsWith('Conditioning '),
+      'accessory' => category.startsWith('Accessory'),
+      'skill' => category == 'Skill',
+      'mobility' => category == 'Mobility/Stability',
+      _ => true,
+    };
+  }
+
+  Widget _filterMenu(String key, String value, Map<String, String> options,
+      ValueChanged<String> change) => Padding(
+    padding: const EdgeInsets.only(right: 16),
+    child: DropdownButton<String>(
+      key: ValueKey(key), value: value,
+      items: [for (final option in options.entries)
+        DropdownMenuItem(value: option.key, child: Text(option.value))],
+      onChanged: (value) { if (value != null) setState(() => change(value)); },
+    ),
+  );
+
+  Widget _filters() => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 12),
+    child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
+      const Padding(padding: EdgeInsets.only(right: 12), child: Icon(Icons.filter_list)),
+      _filterMenu('priorityFilter', _priority, const {
+        'all': 'All priorities', 'required': 'Required', 'optional': 'Optional',
+        'unassigned': 'Unassigned',
+      }, (v) => _priority = v),
+      _filterMenu('typeFilter', _workType, const {
+        'all': 'All work', 'gears': 'Gears work', 'lifts': 'Lifts',
+        'conditioning': 'Conditioning', 'accessory': 'Accessory',
+        'skill': 'Skill', 'mobility': 'Mobility / stability',
+      }, (v) => _workType = v),
+      _filterMenu('completionFilter', _completion, const {
+        'all': 'Any completion', 'remaining': 'Not completed', 'completed': 'Completed',
+      }, (v) => _completion = v),
+      if (_filtered) TextButton(onPressed: () => setState(() {
+        _priority = 'all'; _workType = 'all'; _completion = 'all';
+      }), child: const Text('Clear filters')),
+    ])),
+  );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -108,6 +164,7 @@ class _FitrDailyScreenState extends State<FitrDailyScreen> {
                 icon: Icon(_dayOnly ? Icons.table_chart : Icons.view_day), label: Text(_dayOnly ? 'Week grid' : 'Day view')),
           ],
         )),
+        _filters(),
         const Padding(padding: EdgeInsets.all(12), child: Text('Green: required • Gray: optional • Checkmark: completed\nResults and notes save on this device. They are not posted to FITR.', textAlign: TextAlign.center)),
         if (_busy) const LinearProgressIndicator(),
         if (_error != null) Padding(padding: const EdgeInsets.all(12), child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
@@ -142,7 +199,9 @@ class _FitrDailyScreenState extends State<FitrDailyScreen> {
         if (days.isEmpty && !_busy) const Padding(padding: EdgeInsets.all(24), child: Text('No saved programming for this day. Refresh from FITR to fetch this week.')),
         for (final day in days) ...[
           Card(child: Padding(padding: const EdgeInsets.all(16), child: _instructions(day))),
-          for (final piece in day.pieces) _pieceCard(piece),
+          if (!day.pieces.any(_matches) && _filtered)
+            const Padding(padding: EdgeInsets.all(16), child: Text('No workouts match these filters for this day.')),
+          for (final piece in day.pieces.where(_matches)) _pieceCard(piece),
         ],
       ])),
     ]);
@@ -150,8 +209,10 @@ class _FitrDailyScreenState extends State<FitrDailyScreen> {
 
   Widget _weekGrid() {
     if (_days.isEmpty) return const Center(child: Text('No saved programming for this week. Refresh from FITR to get started.'));
+    final visibleDays = _days.where((day) => !_filtered || day.pieces.any(_matches)).toList();
+    if (visibleDays.isEmpty) return const Center(child: Text('No workouts match these filters for this week.'));
     const ordered = ['Mobility/Stability', 'Lift 1', 'Accessory', 'Accessory 1', 'Lift 2', 'Accessory 2', 'Conditioning 1', 'Conditioning 2', 'Conditioning 3', 'Skill'];
-    final found = _days.expand((d) => d.pieces).map((p) => sectionCategory(p.title)).toSet();
+    final found = visibleDays.expand((d) => d.pieces.where(_matches)).map((p) => sectionCategory(p.title)).toSet();
     final columns = [...ordered.where(found.contains), ...found.where((c) => !ordered.contains(c))];
     return SingleChildScrollView(child: SingleChildScrollView(scrollDirection: Axis.horizontal,
       child: Table(defaultColumnWidth: const FixedColumnWidth(290),
@@ -162,13 +223,13 @@ class _FitrDailyScreenState extends State<FitrDailyScreen> {
           TableRow(decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest), children: [
             for (final title in ['Day / coach instructions', ...columns]) Padding(padding: const EdgeInsets.all(16), child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold))),
           ]),
-          for (final day in _days) TableRow(children: [
+          for (final day in visibleDays) TableRow(children: [
             Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(_label(DateTime.parse(day.date)), style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12), _instructions(day),
             ])),
             for (final category in columns) Column(children: [
-              for (final piece in day.pieces.where((p) => sectionCategory(p.title) == category)) _pieceCard(piece),
+              for (final piece in day.pieces.where((p) => _matches(p) && sectionCategory(p.title) == category)) _pieceCard(piece),
             ]),
           ]),
         ],
@@ -217,15 +278,33 @@ class _FitrDailyScreenState extends State<FitrDailyScreen> {
   }
 
   Widget _pieceCard(DailyPiece piece) {
+    final collapsed = _collapsedPieces.contains(piece.id);
     final dark = Theme.of(context).brightness == Brightness.dark;
     final color = piece.priority == 'required' ? (dark ? const Color(0xff234a32) : const Color(0xffdeedda))
         : piece.priority == 'optional' ? (dark ? const Color(0xff363636) : const Color(0xffe8e8e8))
         : Theme.of(context).colorScheme.surface;
     final label = piece.priority == 'required' ? 'Required' : piece.priority == 'optional' ? 'Optional' : 'Priority unassigned';
     return Card(color: color, child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [Expanded(child: Text(piece.title, style: const TextStyle(fontWeight: FontWeight.bold))),
-        if (piece.completed) const Icon(Icons.check_circle, semanticLabel: 'Completed')]),
-      Text(label, style: Theme.of(context).textTheme.labelMedium),
+      Semantics(button: true, expanded: !collapsed, child: InkWell(
+        key: ValueKey('daily-card-header-${piece.id}'),
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => setState(() {
+          if (collapsed) { _collapsedPieces.remove(piece.id); }
+          else { _collapsedPieces.add(piece.id); }
+        }),
+        child: Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(children: [
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(piece.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(label, style: Theme.of(context).textTheme.labelMedium),
+          ])),
+          if (piece.completed) const Icon(Icons.check_circle, semanticLabel: 'Completed'),
+          Icon(collapsed ? Icons.expand_more : Icons.expand_less),
+        ])),
+      )),
+      if (collapsed && piece.description.trim().isNotEmpty)
+        Padding(padding: const EdgeInsets.only(top: 4), child: Text(
+          piece.description.trim().split('\n').first, maxLines: 2, overflow: TextOverflow.ellipsis)),
+      if (!collapsed) ...[
       if (!piece.active) const Padding(padding: EdgeInsets.only(top: 8), child: Text('Removed from current programming • saved entry retained')),
       const SizedBox(height: 12),
       _prescription(piece),
@@ -249,6 +328,7 @@ class _FitrDailyScreenState extends State<FitrDailyScreen> {
       if (piece.notes.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Text('Notes: ${piece.notes}')),
       Align(alignment: Alignment.centerLeft, child: TextButton.icon(
         onPressed: _busy ? null : () => _edit(piece), icon: const Icon(Icons.edit_note), label: const Text('Results / notes'))),
+      ],
     ])));
   }
 }

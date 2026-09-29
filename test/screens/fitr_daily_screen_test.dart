@@ -4,6 +4,7 @@ import 'package:mft_gear_matrix/screens/fitr_daily_screen.dart';
 import 'package:mft_gear_matrix/services/fitr_daily_service.dart';
 
 class FakeDailyService extends FitrDailyService {
+  List<DailyPiece> extraPieces = [];
   String result = '';
   String notes = '';
   String scoreEntry = '';
@@ -17,6 +18,7 @@ class FakeDailyService extends FitrDailyService {
     instructions: 'Perform Lift 1. Add 0-2 of the following.', pieces: [
       DailyPiece(id: 'lift', title: 'Lift 1', description: 'Clean and jerk', priority: 'required',
         result: result, notes: notes, completed: completed, metadata: metadata, scoreEntry: scoreEntry),
+      ...extraPieces,
       const DailyPiece(id: 'skill', title: 'Skill/REPs', description: 'Toes to bar', priority: 'optional'),
     ],
   )];
@@ -39,6 +41,46 @@ class FakeDailyService extends FitrDailyService {
 }
 
 void main() {
+  for (final width in [800.0, 1400.0]) {
+    testWidgets('combined filters and clearing work at width $width', (tester) async {
+      tester.view.physicalSize = Size(width, 1100);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final service = FakeDailyService()..extraPieces = [
+        const DailyPiece(id: 'gear', title: 'Conditioning 3',
+          description: 'Echo Bike @ 5th Gear', priority: 'required'),
+        const DailyPiece(id: 'optionalGear', title: 'Conditioning 2',
+          description: 'AssaultRunner G7', priority: 'optional', completed: true),
+      ];
+      await tester.pumpWidget(MaterialApp(home: FitrDailyScreen(
+        service: service, initialDate: DateTime(2026, 9, 21))));
+      await tester.pumpAndSettle();
+      Future<void> select(String key, String label) async {
+        await tester.ensureVisible(find.byKey(ValueKey(key)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey(key)));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(label).last);
+        await tester.pumpAndSettle();
+      }
+      await select('typeFilter', 'Gears work');
+      expect(find.text('Clean and jerk'), findsNothing);
+      expect(find.text('Echo Bike @ 5th Gear'), findsOneWidget);
+      expect(find.text('AssaultRunner G7'), findsOneWidget);
+      await select('priorityFilter', 'Required');
+      expect(find.text('AssaultRunner G7'), findsNothing);
+      expect(find.text('Echo Bike @ 5th Gear'), findsOneWidget);
+      await select('completionFilter', 'Completed');
+      expect(find.textContaining('No workouts match these filters'), findsOneWidget);
+      await tester.ensureVisible(find.text('Clear filters'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Clear filters'));
+      await tester.pumpAndSettle();
+      expect(find.text('Clean and jerk'), findsOneWidget);
+      expect(service.result, isEmpty);
+    });
+  }
   testWidgets('phone view saves results and completion independently of priority', (tester) async {
     final service = FakeDailyService();
     await tester.pumpWidget(MaterialApp(home: FitrDailyScreen(service: service, initialDate: DateTime(2026, 9, 21))));

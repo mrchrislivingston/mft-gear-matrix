@@ -246,6 +246,18 @@ def classify_mixed_gear(text, gear, source_title):
 
 
 def classify_mixed_run_gear(text, source_title):
+    if len(re.findall(r'\bAMRAP\b', text, re.IGNORECASE)) != 2:
+        return None
+    words = ['first', 'second', 'third', 'fourth', 'fifth',
+             'sixth', 'seventh', 'eighth', 'ninth', 'tenth']
+    def normalize_round(match):
+        word = match[1].lower()
+        digits = re.sub(r'\D', '', word)
+        number = int(digits) if digits else words.index(word) + 1
+        return f'after round {number}'
+    text = re.sub(
+        r'after\s+(?:the\s+)?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th)?)\s+round\b',
+        normalize_round, text, flags=re.IGNORECASE)
     match = re.search(
         r'AMRAP\s+(\d+:\d{2})\s*[xX]\s*(\d+)'
         r'.*?(?:Run|AssaultRunner)\s+for\s+Meters\s+@\s+'
@@ -309,6 +321,10 @@ def classify_gear(section):
             "reason": "Gear detected but modality is ambiguous",
             "source_title": section_title(section),
         }
+
+    if len(re.findall(r'\bAMRAP\b', text, re.IGNORECASE)) > 1:
+        return {'status': 'SKIP', 'source_title': section_title(section),
+                'reason': 'Multiple Gear blocks could not be fully parsed; no partial workout imported'}
 
     # Example:
     # AMRAP 6:00 x 4

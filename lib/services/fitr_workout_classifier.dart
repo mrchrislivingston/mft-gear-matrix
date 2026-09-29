@@ -172,6 +172,17 @@ FitrClassification _skip({
 }
 
 FitrClassification? _classifyMixedRunGear(String text, String sourceTitle) {
+  if (RegExp(r'\bAMRAP\b', caseSensitive: false).allMatches(text).length != 2) return null;
+  const roundWords = ['first', 'second', 'third', 'fourth', 'fifth',
+    'sixth', 'seventh', 'eighth', 'ninth', 'tenth'];
+  text = text.replaceAllMapped(
+    RegExp(r'after\s+(?:the\s+)?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th)?)\s+round\b', caseSensitive: false),
+    (m) {
+      final word = m[1]!.toLowerCase();
+      final number = int.tryParse(word.replaceAll(RegExp(r'\D'), '')) ?? (roundWords.indexOf(word) + 1);
+      return 'after round $number';
+    },
+  );
   final structure = RegExp(
     r'AMRAP\s+(\d+:\d{2})\s*[xX]\s*(\d+)'
     r'.*?(?:Run|AssaultRunner)\s+for\s+Meters\s+@\s+'
@@ -342,6 +353,10 @@ FitrClassification? _classifyGear(Map<String, dynamic> section) {
   final mixed = _classifyMixedGear(text, gear, sourceTitle);
   if (mixed != null) {
     return mixed;
+  }
+
+  if (RegExp(r'\bAMRAP\b', caseSensitive: false).allMatches(text).length > 1) {
+    return _skip(reason: 'Multiple Gear blocks could not be fully parsed; no partial workout imported', sourceTitle: sourceTitle);
   }
 
   final modality = detectFitrModality(text);

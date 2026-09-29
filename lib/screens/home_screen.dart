@@ -6,6 +6,7 @@ import 'fitr_daily_screen.dart';
 import 'working_max_screen.dart';
 import 'database_restore_screen.dart';
 import 'database_export_screen.dart';
+import 'daily_results_import_screen.dart';
 import 'fitr_mobile_preview_screen.dart';
 import 'garmin_calendar_screen.dart';
 import 'history_screen.dart';
@@ -104,6 +105,9 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 10),
             ],
             if (!kIsWeb) ...[
+              _HomeButton(label: 'Import results', onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const DailyResultsImportScreen()))),
+              const SizedBox(height: 10),
               _HomeButton(
                 label: 'Export Database',
                 onTap: () => Navigator.push(

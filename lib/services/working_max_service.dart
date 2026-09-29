@@ -123,7 +123,7 @@ String readablePrescription(String description, String calculations,
   var text = description;
   // FITR often supplies both a plain percentage and its machine reference.
   text = text.replaceAllMapped(
-    RegExp(r'@(\d+(?:\.\d+)?)%[ \t]+@(\d+(?:\.\d+)?)%([A-Za-z0-9_]+)'),
+    RegExp(r'@[ \t]*(\d+(?:\.\d+)?)%[ \t]+@(\d+(?:\.\d+)?)%([A-Za-z0-9_]+)'),
     (m) => double.parse(m[1]!) == double.parse(m[2]!)
         ? '@${m[2]}%${m[3]}' : m[0]!,
   );

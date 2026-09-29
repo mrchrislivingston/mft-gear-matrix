@@ -88,6 +88,36 @@ P1 Row
     expect(result['cooldown_seconds'], 900);
   });
 
+  test('October 3 mixed run keeps both blocks and rejects incomplete parsing', () {
+    const workout = """Build Run - 5th / 6th Gear
+AMRAP 3:30 x 3
+Run for Meters @ 5th Gear
+Rest 2:30
+Rest 3:00 after the third round, Then
+AMRAP 3:00 x 2
+Run for Meters @ 6th Gear
+Rest 3:00
+Stay walking as much as you can during rest periods.
+""";
+    for (final phrase in ['the third round', 'round 3', 'the 3rd round']) {
+      final result = classifyFitrSection(section('Conditioning 3',
+        workout.replaceFirst('the third round', phrase)))!;
+      expect(result['type'], 'MIXED_GEAR');
+      expect(result['rounds'], 5);
+      final steps = result['steps'] as List;
+      expect(steps.where((s) => s['kind'] == 'work').map((s) => s['prescription']),
+        ['G5', 'G5', 'G5', 'G6', 'G6']);
+      expect(steps.map((s) => s['seconds']), [210,150,210,150,210,180,180,180,180]);
+    }
+    for (final broken in [
+      workout.replaceFirst('the third round', 'the fourth round'),
+      workout.replaceFirst('after the third round, Then', 'between blocks'),
+      '$workout\nAMRAP 1:00 x 1\nRun for Meters @ 7th Gear\nRest 1:00',
+    ]) {
+      expect(classifyFitrSection(section('Conditioning 3', broken))!['status'], 'SKIP');
+    }
+  });
+
   test('classifies same-modality G7 to G8 Run workout', () {
     final result = classifyFitrSection(
       section('Conditioning 3 (Bitch Work)', '''
