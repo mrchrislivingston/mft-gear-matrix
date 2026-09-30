@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:sqflite/sqflite.dart';
 
 import 'database_service.dart';
+import 'daily_history_service.dart';
 import 'working_max_service.dart';
 import 'fitr_credentials_store.dart';
 import 'fitr_mobile_client.dart';
@@ -47,20 +48,20 @@ class DailyPiece {
   final String id, title, description, priority, result, notes;
   final bool completed, active;
   final Map<String, dynamic> metadata;
-  final String scoreEntry, calculations;
+  final String scoreEntry, calculations, historyStatus;
   final String? prescriptionSnapshot;
   const DailyPiece({required this.id, required this.title, required this.description,
     required this.priority, this.result = '', this.notes = '', this.completed = false,
     this.active = true, this.metadata = const {}, this.scoreEntry = '',
-    this.calculations = '', this.prescriptionSnapshot});
-  factory DailyPiece.fromRow(Map<String, Object?> row, {String calculations = ''}) => DailyPiece(
+    this.calculations = '', this.historyStatus = '', this.prescriptionSnapshot});
+  factory DailyPiece.fromRow(Map<String, Object?> row, {String calculations = '', String historyStatus = ''}) => DailyPiece(
     id: row['id'] as String, title: row['title'] as String,
     description: row['description'] as String, priority: row['priority'] as String,
     result: row['result'] as String, notes: row['notes'] as String,
     completed: row['completed'] == 1, active: row['active'] == 1,
     metadata: Map<String, dynamic>.from(jsonDecode(row['source_json'] as String? ?? '{}') as Map),
     scoreEntry: row['score_entry_json'] as String? ?? '',
-    prescriptionSnapshot: row['prescription_snapshot'] as String?, calculations: calculations);
+    prescriptionSnapshot: row['prescription_snapshot'] as String?, calculations: calculations, historyStatus: historyStatus);
 }
 
 class DailyPlan {
@@ -172,6 +173,7 @@ class FitrDailyService {
       orderBy: 'workout_date, plan_title, id');
     final attempts = await db.query('benchmark_attempts', orderBy: 'attempt_date DESC, id DESC');
     final overrides = await db.query('working_max_history');
+    final statuses = {for(final r in await db.query('daily_history_status')) r['piece_id']:r['message'] as String};
     final days = <DailyPlan>[];
     for (final row in rows) {
       final pieces = await db.query('fitr_pieces', where: 'day_id = ? AND (active = 1 OR result != ? OR notes != ? OR completed = 1 OR score_entry_json != ?)',
@@ -186,7 +188,7 @@ class FitrDailyService {
             piece['description'] as String, asOf: dayDate.isAfter(now) ? now : dayDate,
             attempts: attempts, overrides: overrides,
             fitrBenchmarks: metadata['benchmarks'] is List ? metadata['benchmarks'] as List : const []);
-          return DailyPiece.fromRow(piece, calculations: calculations);
+          return DailyPiece.fromRow(piece, calculations: calculations, historyStatus: statuses[piece['id']] ?? '');
         }).toList()));
     }
     return days;
@@ -197,18 +199,24 @@ class FitrDailyService {
     required String notes, required bool completed, required String scoreEntry}) async {
     final db = await databaseLoader();
     final hasEntry = result.trim().isNotEmpty || notes.trim().isNotEmpty || completed || scoreEntry.isNotEmpty;
-    final count = await db.update('fitr_pieces', {
+    await db.transaction((txn) async {
+    final count = await txn.update('fitr_pieces', {
       'result': result, 'notes': notes, 'completed': completed ? 1 : 0,
       'score_entry_json': scoreEntry,
       'prescription_snapshot': piece.prescriptionSnapshot ?? (hasEntry ? piece.calculations : null),
     }, where: 'id = ?', whereArgs: [piece.id]);
     if (count != 1) throw StateError('This workout piece could not be found.');
+    await DailyHistoryService.sync(txn, piece.id);
+    });
   }
 
   Future<void> saveEntry(String id, {required String result, required String notes, required bool completed}) async {
     final db = await databaseLoader();
-    final count = await db.update('fitr_pieces', {'result': result, 'notes': notes, 'completed': completed ? 1 : 0},
+    await db.transaction((txn) async {
+    final count = await txn.update('fitr_pieces', {'result': result, 'notes': notes, 'completed': completed ? 1 : 0},
       where: 'id = ?', whereArgs: [id]);
     if (count != 1) throw StateError('This workout piece could not be found. Your entry was not saved.');
+    await DailyHistoryService.sync(txn, id);
+    });
   }
 }

@@ -6,7 +6,7 @@ import '../services/fitr_score_entry.dart';
 import 'working_max_screen.dart';
 
 import '../services/fitr_daily_service.dart';
-import '../services/fitr_workout_classifier.dart' show detectFitrGear;
+import '../services/fitr_workout_classifier.dart' show detectFitrGear, detectFitrModality;
 
 class FitrDailyScreen extends StatefulWidget {
   final FitrDailyService? service;
@@ -323,6 +323,7 @@ class _FitrDailyScreenState extends State<FitrDailyScreen> {
         ),
       ],
       const Divider(height: 24),
+      if (piece.historyStatus.isNotEmpty) Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(piece.historyStatus)),
       if (piece.scoreEntry.isNotEmpty) Text(_structuredSummary(piece.scoreEntry)),
       if (piece.result.isNotEmpty) Text('Result: ${piece.result}'),
       if (piece.notes.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Text('Notes: ${piece.notes}')),
@@ -349,6 +350,11 @@ class _EntryDialogState extends State<_EntryDialog> {
   FitrScoreSpec? _scoreSpec;
   final List<TextEditingController> _scores = [];
   bool _changedSpec = false;
+  final _zMinutes=TextEditingController(), _zMeters=TextEditingController(), _zHr=TextEditingController();
+  String _zWattsSource='Unspecified';
+  String? _zModality;
+  bool get _isZ2 => RegExp(r'\b(?:Zone\s*2|Z2)\b',caseSensitive:false).hasMatch(widget.piece.description.split('\n').first);
+
   String? _error;
   @override
   void initState() {
@@ -359,6 +365,14 @@ class _EntryDialogState extends State<_EntryDialog> {
     _scoreSpec = FitrScoreSpec.fromMetadata(widget.piece.metadata);
     if (widget.piece.scoreEntry.isNotEmpty) {
       final saved = jsonDecode(widget.piece.scoreEntry) as Map;
+      if(saved['actual'] is Map) {
+        final a=saved['actual'] as Map;
+        _zMinutes.text=a['minutes']?.toString() ?? '';
+        _zMeters.text=a['meters']?.toString() ?? '';
+        _zHr.text=a['heart_rate']?.toString() ?? '';
+        _zWattsSource=const ['Unspecified','Measured','Estimated'].contains(a['watts_source'])?a['watts_source'] as String:'Unspecified';
+        _zModality=a['modality'] as String?;
+      }
       final savedSpec = FitrScoreSpec(Map<String, dynamic>.from(saved['spec'] as Map));
       _changedSpec = _scoreSpec?.signature != savedSpec.signature;
       _scoreSpec = savedSpec;
@@ -366,12 +380,18 @@ class _EntryDialogState extends State<_EntryDialog> {
         _scores.add(TextEditingController(text: value.toString()));
       }
     }
+    if(_isZ2) {
+      _zModality ??= detectFitrModality(widget.piece.description);
+      final legacy=RegExp(r'^\s*([\d,]+(?:\.\d+)?)\s*m\s+in\s+(\d+(?:\.\d+)?)\s*min(?:utes)?\s*$',caseSensitive:false).firstMatch(widget.piece.result);
+      if(_zMinutes.text.isEmpty && legacy!=null) _zMinutes.text=legacy[2]!;
+      if(_zMeters.text.isEmpty && legacy!=null) _zMeters.text=legacy[1]!.replaceAll(',','');
+    }
     if (_scores.isEmpty && _scoreSpec?.supported == true) {
       for (var i=0; i<_scoreSpec!.count; i++) { _scores.add(TextEditingController()); }
     }
   }
   @override
-  void dispose() { _result.dispose(); _notes.dispose(); for (final c in _scores) { c.dispose(); } super.dispose(); }
+  void dispose() { _zMinutes.dispose(); _zMeters.dispose(); _zHr.dispose(); _result.dispose(); _notes.dispose(); for (final c in _scores) { c.dispose(); } super.dispose(); }
   Future<void> _save() async {
     final values = _scores.map((c) => c.text.trim()).toList();
     final spec = _scoreSpec;
@@ -381,8 +401,16 @@ class _EntryDialogState extends State<_EntryDialog> {
         if (error != null) { setState(() => _error = 'Entry ${i+1}: $error'); return; }
       }
     }
-    final entered = values.any((v) => v.isNotEmpty);
-    final scoreEntry = entered && spec != null ? jsonEncode({'spec': spec.raw, 'unit': spec.unit, 'values': values}) : '';
+    if(_isZ2) {
+      for(final field in [_zMinutes,_zMeters,_zHr]) {
+        final value=double.tryParse(field.text.trim());
+        if(field.text.trim().isNotEmpty && (value==null || !value.isFinite || value<=0)) {
+          setState(()=>_error='Actual Z2 values must be positive numbers.'); return;
+        }
+      }
+    }
+    final entered = values.any((v) => v.isNotEmpty) || (_isZ2 && [_zMinutes,_zMeters,_zHr].any((c)=>c.text.trim().isNotEmpty));
+    final scoreEntry = entered && spec != null ? jsonEncode({'spec': spec.raw, 'unit': spec.unit, 'values': values, if(_isZ2) 'actual':{'minutes':_zMinutes.text.trim(), 'meters':_zMeters.text.trim(), 'heart_rate':_zHr.text.trim(), 'modality':_zModality, 'watts_source':_zWattsSource}}) : '';
     setState(() { _saving = true; _error = null; });
     try {
       await widget.service.saveStructuredEntry(widget.piece, result: _result.text, notes: _notes.text,
@@ -404,6 +432,21 @@ class _EntryDialogState extends State<_EntryDialog> {
           controller: _scores[i], enabled: !_saving,
           decoration: InputDecoration(labelText: 'Entry ${i+1} (${_scoreSpec!.unit})', border: const OutlineInputBorder()),
         )),
+      ],
+      if(_isZ2) ...[
+        const Text('Actual Z2 working session (exclude warm-up/cool-down)'),
+        for(final field in [(_zMinutes,'Duration (minutes)'),(_zMeters,'Distance (meters)'),(_zHr,'Average heart rate (optional)')])
+          Padding(padding:const EdgeInsets.symmetric(vertical:6),child:TextField(controller:field.$1,enabled:!_saving,
+            keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:field.$2,border:const OutlineInputBorder()))),
+        DropdownButtonFormField<String>(initialValue:_zModality,
+          decoration:const InputDecoration(labelText:'Actual modality'),
+          items:[for(final m in ['Run','AssaultRunner','Row','Ski','C2 Bike','Echo Bike']) DropdownMenuItem(value:m,child:Text(m))],
+          onChanged:_saving?null:(v)=>setState(()=>_zModality=v)),
+        DropdownButtonFormField<String>(initialValue:_zWattsSource,
+          decoration:const InputDecoration(labelText:'Watts source'),
+          items:[for(final w in ['Unspecified','Measured','Estimated']) DropdownMenuItem(value:w,child:Text(w))],
+          onChanged:_saving?null:(v)=>setState(()=>_zWattsSource=v!)),
+        const SizedBox(height:12),
       ],
       TextField(controller: _result, enabled: !_saving, minLines: 2, maxLines: 5,
         decoration: InputDecoration(labelText: _scoreSpec?.supported == true ? 'Result details (optional)' : 'Result', hintText: 'Weights, reps, time, or interval results', border: const OutlineInputBorder())),

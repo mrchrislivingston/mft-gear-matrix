@@ -48,7 +48,7 @@ class DatabaseRestoreException implements Exception {
 }
 
 class DatabaseRestoreService {
-  static const int supportedSchemaVersion = 7;
+  static const int supportedSchemaVersion = 8;
 
   static const Set<String> requiredTables = {
     'workouts',
@@ -232,7 +232,7 @@ class DatabaseRestoreService {
         .map((row) => row['name'] as String)
         .toList(growable: false);
 
-    final expectedTables = {...requiredTables, if (schemaVersion >= 6) ...{'fitr_days', 'fitr_pieces'}, if (schemaVersion >= 7) 'working_max_history'};
+    final expectedTables = {...requiredTables, if (schemaVersion >= 6) ...{'fitr_days', 'fitr_pieces'}, if (schemaVersion >= 7) 'working_max_history', if (schemaVersion >= 8) ...{'daily_history_links', 'daily_lift_history', 'daily_history_status'}};
     final missingTables = expectedTables.difference(tables.toSet()).toList()
       ..sort();
 

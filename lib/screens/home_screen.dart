@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'benchmark_screen.dart';
+import 'daily_history_screen.dart';
+import '../services/app_state.dart';
 import 'fitr_daily_screen.dart';
 import 'working_max_screen.dart';
 import 'database_restore_screen.dart';
@@ -33,7 +35,9 @@ class HomeScreen extends StatelessWidget {
             ],
             _HomeButton(
               label: 'Matrix',
-              onTap: () {
+              onTap: () async {
+                await AppState.instance.loadLogs();
+                if (!context.mounted) return;
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const MatrixScreen()),
@@ -43,7 +47,9 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 10),
             _HomeButton(
               label: 'Benchmarks',
-              onTap: () {
+              onTap: () async {
+                await AppState.instance.loadLogs();
+                if (!context.mounted) return;
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const BenchmarkScreen()),
@@ -54,9 +60,14 @@ class HomeScreen extends StatelessWidget {
             _HomeButton(label: 'Working 1RMs', onTap: () => Navigator.push(context,
               MaterialPageRoute(builder: (_) => const WorkingMaxScreen()))),
             const SizedBox(height: 10),
+            _HomeButton(label: 'Training progress', onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const DailyHistoryScreen()))),
+            const SizedBox(height: 10),
             _HomeButton(
               label: 'History',
-              onTap: () {
+              onTap: () async {
+                await AppState.instance.loadLogs();
+                if (!context.mounted) return;
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const HistoryScreen()),

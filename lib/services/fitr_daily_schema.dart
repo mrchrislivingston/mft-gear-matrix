@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import 'daily_history_service.dart';
 
 Future<void> createDailyTables(DatabaseExecutor db) async {
   await db.execute('''CREATE TABLE fitr_days (
@@ -13,6 +14,7 @@ Future<void> createDailyTables(DatabaseExecutor db) async {
     prescription_snapshot TEXT,
     FOREIGN KEY(day_id) REFERENCES fitr_days(id) ON DELETE CASCADE)''');
   await createWorkingMaxTable(db);
+  await createDailyHistoryTables(db);
   await db.execute('CREATE INDEX index_fitr_days_date ON fitr_days(workout_date)');
   await db.execute('CREATE INDEX index_fitr_pieces_day ON fitr_pieces(day_id)');
 }
@@ -29,4 +31,5 @@ Future<void> upgradeDailyScoring(DatabaseExecutor db) async {
   await db.execute("ALTER TABLE fitr_pieces ADD COLUMN score_entry_json TEXT NOT NULL DEFAULT ''");
   await db.execute('ALTER TABLE fitr_pieces ADD COLUMN prescription_snapshot TEXT');
   await createWorkingMaxTable(db);
+  await createDailyHistoryTables(db);
 }

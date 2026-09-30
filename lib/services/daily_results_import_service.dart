@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:sqflite/sqflite.dart';
 import 'database_service.dart';
+import 'daily_history_service.dart';
 
 const _entryFields = ['result', 'notes', 'completed', 'score_entry_json', 'prescription_snapshot'];
 bool _hasEntry(Map<String, Object?> row) => row['completed'] == 1 ||
@@ -34,7 +35,7 @@ class DailyResultsImportService {
       source = await factory.openDatabase(file.path,
         options: OpenDatabaseOptions(readOnly: true, singleInstance: false));
       if ((await source.rawQuery('PRAGMA integrity_check')).single.values.single != 'ok' ||
-          (await source.rawQuery('PRAGMA user_version')).single.values.single != 7) {
+          !const [7, 8].contains((await source.rawQuery('PRAGMA user_version')).single.values.single)) {
         throw StateError('Choose a valid MFT database export from the current app.');
       }
       final rows = (await source.rawQuery('''SELECT p.*, d.workout_date
@@ -90,6 +91,7 @@ class DailyResultsImportService {
         final local = (await txn.query('fitr_pieces', where: 'id = ?', whereArgs: [row['id']])).single;
         if (_sameEntry(local, row)) continue;
         await txn.update('fitr_pieces', _entry(row), where: 'id = ?', whereArgs: [row['id']]);
+        await DailyHistoryService.sync(txn, row['id'] as String);
       }
     });
     return backup;

@@ -1,4 +1,5 @@
 import 'fitr_daily_schema.dart';
+import 'daily_history_service.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -29,7 +30,7 @@ class DatabaseService {
   static final DatabaseService instance = DatabaseService._();
 
   static const String _databaseName = 'mft_gear_matrix.db';
-  static const int _databaseVersion = 7;
+  static const int _databaseVersion = 8;
 
   Database? _database;
 
@@ -57,6 +58,9 @@ class DatabaseService {
     return openDatabase(
       path,
       version: _databaseVersion,
+      onOpen: (database) async {
+        await database.transaction((txn) => DailyHistoryService.rebuild(txn));
+      },
       onConfigure: (database) async {
         await database.execute('PRAGMA foreign_keys = ON');
       },
@@ -64,6 +68,7 @@ class DatabaseService {
         await _createTables(database);
       },
       onUpgrade: (database, oldVersion, newVersion) async {
+        if (oldVersion < 8) await createDailyHistoryTables(database);
         if (oldVersion < 2) {
           await database.execute('''
             ALTER TABLE workouts

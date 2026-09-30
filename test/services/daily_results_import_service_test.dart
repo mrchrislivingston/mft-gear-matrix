@@ -39,6 +39,8 @@ void main() {
     expect(await File(backup!).exists(), isTrue);
     expect((await local.query('fitr_pieces')).single['result'], '230 lb');
     expect((await local.query('fitr_pieces')).single['completed'], 0);
+    expect((await local.query('daily_lift_history')).single['score_entry_json'], contains('230'));
+    expect((await local.query('daily_history_status')).single['message'], 'Saved to lift history');
     expect((await local.query('fitr_days')).single['fetched_at'], 'local');
     final saved = await databaseFactoryFfi.openDatabase(backup,
       options: OpenDatabaseOptions(readOnly:true, singleInstance:false));

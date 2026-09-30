@@ -111,7 +111,7 @@ void main() {
     final result = await service.restoreBytes(bytes);
 
     expect(result.snapshot.workoutCount, 3);
-    expect(result.snapshot.schemaVersion, 7);
+    expect(result.snapshot.schemaVersion, DatabaseRestoreService.supportedSchemaVersion);
     expect(result.snapshot.programmingDayCount, 0);
     expect(await File(result.backupPath).exists(), isTrue);
 
